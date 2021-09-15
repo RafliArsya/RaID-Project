@@ -15,7 +15,7 @@ if RequiredScript == "lib/managers/playermanager" then
 			if r <= chance then
 				_incremental_cheat_messiah = 0
 				self._messiah_charges = math.max(self._messiah_charges - 0, self._messiah_charges)
-				managers.chat:_receive_message(1, managers.localization:text("Messiah"), managers.localization:text("Messiah_Free"), Color.blue) 
+				managers.chat:_receive_message(1, managers.localization:text("Messiah"), managers.localization:text("Messiah_Free_Info"), Color.blue) 
 			else
 				_incremental_cheat_messiah = _incremental_cheat_messiah + math.random(10)
 				self._messiah_charges = math.max(self._messiah_charges - 1, 0)
@@ -25,11 +25,17 @@ if RequiredScript == "lib/managers/playermanager" then
 	
 end
 
-Hooks:PostHook(PlayerManager, "init", "RaID_PlayerManager_Init", function(self)
+Hooks:PreHook(PlayerManager, "init", "RaID_PlayerManager_Init", function(self, ...)
 	self._full_mag_inc = 0
 	self._full_mag_has_success = false
 	self._no_ammo_cost_mk2_delay = nil
-	
+	self._all_hostages_count = 0 or nil
+	self._super_syndrome_time = {
+		next_t = nil,
+		remaining = nil,
+		active = false
+	}
+	self._add_pickup_ammo_chance = 0
 	self._interact_jammed = {
 		"drill_jammed",
 		"lance_jammed",
@@ -84,6 +90,7 @@ function PlayerManager:_ace_add_equipment(params)
 
 		local amt = (quantity[i] or 0) + self:equiptment_upgrade_value(equipment_name, "quantity")
 		amt = math.ceil(amt * self:upgrade_value("player", "second_deployable_mul", 1))
+		--amt = amt * 20
 		amt = managers.modifiers:modify_value("PlayerManager:GetEquipmentMaxAmount", amt, params)
 
 		table.insert(amount, amt)
@@ -317,10 +324,10 @@ function PlayerManager:check_skills()
 		local function speed_up_on_damage(attack_data)
 			local t = TimerManager:game():time()
 			local in_smoke = self:_is_in_my_smoke()
-			if (attack_data.variant == "bullet" or attack_data.variant == "melee") and not last_gain_time then
-				local value = math.random(2, 4)
+			if (attack_data.variant == "bullet" or attack_data.variant == "melee") and not last_gain_time and in_smoke then
+				local value = math.random(5)
 				managers.player:speed_up_grenade_cooldown(value)
-				self._sicario._damaged_speed_up_cd_t = in_smoke and t + 1.5 or t + 4.25
+				self._sicario._damaged_speed_up_cd_t = t + 2 --in_smoke and t + 2 or t + 5
 			end
 		end
 
@@ -352,6 +359,12 @@ function PlayerManager:check_skills()
 		self:unregister_message(Message.OnEnemyKilled, "speed_up_tag_team")
 	end]]
 	
+	if self:has_category_upgrade("player", "replenish_super_syndrome_chance") or self:has_category_upgrade("player", "hostage_replenish_super_syndrome_chance") then
+		self._super_syndrome_recharge_chance = 0
+	else
+		self._super_syndrome_recharge_chance = nil
+	end
+
 	if self:has_category_upgrade("player", "replenish_super_syndrome_chance") then
 		self._message_system:register(Message.OnDoctorBagUsed, "replenish_super_syndrome_chance", callback(self, self, "_on_recharge_super_syndrome_event"))
 	else
@@ -364,15 +377,58 @@ function PlayerManager:check_skills()
 		self._message_system:unregister(Message.OnAmmoPickup, "lucky_mag")
 	end
 	
+	if self:has_category_upgrade("player", "weapon_add_pickup_chance") then
+		self._message_system:register(Message.OnAmmoPickup, "lucky_mag", callback(self, self, "_on_try_lucky_mag"))
+	else
+		self._message_system:unregister(Message.OnAmmoPickup, "lucky_mag")
+	end
+
 	if self:has_category_upgrade("player", "no_ammo_cost_mk2") then
 		self._no_ammo_cost_mk2_inc = 0
-		self:register_message(Message.OnWeaponFired, "no_ammo_cost_mk2", callback(self, self, "_no_ammo_cost_mk2"))
+		self:register_message(Message.OnEnemyKilled, "no_ammo_cost_mk2", callback(self, self, "_no_ammo_cost_mk2")) --self:register_message(Message.OnWeaponFired, "no_ammo_cost_mk2", callback(self, self, "_no_ammo_cost_mk2"))
 	else
 		self._no_ammo_cost_mk2_inc = 0
-		self:unregister_message(Message.OnWeaponFired, "no_ammo_cost_mk2")
+		self:unregister_message(Message.OnEnemyKilled, "no_ammo_cost_mk2") --self:unregister_message(Message.OnWeaponFired, "no_ammo_cost_mk2")
+	end
+
+	if self:has_category_upgrade("player", "doctor_kill_heal") then
+		self._dkh = {
+			delay_t = 0
+		}
+		self:register_message(Message.OnEnemyKilled, "doctor_kill_heal", callback(self, self, "_on_enemy_medic_killed_heal_chance"))
+	else
+		self._dkh = {
+			delay_t = nil
+		}
+		self:unregister_message(Message.OnEnemyKilled, "doctor_kill_heal")
+	end
+
+	if self:has_category_upgrade("cooldown", "long_dis_revive") and self:has_category_upgrade("player", "long_dis_reduce") then
+		self._inspire_reduce = {
+			delay_t = 0
+		}
+		self:register_message(Message.OnEnemyKilled, "long_dis_reduce", callback(self, self, "_on_enemy_killed_reduce_long_dis_cd"))
+	else
+		self._inspire_reduce = {
+			delay_t = nil
+		}
+		self:unregister_message(Message.OnEnemyKilled, "long_dis_reduce")
 	end
 	
-	if self:has_category_upgrade("player", "crowd_control_mk2") then
+	if self:has_category_upgrade("player", "AOE_intimidate") then
+		self._AOE_int_chance_t = 0.2
+	else
+		self._AOE_int_chance_t = nil
+	end
+
+	if self:has_category_upgrade("player", "melee_kill_regen_armor") then
+		self._melee_kill_regen_armor_t = nil
+		self._message_system:register(Message.OnEnemyKilled, "m_melee_kill_regen_armor", callback(self, self, "_on_enemy_killed_melee_regen_armor"))
+	else
+		self._message_system:unregister(Message.OnEnemyKilled, "m_melee_kill_regen_armor")
+	end
+
+	--[[if self:has_category_upgrade("player", "crowd_control_mk2") then
 		self._crowd_control = {
 			value = 0,
 			trigger = 0,
@@ -394,7 +450,7 @@ function PlayerManager:check_skills()
 			active_t = nil
 		}
 		self:unregister_message(Message.OnWeaponFired, "crowd_control_mk2")
-	end
+	end]]
 	
 	if self:has_category_upgrade("player", "sure_fire_mk2") then
 		self._surefire = {
@@ -442,7 +498,7 @@ function PlayerManager:check_skills()
 	end
 end
 
-Hooks:PreHook(PlayerManager, "_add_equipment", "RAID_add_equipment", function(self, params)
+Hooks:PreHook(PlayerManager, "_add_equipment", "RaID_add_equipment", function(self, params)
 	if params and type(params.slot) == "number" and params.slot == 2 then
 		if self:has_category_upgrade("player", "second_deployable_mul") then
 			self:_ace_add_equipment(params)
@@ -576,7 +632,102 @@ function PlayerManager:update(t, dt)
 		end
 	end
 	
+	if self._melee_kill_regen_armor_t then
+		self._melee_kill_regen_armor_t = self._melee_kill_regen_armor_t < t and nil or self._melee_kill_regen_armor_t
+	end
+
+	local has_stockholm = self:has_category_upgrade("player", "super_syndrome")
+	local stockholm_used = has_stockholm and self._super_syndrome_count == 0 and true or false
+	local stockholm_recharges = self:has_category_upgrade("player", "replenish_super_syndrome_chance") or self:has_category_upgrade("player", "hostage_replenish_super_syndrome_chance")
+	local can_recharges_stockholm = stockholm_recharges and stokholm_used
+
+	if can_recharges_stockholm and self._super_syndrome_time then
+		if self._super_syndrome_time.active then
+			if self._super_syndrome_time.next_t then
+				if self._super_syndrome_time.next_t < t then
+					self:_on_hostages_recharge_super_syndrome_event()
+					self:_stop_hostage_time()
+				end 
+			end
+		end
+		if self._super_syndrome_time.active == false then
+			self:_upd_hostage_time()
+		end
+	end
+	
 	self:update_smoke_screens(t, dt)
+end
+
+function PlayerManager:set_damage_absorption(key, value)
+	self._damage_absorption[key] = value and Application:digest_value(value, true) or nil
+
+	managers.hud:set_absorb_active(HUDManager.PLAYER_PANEL, self:damage_absorption() * 0.1 * (self:local_player():character_damage():_max_health() or 10))
+end
+
+function PlayerManager:update_cocaine_hud()
+	if managers.hud then
+		managers.hud:set_absorb_active(HUDManager.PLAYER_PANEL, self:damage_absorption() * 0.1 * (self:local_player():character_damage():_max_health() or 10))
+	end
+end
+
+function PlayerManager:_start_hostage_time()
+	local now = TimerManager:game():time()
+	self._super_syndrome_time.next_t = now + 600
+end
+
+function PlayerManager:_pause_hostage_time()
+	local now = TimerManager:game():time()
+	self._super_syndrome_time.remaining = self._super_syndrome_time.next_t - t
+	self._super_syndrome_time.next_t = nil
+end
+
+function PlayerManager:_resume_hostage_time()
+	local now = TimerManager:game():time()
+	self._super_syndrome_time.next_t = t + self._super_syndrome_time.remaining
+	self._super_syndrome_time.remaining = nil
+end
+
+function PlayerManager:_stop_hostage_time()
+	self._super_syndrome_time.remaining = nil
+	self._super_syndrome_time.next_t = nil
+	self._super_syndrome_time.active = false
+end
+
+function PlayerManager:_chk_hostage_count()
+	local num_hostages = managers.groupai:state():hostage_count()
+	local num_minions = managers.groupai:state():get_amount_enemies_converted_to_criminals()
+	local count = num_hostages + num_minions
+	self._all_hostages_count = count
+
+	return self._all_hostages_count
+end
+
+function PlayerManager:on_hostages_count_changed()
+	self:_chk_hostage_count()
+	self:_upd_hostage_time()
+end
+
+function PlayerManager:_upd_hostage_time()
+	if not self:has_category_upgrade("player", "super_syndrome") then
+		return
+	end
+	if self._super_syndrome_count == 0 then
+		if self:_chk_hostage_count() > 0 then
+			if self._super_syndrome_time.active == false then
+				if self._super_syndrome_time.remaining then
+					self:_resume_hostage_time()
+				else
+					self:_start_hostage_time()
+				end
+				self._super_syndrome_time.active = true
+			end
+		elseif self:_chk_hostage_count() <= 0 then
+			if self._super_syndrome_time.active == true then
+				self:_pause_hostage_time()
+				self._super_syndrome_time.active = false
+			end
+		end
+	end
 end
 
 function PlayerManager:enable_cooldown_upgrade(category, upgrade)
@@ -593,11 +744,46 @@ function PlayerManager:enable_cooldown_upgrade(category, upgrade)
 	}
 end
 
+function PlayerManager:enable_cooldown_upgrade_time(category, upgrade, time)
+	local upgrade_value = self:upgrade_value(category, upgrade)
+
+	if upgrade_value == 0 then
+		return
+	end
+
+	local time = time
+	local cd = self._global.cooldown_upgrades[category][upgrade].cooldown_time
+	self._global.cooldown_upgrades[category] = self._global.cooldown_upgrades[category] or {}
+	self._global.cooldown_upgrades[category][upgrade] = {
+		cooldown_time = math.max(0, math.min(cd, cd - time))
+	}
+	
+end
+
 function PlayerManager:_on_recharge_super_syndrome_event()
-	if self:has_category_upgrade("player", "super_syndrome") then
-		if math.random() <= self:upgrade_value("player", "replenish_super_syndrome_chance") then
+	if self:has_category_upgrade("player", "super_syndrome") and self._super_syndrome_count == 0 then
+		local val = self:upgrade_value("player", "replenish_super_syndrome_chance") + self._super_syndrome_recharge_chance
+		if math.random() <= val then
 			self._super_syndrome_count = self:upgrade_value("player", "super_syndrome")
+			self._super_syndrome_recharge_chance = 0
 			log("Super_Syndrome = "..self._super_syndrome_count)
+			managers.chat:_receive_message(1, managers.localization:text("StockholmSyndrome"), managers.localization:text("StockholmSyndrome_Doc_Info"), Color.blue) 
+		else
+			self._super_syndrome_recharge_chance = self._super_syndrome_recharge_chance + 0.1
+		end
+	end
+end
+
+function PlayerManager:_on_hostages_recharge_super_syndrome_event()
+	if self:has_category_upgrade("player", "super_syndrome") and self._super_syndrome_count == 0 then
+		local val = self:upgrade_value("player", "hostage_replenish_super_syndrome_chance") + self._super_syndrome_recharge_chance
+		if math.random() <= val then
+			self._super_syndrome_count = self:upgrade_value("player", "super_syndrome")
+			self._super_syndrome_recharge_chance = 0
+			log("Super_Syndrome = "..self._super_syndrome_count)
+			managers.chat:_receive_message(1, managers.localization:text("StockholmSyndrome"), managers.localization:text("StockholmSyndrome_Hos_Info"), Color.blue) 
+		else
+			self._super_syndrome_recharge_chance = self._super_syndrome_recharge_chance + (math.random(1,10) * 0.01)
 		end
 	end
 end
@@ -628,12 +814,40 @@ function PlayerManager:_attempt_pocket_ecm_jammer()
 		local unit_dmg = killed_unit:character_damage()
 		local unit_max_health = unit_dmg._HEALTH_INIT
 		local hp = unit_max_health --CopDamage._get_health_init(killed_unit) --tweak_data.character[killed_unit:base()._tweak_table].HEALTH_INIT or 0
-		local inc = math.clamp(hp/60, 0.1, 7)
+		local inc = math.min(math.round(hp/60, 0.1), 6)
 		local cd = base_upgrade.cooldown_drain
+		local value = nil
+		if in_stealth then
+			if player_inventory:is_jammer_active() then
+				if inc >= cd * 0.5 then
+					value = 3
+				else
+					value = math.random(cd*0.5)
+				end
+			else
+				if inc >= cd then
+					value = cd
+				else
+					value = math.round(inc) == 0 and math.random(cd) or math.random(math.round(inc), cd)
+				end
+			end
+		else
+			if player_inventory:is_jammer_active() then
+				if inc >= cd then
+					value = 6
+				else
+					value = math.round(inc) == 0 and math.random(cd) or math.random(math.round(inc), cd)
+				end
+			else
+				value = math.round(inc) == 0 and cd or math.min(math.random(cd, cd + math.round(inc)), cd*2)
+			end
+		end
 		--local value = player_inventory:is_jammer_active() and math.random(2, base_upgrade.cooldown_drain + inc) or base_upgrade.cooldown_drain + math.min(inc, 3)
-		local value = in_stealth and player_inventory:is_jammer_active() and cd * 0.5 + math.min(inc, 3) or in_stealth and not player_inventory:is_jammer_active() and cd + math.min(inc, 3) or not in_stealth and player_inventory:is_jammer_active() and math.clamp(math.random(cd) + inc, 2, 10) or math.min(cd + inc, 12)
+		--local value = in_stealth and player_inventory:is_jammer_active() and cd * 0.5 + math.min(inc, 3) or in_stealth and not player_inventory:is_jammer_active() and cd + math.min(inc, 3) or not in_stealth and player_inventory:is_jammer_active() and math.clamp(math.random(cd) + inc, 2, 10) or math.min(cd + inc, 12)
 		--log("Inc = "..tostring(inc).."\n Value = "..tostring(value))
-		managers.player:speed_up_grenade_cooldown(value)
+		if type(value) == "number" and value > 0 then
+			managers.player:speed_up_grenade_cooldown(value)
+		end
 	end
 	
 	--[[local function speed_up_on_damage(attack_data)
@@ -715,7 +929,7 @@ function PlayerManager:_no_ammo_cost_mk2(weapon_unit)
 		end
 	end
 end
-
+--[[
 function PlayerManager:_crowd_control_mk2(weapon_unit)
 	if not alive(weapon_unit) then
 		return
@@ -811,6 +1025,171 @@ function PlayerManager:_on_crowd_ctrl_mk2_trg(t, player, weapon, data, stats)
 	stats.trigger = stats.trigger + 1
 	log("Crowd control = "..tostring(stats.trigger))
 end
+]]
+
+function PlayerManager:AOE_intimidate(prime_target)
+	local player = self:local_player()
+	if not alive(player) then
+		return
+	end
+	local stealth_state = managers.groupai:state():whisper_mode()
+	local slotmask = managers.slot:get_mask("trip_mine_targets")
+	--[[local _AOE_check = function(_c_data, _pos, prime_target)
+		if _c_data and _c_data.unit and alive(_c_data.unit) and mvector3.distance(_pos, _c_data.unit:position()) <= 350 and prime_target.unit ~= _c_data.unit then
+			return true
+		end
+		return false
+	end]]
+	self._affected_enemy_unit = self._affected_enemy_unit or {}
+	local units = World:find_units_quick("sphere", player:movement():m_pos(), 450, slotmask)
+	for c_key, c_data in pairs(units) do
+		if not table.contains(self._affected_enemy_unit, c_data) and c_data:key() ~= prime_target.unit:key() then
+			table.insert(self._affected_enemy_unit, c_data)
+		end
+	end
+	if stealth_state then
+		local unitss = World:find_units_quick("sphere", prime_target.unit:position(), 350, slotmask)
+		for c_key, c_data in pairs(unitss) do
+			if not table.contains(self._affected_enemy_unit, c_data) and c_data:key() ~= prime_target.unit:key() then
+				table.insert(self._affected_enemy_unit, c_data)
+			end
+		end
+		for e_key, unit_key in pairs(self._affected_enemy_unit) do
+			if alive(unit_key) and unit_key:character_damage() and not unit_key:character_damage():dead() then
+				local is_civ = CopDamage.is_civilian(unit_key:base()._tweak_table)
+				local is_converted = unit_key:brain() and unit_key:brain()._logic_data and unit_key:brain()._logic_data.is_converted
+				local is_enggage = unit_key:brain() and unit_key:brain():is_hostile() 
+				local unit_mov = unit_key:movement()
+				local unit_enggage = unit_mov and not unit_mov:cool()
+				local unit_hostile = unit_mov and unit_mov:stance_name() == "hos"
+				local unit_cbt = unit_mov and unit_mov:stance_name() == "cbt"
+				local unit_dmg = unit_key:character_damage()
+				if is_civ and (unit_enggage or unit_hostile) then
+					unit_key:brain():on_intimidated(math.random(5), player)
+				end
+				if not is_civ and not is_converted and is_enggage and unit_enggage and (unit_hostile or unit_cbt) then
+					local action_data = {
+						variant = 0,
+						damage = math.random(10) * 0.1,
+						damage_effect = damage * 2,
+						attacker_unit = player,
+						weapon_unit = player:inventory():equipped_unit(),
+						col_ray = { body = unit_key:body("body"), position = unit_key:position() + math.UP * 100},
+						attack_dir = player:movement():m_head_rot():y()
+					}
+					if unit_dmg then
+						unit_dmg:damage_melee(action_data)
+					end
+					unit_key:brain():on_intimidated(100, player)
+				end
+			end
+		end
+	end
+	if not stealth_state then
+		for e_key, unit_key in pairs(self._affected_enemy_unit) do
+			if alive(unit_key) and unit_key:character_damage() and not unit_key:character_damage():dead() then
+				local is_civ = CopDamage.is_civilian(unit_key:base()._tweak_table)
+				local is_converted = unit_key:brain() and unit_key:brain()._logic_data and unit_key:brain()._logic_data.is_converted
+				local is_enggage = unit_key:brain() and unit_key:brain():is_hostile() 
+				local unit_mov = unit_key:movement()
+				local unit_enggage = unit_mov and not unit_mov:cool()
+				local unit_hostile = unit_mov and unit_mov:stance_name() == "hos"
+				local unit_cbt = unit_mov and unit_mov:stance_name() == "cbt"
+				local unit_dmg = unit_key:character_damage()
+				if is_civ and (unit_enggage or unit_hostile) then
+					unit_key:brain():on_intimidated(math.random(5), player)
+				end
+			end
+		end
+		if self._AOE_int_chance_t < math.random() then
+			self._AOE_int_chance_t = self._AOE_int_chance_t + (math.random(20) * 0.01)
+		else
+			self._AOE_int_chance_t = 0.2
+			for e_key, unit_key in pairs(self._affected_enemy_unit) do
+				if alive(unit_key) and unit_key:character_damage() and not unit_key:character_damage():dead() then
+					local is_civ = CopDamage.is_civilian(unit_key:base()._tweak_table)
+					local is_converted = unit_key:brain() and unit_key:brain()._logic_data and unit_key:brain()._logic_data.is_converted
+					local is_enggage = unit_key:brain() and unit_key:brain():is_hostile() 
+					local unit_mov = unit_key:movement()
+					local unit_enggage = unit_mov and not unit_mov:cool()
+					local unit_hostile = unit_mov and unit_mov:stance_name() == "hos"
+					local unit_cbt = unit_mov and unit_mov:stance_name() == "cbt"
+					local unit_dmg = unit_key:character_damage()
+					if not is_civ and not is_converted and is_enggage and unit_enggage and (unit_hostile or unit_cbt) then
+						managers.fire:add_doted_enemy( unit_key , self:player_timer():time() , self:player_unit():inventory():equipped_unit() , math.random(2, 7) , 1, self:player_unit(), false )
+					end
+				end
+			end
+		end
+		log("Chances = "..tostring(self._AOE_int_chance_t))
+		self._affected_enemy_unit = nil
+	end					
+end
+
+function PlayerManager:_on_enemy_killed_melee_regen_armor(equipped_unit, variant, killed_unit)
+	local player_unit = self:player_unit()
+	if not player_unit then
+		return
+	end
+
+	local t = Application:time()
+	local damage_ext = player_unit:character_damage()
+
+	if variant == "melee" then
+		if damage_ext and not self._melee_kill_regen_armor_t then
+			damage_ext:restore_armor(2)
+			self._melee_kill_regen_armor_t = t + 1
+		end
+	end
+end
+
+function PlayerManager:_on_enemy_killed_reduce_long_dis_cd()
+	local player = self:local_player()
+	if not alive(player) then
+		return
+	end
+	local cd = managers.player:has_disabled_cooldown_upgrade("cooldown", "long_dis_revive")
+	if not cd then
+		return
+	end
+	local data = self._inspire_reduce
+	local can_reduce = false
+	local t = TimerManager:game():time()
+	if data.delay_t then
+		can_reduce = math.max(0, data.delay_t - t) <= 0 and true or false
+	end
+	if not can_reduce then
+		return
+	end
+	self:enable_cooldown_upgrade_time("cooldown", "long_dis_revive", 1)
+	self._inspire_reduce.delay_t = self._inspire_reduce.delay_t + 1
+end
+
+function PlayerManager:_on_enemy_medic_killed_heal_chance(equipped_unit, variant, killed_unit)
+	local player = self:local_player()
+	if not alive(player) then
+		return
+	end
+	local player_dmg = player:character_damage()
+	if managers.platform:presence() == "Playing" and (player_dmg:arrested() or player_dmg:incapacitated() or player_dmg:is_downed() or player_dmg:need_revive()) then
+		return
+	end
+	local is_medic = killed_unit:base():has_tag("medic")
+	if not is_medic then
+		return
+	end
+	local data = self._dkh
+	local activate = false
+	local t = TimerManager:game():time()
+	if data.delay_t then
+		activate = math.max(0, data.delay_t - t) <= 0 and true or false
+	end
+	if not activate then
+		return
+	end
+	player_dmg:_medic_heal()
+	self._dkh.delay_t = self._dkh.delay_t + 1
+end
 
 function PlayerManager:_on_sure_keep_firing(weapon_unit)
 	if not alive(weapon_unit) then
@@ -883,7 +1262,46 @@ function PlayerManager:_on_sure_keep_firing(weapon_unit)
 	end
 end
 
-function PlayerManager:_on_try_lucky_mag()
+function PlayerManager:_on_try_add_pickup()
+	local has_skill = self:has_category_upgrade("player", "add_pickup_ammo")
+	local player = self:local_player()
+
+	if not has_skill then return end
+	if not alive(player) or not player then
+		return
+	end
+
+	local data = self:upgrade_value("player", "add_pickup_ammo", nil)
+
+	local any_special = false
+
+	for id, weapon in pairs(player:inventory():available_selections()) do
+		if type(weapon) == "table" and weapon.unit and not weapon.unit:base():ammo_full() and weapon.unit:base()._ammo_pickup[2] == 0 then
+			any_special = true
+			break
+		end
+	end
+
+	local random = math.random()
+	if random < self._add_pickup_ammo_chance then
+		for id, weapon in pairs(player:inventory():available_selections()) do
+			local weapon_base = weapon.unit:base()
+			if not weapon_base:ammo_full() and weapon_base._ammo_pickup[2] == 0 then
+				if not table.contains(tweak_data.weapon[weapon_base._name_id].categories, "saw") then
+					weapon_base:add_ammo_to_pool(1, id)
+				else
+					weapon_base:add_ammo_to_pool(50, id)
+				end
+			end
+		end
+		self._add_pickup_ammo_chance = 0
+	else
+		self._add_pickup_ammo_chance = self._add_pickup_ammo_chance + data.inc
+	end
+
+end
+
+--[[function PlayerManager:_on_try_lucky_mag()
 	local has_skill_base = self:has_category_upgrade("player", "lucky_mag")
 	local has_skill_special = self:has_category_upgrade("player", "lucky_mag_special")
 	local has_skill_specials = self:has_category_upgrade("player", "lucky_mag_special_plus")
@@ -924,7 +1342,7 @@ function PlayerManager:_on_try_lucky_mag()
 			self._full_mag_inc = self._full_mag_inc + data.inc
 		end
 	end
-end
+end]]
 
 function PlayerManager:_find_drill()
 	local player = self:local_player() or self._unit
@@ -1047,8 +1465,10 @@ function PlayerManager:_attempt_chico_injector()
 			value = value + 1
 		elseif player:character_damage():get_real_health() > onethird_hp and player:character_damage():get_real_health() <= twothird_hp then
 			value = value + 2
+			log("2/3 health")
 		else
-			value = value + math.random(2, 5)
+			value = value + math.random(2, 6)
+			log("1/3 health")
 		end
 		managers.player:speed_up_grenade_cooldown(value or 1)
 	end
@@ -1081,6 +1501,10 @@ function PlayerManager:on_enter_custody(_player, already_dead)
 		end
 		if self:has_category_upgrade("player", "vice_prez") then
 			player:character_damage():_reset_ictb("_biker")
+		end
+		if self:has_category_upgrade("player", "replenish_super_syndrome_chance") or self:has_category_upgrade("player", "hostage_replenish_super_syndrome_chance") then
+			self:_stop_hostage_time()
+			self._super_syndrome_recharge_chance = 0
 		end
 	end
 

@@ -26,6 +26,15 @@
 		},
 		{
 			"type" : "toggle",
+			"id" : "op_toggle_heavy_armor_drop",
+			"title" : "heavy_armor_drop_name",
+			"description" : "heavy_armor_drop_desc",
+			"callback" : "RaID_heavy_armor_drop",
+			"value" : "toggle_heavy_armor_drop",
+			"default_value" : false
+		},
+		{
+			"type" : "toggle",
 			"id" : "op_toggle_feign_death_plus",
 			"title" : "feign_death_plus_name",
 			"description" : "feign_death_plus_desc",

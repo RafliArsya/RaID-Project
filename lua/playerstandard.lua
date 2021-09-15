@@ -1,6 +1,73 @@
 local orig_ps_start_action_intimidate = PlayerStandard._start_action_intimidate
+local _f_PlayerStandard_check_action_jump = PlayerStandard._check_action_jump
+local _f_PlayerStandard_perform_jump = PlayerStandard._perform_jump
+local _PlayerStandard_start_action_ducking = PlayerStandard._start_action_ducking
+local _PlayerStandard_end_action_ducking = PlayerStandard._end_action_ducking
+local wallslide_values = {60} -- minimum of 50-51?
+wallslide_values[2] = wallslide_values[1] * 0.707 -- sin 45
+wallslide_values[3] = wallslide_values[1] * 0.924 -- cos 22.5/sin 67.5
+wallslide_values[4] = wallslide_values[1] * 0.383 -- sin 22.5/cos 67.5
 
-Hooks:PostHook(PlayerStandard, "init", "RaID_PlayerStandard_Init", function(self, unit)
+function PlayerStandard:init(unit)
+	PlayerMovementState.init(self, unit)
+
+	self._tweak_data = tweak_data.player.movement_state.standard
+	self._obj_com = self._unit:get_object(Idstring("rp_mover"))
+	local slot_manager = managers.slot
+	self._slotmask_gnd_ray = slot_manager:get_mask("player_ground_check")
+	self._slotmask_fwd_ray = slot_manager:get_mask("bullet_impact_targets")
+	self._slotmask_bullet_impact_targets = slot_manager:get_mask("bullet_impact_targets")
+	self._slotmask_pickups = slot_manager:get_mask("pickups")
+	self._slotmask_AI_visibility = slot_manager:get_mask("AI_visibility")
+	self._slotmask_long_distance_interaction = slot_manager:get_mask("long_distance_interaction")
+	self._ext_camera = unit:camera()
+	self._ext_movement = unit:movement()
+	self._ext_damage = unit:character_damage()
+	self._ext_inventory = unit:inventory()
+	self._ext_anim = unit:anim_data()
+	self._ext_network = unit:network()
+	self._ext_event_listener = unit:event_listener()
+	self._camera_unit = self._ext_camera._camera_unit
+	self._camera_unit_anim_data = self._camera_unit:anim_data()
+	self._machine = unit:anim_state_machine()
+	self._m_pos = self._ext_movement:m_pos()
+	self._pos = Vector3()
+	self._stick_move = Vector3()
+	self._stick_look = Vector3()
+	self._cam_fwd_flat = Vector3()
+	self._walk_release_t = -100
+	self._last_sent_pos = unit:position()
+	self._last_sent_pos_t = 0
+	self._state_data = unit:movement()._state_data
+	local pm = managers.player
+	self.RUN_AND_RELOAD = pm:has_category_upgrade("player", "run_and_reload")
+	self._pickup_area = 200 * pm:upgrade_value("player", "increased_pickup_area", 1)
+
+	self:set_animation_state("standard")
+
+	self._jump_max = 2
+	self._double_jump = false
+	self._jump_count = 0
+	self._jump_t = nil
+
+	self._ninja_escape_t = nil
+	self._ninja_gone_t = nil
+	self._need_updt_att = false
+	self._interact_shaped_charged = {
+		"open_from_inside",
+		"pick_lock_30",
+		"pick_lock_easy",
+		"pick_lock_easy_no_skill",
+		"pick_lock_hard",
+		"pick_lock_hard_no_skill",
+		"pex_pick_lock_easy_no_skill",
+		"fex_pick_lock_easy_no_skill"
+	}
+	self._interact_c4 = {
+		"shaped_sharge",
+		"shaped_sharge_single"
+	}
+	self._save_interaction = nil
 	self._heavy_drop_damage = {
 		_count = 0,
 		_reset_t = nil
@@ -29,17 +96,122 @@ Hooks:PostHook(PlayerStandard, "init", "RaID_PlayerStandard_Init", function(self
 			_active = nil
 		}
 	end
+
+	self._interaction = managers.interaction
+	self._on_melee_restart_drill = pm:has_category_upgrade("player", "drill_melee_hit_restart_chance")
+	local controller = unit:base():controller()
+
+	if controller:get_type() ~= "pc" and controller:get_type() ~= "vr" then
+		self._input = {}
+
+		table.insert(self._input, BipodDeployControllerInput:new())
+
+		if pm:has_category_upgrade("player", "second_deployable") then
+			table.insert(self._input, SecondDeployableControllerInput:new())
+		end
+	end
+
+	self._input = self._input or {}
+
+	table.insert(self._input, HoldButtonMetaInput:new("night_vision", "weapon_firemode", nil, 0.5))
+
+	self._menu_closed_fire_cooldown = 0
+
+	managers.menu:add_active_changed_callback(callback(self, self, "_on_menu_active_changed"))
+end
+
+Hooks:PostHook(PlayerStandard, "_start_action_unequip_weapon", "RaID_PlayerStandard__start_action_unequip_weapon", function(self, data, ...)
+	if managers.groupai then
+		preset = nil
+		if managers.groupai:state():whisper_mode() then
+			if self._ext_movement:crouching() then
+				log("C W")
+				preset = {
+					"pl_mask_on_friend_combatant_whisper_mode",
+					"pl_mask_on_friend_non_combatant_whisper_mode",
+					"pl_mask_on_foe_combatant_whisper_mode_crouch",
+					"pl_mask_on_foe_non_combatant_whisper_mode_crouch"
+				}
+			else
+				log("S W")
+				preset = {
+					"pl_mask_on_friend_combatant_whisper_mode",
+					"pl_mask_on_friend_non_combatant_whisper_mode",
+					"pl_mask_on_foe_combatant_whisper_mode_stand",
+					"pl_mask_on_foe_non_combatant_whisper_mode_stand"
+				}
+			end
+		elseif self._ext_movement:crouching() then
+			log("C")
+			preset = {
+				"pl_mask_on_friend_combatant_whisper_mode",
+				"pl_mask_on_friend_non_combatant_whisper_mode",
+				"pl_mask_on_foe_combatant_whisper_mode_crouch",
+				"pl_mask_on_foe_non_combatant_whisper_mode_crouch"
+			}
+		else
+			log("S")
+			preset = {
+				"pl_mask_on_friend_combatant_whisper_mode",
+				"pl_mask_on_friend_non_combatant_whisper_mode",
+				"pl_mask_on_foe_combatant_whisper_mode_stand",
+				"pl_mask_on_foe_non_combatant_whisper_mode_stand"
+			}
+		end
+		
+		self._ext_movement:set_attention_settings(preset)
+	end
 end)
 
-Hooks:PostHook(PlayerStandard, "update", "RaID_PlayerStandard_Update", function(self, t, dt, ...)
-	if managers.player:has_category_upgrade("player", "ninja_escape_move") then
-		self:_get_update_attention(t)
+function PlayerStandard:update(t, dt)
+	PlayerMovementState.update(self, t, dt)
+	self:_calculate_standard_variables(t, dt)
+	self:_update_ground_ray()
+	self:_update_fwd_ray()
+	self:_update_check_actions(t, dt)
+
+	if self._menu_closed_fire_cooldown > 0 then
+		self._menu_closed_fire_cooldown = self._menu_closed_fire_cooldown - dt
+	end
+
+	self:_update_movement(t, dt)
+	self:_upd_nav_data()
+	managers.hud:_update_crosshair_offset(t, dt)
+	self:_update_omniscience(t, dt)
+	self:_upd_stance_switch_delay(t, dt)
+
+	if self._last_equipped then
+		if self._last_equipped ~= self._equipped_unit then
+			self._equipped_visibility_timer = t + 0.1
+		end
+
+		if self._equipped_visibility_timer and self._equipped_visibility_timer < t and alive(self._equipped_unit) then
+			self._equipped_unit:base():set_visibility_state(true)
+		end
+	end
+
+	if managers.player:has_category_upgrade("player", "ninja_escape_move") and managers.groupai then
+		if managers.groupai:state():whisper_mode() and self:in_air() and (self._running or force_run) then
+			self:_get_update_attention(t)
+		end
+		--[[if self._need_updt_att and managers.groupai:state():enemy_weapons_hot() then
+			self:_upd_attention()
+			self._need_updt_att = false
+		end]]
 		
-		if self._ninja_escape_t and self._ninja_escape_t < t then
+		if (self._ninja_escape_t and self._ninja_escape_t < t) or (self._ninja_escape_t and not managers.groupai:state():whisper_mode()) then
 			self._ninja_escape_t = nil
 		end
-		if self._ninja_gone_t and self._ninja_gone_t < t then
+		if (self._ninja_gone_t and self._ninja_gone_t < t) or (self._ninja_gone_t and not managers.groupai:state():whisper_mode()) then
 			self._ninja_gone_t = nil
+			if not self._ninja_gone_t and self._need_updt_att then
+				self:_upd_attention()
+				self._need_updt_att = false
+			end
+		end
+
+		if self._ninja_gone_t and t >= self._ninja_gone_t - 1.7 and (self:in_air() or not self._state_data.on_ladder or self._ext_movement:current_state_name() ~= "jerry1" or self._ext_movement:current_state_name() ~= "jerry2")  then
+			self._unit:mover():set_gravity(Vector3(0, 0, -982))
 		end
 	end
 	
@@ -64,8 +236,139 @@ Hooks:PostHook(PlayerStandard, "update", "RaID_PlayerStandard_Update", function(
 			self._iryf._active = nil
 		end
 	end
+
+	self._last_equipped = self._equipped_unit
+end
+
+function PlayerStandard:_get_nearest_wall_ray_dir(ray_length_mult, raytarget, only_frontal_rays, z_offset)
+
+	local length_mult = ray_length_mult or 1
+	local playerpos = managers.player:player_unit():position()
+	local result = nil or false
+	if z_offset then
+		mvector3.add(playerpos, Vector3(0, 0, z_offset))
+	end
+	-- only get one axis of rotation so facing up doesn't end the wallrun via not detecting a wall to run on
+	local rotation = self._ext_camera:rotation():z()
+	mvector3.set_x(rotation, 0)
+	mvector3.set_y(rotation, 0)
+	local shortest_ray_dist = 10000
+	local shortest_ray_dir = nil
+	local shortest_ray = nil
+	local first_ray_dist = 10000
+	local first_ray_dir = nil
+	local first_ray = nil
+
+	-- alternate table to check more than cardinal and intercardinal directions
+	local ray_adjust_table = nil
+	if not self._nearest_wall_ray_dir_state then
+		self._nearest_wall_ray_dir_state = true
+		ray_adjust_table = {
+			{-1 * wallslide_values[2], wallslide_values[2]}, -- 315, forward-left
+			{0, wallslide_values[1]}, -- 360/0, forward
+			{wallslide_values[2], wallslide_values[2]}, -- 45, forward-right
+			{wallslide_values[1], 0}, -- 90, right
+			{wallslide_values[2], -1 * wallslide_values[2]}, -- 135, back-right
+			{0, -1 * wallslide_values[1]}, -- 180, back
+			{-1 * wallslide_values[2], -1 * wallslide_values[2]}, -- 225, back-left
+			{-1 * wallslide_values[1], 0} -- 270, left
+		}
+		if only_frontal_rays then
+			ray_adjust_table[4] = nil
+			ray_adjust_table[5] = nil
+			ray_adjust_table[6] = nil
+			ray_adjust_table[7] = nil
+			ray_adjust_table[8] = nil
+		end
+	else
+		self._nearest_wall_ray_dir_state = nil
+		ray_adjust_table = {
+			{-1 * wallslide_values[4], wallslide_values[3]}, -- 292.5
+			{-1 * wallslide_values[3], wallslide_values[4]}, -- 337.5
+			{wallslide_values[3], wallslide_values[4]}, -- 22.5
+			{wallslide_values[4], wallslide_values[3]}, -- 67.5
+			{wallslide_values[4], -1 * wallslide_values[3]}, -- 112.5
+			{wallslide_values[3], -1 * wallslide_values[4]}, -- 157.5
+			{-1 * wallslide_values[3], -1 * wallslide_values[4]}, -- 202.5
+			{-1 * wallslide_values[4], -1 * wallslide_values[3]} -- 247.5
+		}
+		if only_frontal_rays then
+			--ray_adjust_table[4] = nil
+			ray_adjust_table[5] = nil
+			ray_adjust_table[6] = nil
+			ray_adjust_table[7] = nil
+			ray_adjust_table[8] = nil
+		end
+	end
+
+	for i = 1, #ray_adjust_table do
+		local ray = Vector3()
+		mvector3.set(ray, playerpos)
+		local ray_adjust = Vector3(ray_adjust_table[i][1] * length_mult, ray_adjust_table[i][2] * length_mult, 0)
+		mvector3.rotate_with(ray_adjust, rotation)
+		mvector3.add(ray, ray_adjust)
+		local ray_check = Utils:GetCrosshairRay(playerpos, ray)
+		if ray_check and (shortest_ray_dist > ray_check.distance) then
+			-- husks use different data reee
+			local is_enemy = managers.enemy:is_enemy(ray_check.unit) and ray_check.unit:brain():is_hostile() -- exclude sentries
+			local is_shield = ray_check.unit:in_slot(8) and alive(ray_check.unit:parent())
+			local enemy_not_surrendered = is_enemy and ray_check.unit:brain() and not (ray_check.unit:brain()._surrendered or ray_check.unit:brain():surrendered())
+			local enemy_not_joker = is_enemy and ray_check.unit:brain() and not (ray_check.unit:brain()._converted or (ray_check.unit:brain()._logic_data and ray_check.unit:brain()._logic_data.is_converted))
+			local enemy_not_trading = is_enemy and ray_check.unit:brain() and not (ray_check.unit:brain()._logic_data and ray_check.unit:brain()._logic_data.name == "trade") -- i don't know how to check for trading on husk
+			if raytarget == "enemy" and ((is_enemy and enemy_not_surrendered and enemy_not_joker and enemy_not_trading) or is_shield) then
+				shortest_ray_dist = ray_check.distance
+				shortest_ray_dir = ray_adjust
+				shortest_ray = ray_check
+				result = true
+			elseif raytarget == "breakable" and ray_check.unit:damage() and not ray_check.unit:character_damage() then
+				shortest_ray_dist = ray_check.distance
+				shortest_ray_dir = ray_adjust
+				shortest_ray = ray_check
+				result = true
+			elseif not raytarget then
+				shortest_ray_dist = ray_check.distance
+				shortest_ray_dir = ray_adjust
+				shortest_ray = ray_check
+				result = true
+			end
+		end
+	end
+
 	
-end)
+	return result
+end
+
+function PlayerStandard:_check_action_jump(t, input)
+	local nearest_wall = nil or false
+	if input and input.btn_jump_press and self._state_data and not self._state_data.in_air then
+		self._jump_count = 1
+	end
+	if self._state_data.in_air then
+		nearest_wall = self:_get_nearest_wall_ray_dir(1, nil, nil, nil)
+	end
+	if input and input.btn_jump_press and self._jump_t and self._jump_count < self._jump_max and nearest_wall then	
+		self._jump_count = self._jump_count + 1
+		self._double_jump = true
+		local _tmp_t = self._jump_t
+		local _tmp_bool = self._state_data.in_air
+		self._jump_t = 0
+		self._state_data.in_air = false
+		local _result = _f_PlayerStandard_check_action_jump(self, t, input)
+		self._jump_t = _tmp_t
+		self._state_data.in_air = _tmp_bool
+		return _result
+	end
+	return _f_PlayerStandard_check_action_jump(self, t, input)
+end
+
+function PlayerStandard:_perform_jump(jump_vec)
+	local height = jump_vec
+	if self._double_jump then
+		self._double_jump = false
+		height = height * 1.4
+	end
+	return _f_PlayerStandard_perform_jump(self, height)
+end
 
 function PlayerStandard:_start_action_intimidate(t, secondary)
 	if not self._intimidate_t or tweak_data.player.movement_state.interaction_delay < t - self._intimidate_t then
@@ -95,15 +398,15 @@ function PlayerStandard:_start_action_intimidate(t, secondary)
 			
 			local pos = prime_target.unit:position()
 			
-			local _inspire_AOE_check = function(_c_data, _pos)
-				if _c_data and _c_data.unit and alive(_c_data.unit) and mvector3.distance(_pos, _c_data.unit:position()) <= 675 then
+			local _inspire_AOE_check = function(_c_data, _pos, prime_target)
+				if _c_data and _c_data.unit and alive(_c_data.unit) and mvector3.distance(_pos, _c_data.unit:position()) <= 600 and prime_target.unit ~= _c_data.unit then
 					return true
 				end
 				return false
 			end
 			local revive_units = {}
 			for c_key, c_data in pairs(managers.groupai:state():all_player_criminals()) do
-				if _inspire_AOE_check(c_data, pos) then
+				if _inspire_AOE_check(c_data, pos, prime_target) then
 					revive_units[c_data.unit:key()] = c_data.unit
 					
 					c_data.unit:network():send_to_unit({
@@ -116,7 +419,7 @@ function PlayerStandard:_start_action_intimidate(t, secondary)
 				end
 			end
 			for c_key, c_data in pairs(managers.groupai:state():all_AI_criminals()) do
-				if _inspire_AOE_check(c_data, pos) then
+				if _inspire_AOE_check(c_data, pos, prime_target) then
 					revive_units[c_data.unit:key()] = c_data.unit			
 				end
 			end
@@ -128,6 +431,11 @@ function PlayerStandard:_start_action_intimidate(t, secondary)
 				end
 			end
 			self._ext_movement:rally_skill_data().morale_boost_delay_t = managers.player:player_timer():time() + (self._ext_movement:rally_skill_data().morale_boost_cooldown_t or 3.5)
+		elseif voice_type == "stop" or voice_type == "down" or voice_type == "down_stay" or voice_type == "stop_cop" or voice_type == "down_cop" then
+			if managers.player:has_category_upgrade("player", "AOE_intimidate") then
+				managers.player:AOE_intimidate(prime_target)
+			end
+			return orig_ps_start_action_intimidate(self, t, secondary)
 		else
 			return orig_ps_start_action_intimidate(self, t, secondary)
 		end
@@ -357,149 +665,112 @@ function PlayerStandard:_check_action_primary_attack(t, input)
 	return new_action
 end
 
-local wallslide_values = {60} -- minimum of 50-51?
-wallslide_values[2] = wallslide_values[1] * 0.707 -- sin 45
-wallslide_values[3] = wallslide_values[1] * 0.924 -- cos 22.5/sin 67.5
-wallslide_values[4] = wallslide_values[1] * 0.383 -- sin 22.5/cos 67.5
+function PlayerStandard:_start_action_interact(t, input, timer, interact_object)
+	self:_interupt_action_reload(t)
+	self:_interupt_action_steelsight(t)
+	self:_interupt_action_running(t)
+	self:_interupt_action_charging_weapon(t)
 
-function PlayerStandard:_get_nearest_wall_ray_dir(ray_length_mult, raytarget, only_frontal_rays, z_offset)
-
-	local length_mult = ray_length_mult or 1
-	local playerpos = managers.player:player_unit():position()
-	local result = nil or false
-	if z_offset then
-		mvector3.add(playerpos, Vector3(0, 0, z_offset))
-	end
-	-- only get one axis of rotation so facing up doesn't end the wallrun via not detecting a wall to run on
-	local rotation = self._ext_camera:rotation():z()
-	mvector3.set_x(rotation, 0)
-	mvector3.set_y(rotation, 0)
-	local shortest_ray_dist = 10000
-	local shortest_ray_dir = nil
-	local shortest_ray = nil
-	local first_ray_dist = 10000
-	local first_ray_dir = nil
-	local first_ray = nil
-
-	-- alternate table to check more than cardinal and intercardinal directions
-	local ray_adjust_table = nil
-	if not self._nearest_wall_ray_dir_state then
-		self._nearest_wall_ray_dir_state = true
-		ray_adjust_table = {
-			{-1 * wallslide_values[2], wallslide_values[2]}, -- 315, forward-left
-			{0, wallslide_values[1]}, -- 360/0, forward
-			{wallslide_values[2], wallslide_values[2]}, -- 45, forward-right
-			{wallslide_values[1], 0}, -- 90, right
-			{wallslide_values[2], -1 * wallslide_values[2]}, -- 135, back-right
-			{0, -1 * wallslide_values[1]}, -- 180, back
-			{-1 * wallslide_values[2], -1 * wallslide_values[2]}, -- 225, back-left
-			{-1 * wallslide_values[1], 0} -- 270, left
-		}
-		if only_frontal_rays then
-			ray_adjust_table[4] = nil
-			ray_adjust_table[5] = nil
-			ray_adjust_table[6] = nil
-			ray_adjust_table[7] = nil
-			ray_adjust_table[8] = nil
+	local final_timer = timer
+	final_timer = managers.modifiers:modify_value("PlayerStandard:OnStartInteraction", final_timer, interact_object)
+	self._interact_expire_t = final_timer
+	local start_timer = 0
+	self._interact_params = {
+		object = interact_object,
+		timer = final_timer,
+		tweak_data = interact_object:interaction().tweak_data
+	}
+	self._save_interaction = nil
+	if interact_object and interact_object == self._interaction:active_unit() and table.contains(self._interact_c4, interact_object:interaction().tweak_data) then
+		local units = World:find_units("sphere", interact_object:position(), 200, managers.slot:get_mask("bullet_impact_targets"))
+		local result = false
+		local interact_count = 0
+		local do_open = false
+		for id, unit in pairs(units) do
+			if unit and unit:interaction() and unit:interaction().tweak_data and table.contains(self._interact_c4, unit:interaction().tweak_data) then
+				if unit:interaction():active() then
+					interact_count = interact_count + 1
+					log("interact c4 = "..tostring(interact_count))
+				end
+			end
 		end
-	else
-		self._nearest_wall_ray_dir_state = nil
-		ray_adjust_table = {
-			{-1 * wallslide_values[4], wallslide_values[3]}, -- 292.5
-			{-1 * wallslide_values[3], wallslide_values[4]}, -- 337.5
-			{wallslide_values[3], wallslide_values[4]}, -- 22.5
-			{wallslide_values[4], wallslide_values[3]}, -- 67.5
-			{wallslide_values[4], -1 * wallslide_values[3]}, -- 112.5
-			{wallslide_values[3], -1 * wallslide_values[4]}, -- 157.5
-			{-1 * wallslide_values[3], -1 * wallslide_values[4]}, -- 202.5
-			{-1 * wallslide_values[4], -1 * wallslide_values[3]} -- 247.5
-		}
-		if only_frontal_rays then
-			--ray_adjust_table[4] = nil
-			ray_adjust_table[5] = nil
-			ray_adjust_table[6] = nil
-			ray_adjust_table[7] = nil
-			ray_adjust_table[8] = nil
-		end
-	end
-
-	for i = 1, #ray_adjust_table do
-		local ray = Vector3()
-		mvector3.set(ray, playerpos)
-		local ray_adjust = Vector3(ray_adjust_table[i][1] * length_mult, ray_adjust_table[i][2] * length_mult, 0)
-		mvector3.rotate_with(ray_adjust, rotation)
-		mvector3.add(ray, ray_adjust)
-		local ray_check = Utils:GetCrosshairRay(playerpos, ray)
-		if ray_check and (shortest_ray_dist > ray_check.distance) then
-			-- husks use different data reee
-			local is_enemy = managers.enemy:is_enemy(ray_check.unit) and ray_check.unit:brain():is_hostile() -- exclude sentries
-			local is_shield = ray_check.unit:in_slot(8) and alive(ray_check.unit:parent())
-			local enemy_not_surrendered = is_enemy and ray_check.unit:brain() and not (ray_check.unit:brain()._surrendered or ray_check.unit:brain():surrendered())
-			local enemy_not_joker = is_enemy and ray_check.unit:brain() and not (ray_check.unit:brain()._converted or (ray_check.unit:brain()._logic_data and ray_check.unit:brain()._logic_data.is_converted))
-			local enemy_not_trading = is_enemy and ray_check.unit:brain() and not (ray_check.unit:brain()._logic_data and ray_check.unit:brain()._logic_data.name == "trade") -- i don't know how to check for trading on husk
-			if raytarget == "enemy" and ((is_enemy and enemy_not_surrendered and enemy_not_joker and enemy_not_trading) or is_shield) then
-				shortest_ray_dist = ray_check.distance
-				shortest_ray_dir = ray_adjust
-				shortest_ray = ray_check
-				result = true
-			elseif raytarget == "breakable" and ray_check.unit:damage() and not ray_check.unit:character_damage() then
-				shortest_ray_dist = ray_check.distance
-				shortest_ray_dir = ray_adjust
-				shortest_ray = ray_check
-				result = true
-			elseif not raytarget then
-				shortest_ray_dist = ray_check.distance
-				shortest_ray_dir = ray_adjust
-				shortest_ray = ray_check
-				result = true
+		do_open = interact_count <= 1 and true or false
+		if do_open then
+			for id, unit in pairs(units) do
+				if unit and unit:interaction() and unit:interaction().tweak_data and table.contains(self._interact_shaped_charged, unit:interaction().tweak_data) then
+					self._save_interaction = self._save_interaction or {}
+					table.insert(self._save_interaction, unit)
+					break
+				end
 			end
 		end
 	end
-
-	
-	return result
+	self:_play_unequip_animation()
+	managers.hud:show_interaction_bar(start_timer, final_timer)
+	managers.network:session():send_to_peers_synched("sync_teammate_progress", 1, true, self._interact_params.tweak_data, final_timer, false)
+	self._unit:network():send("sync_interaction_anim", true, self._interact_params.tweak_data)
 end
 
-local _f_PlayerStandard_check_action_jump = PlayerStandard._check_action_jump
-local _f_PlayerStandard_perform_jump = PlayerStandard._perform_jump
-local _PlayerStandard_start_action_ducking = PlayerStandard._start_action_ducking
-local _PlayerStandard_end_action_ducking = PlayerStandard._end_action_ducking
+function PlayerStandard:_update_interaction_timers(t)
+	if self._interact_expire_t then
+		local dt = self:_get_interaction_speed()
+		self._interact_expire_t = self._interact_expire_t - dt
 
-PlayerStandard._jump_max = 2
-PlayerStandard._double_jump = false
-PlayerStandard._jump_count = 0
-PlayerStandard._jump_t = nil
+		local get_interact_params = self._interact_params
 
-function PlayerStandard:_check_action_jump(t, input)
-	local nearest_wall = nil or false
-	if input and input.btn_jump_press and self._state_data and not self._state_data.in_air then
-		self._jump_count = 1
-	end
-	if self._state_data.in_air then
-		nearest_wall = self:_get_nearest_wall_ray_dir(1, nil, nil, nil)
-	end
-	if input and input.btn_jump_press and self._jump_t and self._jump_count < self._jump_max and nearest_wall then	
-		self._jump_count = self._jump_count + 1
-		self._double_jump = true
-		local _tmp_t = self._jump_t
-		local _tmp_bool = self._state_data.in_air
-		self._jump_t = 0
-		self._state_data.in_air = false
-		local _result = _f_PlayerStandard_check_action_jump(self, t, input)
-		self._jump_t = _tmp_t
-		self._state_data.in_air = _tmp_bool
-		return _result
-	end
-	return _f_PlayerStandard_check_action_jump(self, t, input)
-end
+		if not alive(self._interact_params.object) or self._interact_params.object ~= self._interaction:active_unit() or self._interact_params.tweak_data ~= self._interact_params.object:interaction().tweak_data or self._interact_params.object:interaction():check_interupt() then
+			self._save_interaction = nil
+			self:_interupt_action_interact(t)
+		else
+			local current = self._interact_params.timer - self._interact_expire_t
+			local total = self._interact_params.timer
 
-function PlayerStandard:_perform_jump(jump_vec)
-	local height = jump_vec
-	if self._double_jump then
-		self._double_jump = false
-		height = height * 1.4
+			managers.hud:set_interaction_bar_width(current, total)
+
+			if self._interact_expire_t <= 0 then
+				
+				if managers.player:has_category_upgrade("trip_mine", "breach_mk2") and self._save_interaction then
+					for id, unit in ipairs(self._save_interaction) do
+						if unit:interaction() and unit:interaction().tweak_data and table.contains(self._interact_shaped_charged, unit:interaction().tweak_data) then
+							unit:interaction():interact(self._unit)
+							
+							World:effect_manager():spawn({
+								effect = Idstring("effects/particles/explosions/explosion_grenade"),
+								position = unit:position(),
+								normal = unit:rotation():y()
+							})
+						
+							local sound_source = SoundDevice:create_source("TripMineBase")
+						
+							sound_source:set_position(unit:position())
+							sound_source:post_event("molotov_impact")
+							managers.enemy:add_delayed_clbk("TrMiexpl", callback(TripMineBase, TripMineBase, "_dispose_of_sound", {
+								sound_source = sound_source
+							}), TimerManager:game():time() + 1)
+
+							local alert_size = tweak_data.weapon.trip_mines.alert_radius
+							alert_size = managers.player:has_category_upgrade("trip_mine", "alert_size_multiplier") and alert_size * managers.player:upgrade_value("trip_mine", "alert_size_multiplier") or alert_size
+
+							local alert_event = {
+								"aggression",
+								unit:position(),
+								alert_size,
+								managers.groupai:state():get_unit_type_filter("civilians_enemies"),
+								self._unit
+							}
+							managers.groupai:state():propagate_alert(alert_event)
+							table.remove(self._save_interaction, id)
+						end
+					end
+				end
+				
+				self:_end_action_interact(t)
+
+				self._interact_expire_t = nil
+				self._save_interaction = nil
+			end
+		end
 	end
-	return _f_PlayerStandard_perform_jump(self, height)
 end
 
 function PlayerStandard:_update_omniscience(t, dt)
@@ -536,106 +807,45 @@ function PlayerStandard:_update_omniscience(t, dt)
 	end
 end
 
-PlayerStandard._ninja_escape_t = nil
-PlayerStandard._ninja_gone_t = nil
-PlayerStandard._has_update_att = false
 function PlayerStandard:_get_update_attention(t, force_run)
-	if self._state_data.in_air and (self._running or force_run) and managers.groupai:state():whisper_mode() and not self._ext_movement:has_carry_restriction() and (Network:is_server() and self._ext_movement:_get_suspicion() ~= nil or self._ext_movement:_get_sus_rat() ~= nil) then
+	local stealth = managers.groupai and managers.groupai:state():whisper_mode()
+	local suspicion = self._ext_movement:_get_sus_rat()
+	local sus_type_b = type(suspicion) == "boolean"
+	local sus_type_n = type(suspicion) == "number"
+	if not stealth then
+		return
+	end
+	if sus_type_n and suspicion > 0 then
 		if not self._ninja_escape_t then
+			log("JUMP NINJA".."| Sus Rat = "..tostring(self._ext_movement:_get_sus_rat()))
 			self._ext_movement:set_attention_settings({
 				"pl_civilian"
 			})
-			self._ninja_escape_t = t + 3.5
+			self._ninja_escape_t = t + 25
 			self._ninja_gone_t = t + 2
-			self._has_update_att = false
+			self._need_updt_att = true
+			self._unit:mover():set_velocity(self._last_velocity_xy*0.8)
+			self._unit:mover():set_gravity(Vector3(0, 0, 0))
+		end
+	end
+	--[[if self._state_data.in_air and (self._running or force_run) and managers.groupai:state():whisper_mode() and not self._ext_movement:has_carry_restriction() and self._ext_movement:_get_sus_rat() then
+		if not self._ninja_escape_t then
+			log("JUMP NINJA".."| Sus Rat = "..tostring(self._ext_movement:_get_sus_rat()))
+			self._ext_movement:set_attention_settings({
+				"pl_civilian"
+			})
+			self._ninja_escape_t = t + 15
+			self._ninja_gone_t = t + 2
+			self._need_updt_att = false
+			self._unit:mover():set_velocity(self._last_velocity_xy)
+			
 		end
 	else
-		if not self._ninja_gone_t and not self._has_update_att then
+		if not self._ninja_gone_t and not self._need_updt_att then
 			self:_upd_attention()
-			self._has_update_att = true
+			self._need_updt_att = true
 		end
-	end
-end
-
-function PlayerStandard:_get_max_walk_speed(t, force_run)
-	local speed_tweak = self._tweak_data.movement.speed
-	local movement_speed = speed_tweak.STANDARD_MAX
-	local speed_state = "walk"
-
-	--[[if self._state_data.in_steelsight and not managers.player:has_category_upgrade("player", "steelsight_normal_movement_speed") and not _G.IS_VR then
-		movement_speed = speed_tweak.STEELSIGHT_MAX
-		speed_state = "steelsight"
-	elseif self:on_ladder() then
-		movement_speed = speed_tweak.CLIMBING_MAX
-		speed_state = "climb"
-	elseif self._state_data.ducking then
-		movement_speed = speed_tweak.CROUCHING_MAX
-		speed_state = "crouch"
-	elseif self._state_data.in_air and not managers.player:has_category_upgrade("player", "ninja_escape_move") and (self._running or force_run) then
-		movement_speed = speed_tweak.INAIR_MAX * 3.5
-		speed_state = nil
-	elseif self._state_data.in_air and managers.player:has_category_upgrade("player", "ninja_escape_move") and (self._running or force_run) then
-		movement_speed = speed_tweak.INAIR_MAX * 4.2
-		speed_state = nil
-		self:_get_update_attention(t, force_run)
-	elseif self._state_data.in_air and not (self._running or force_run) then
-		movement_speed = speed_tweak.INAIR_MAX
-		speed_state = nil
-	elseif self._running or force_run then
-		movement_speed = speed_tweak.RUNNING_MAX
-		speed_state = "run"
 	end]]
-
-	if self._state_data.in_steelsight and not managers.player:has_category_upgrade("player", "steelsight_normal_movement_speed") and not _G.IS_VR then
-		movement_speed = speed_tweak.STEELSIGHT_MAX
-		speed_state = "steelsight"
-	elseif self:on_ladder() then
-		movement_speed = speed_tweak.CLIMBING_MAX
-		speed_state = "climb"
-	elseif self._state_data.ducking then
-		movement_speed = speed_tweak.CROUCHING_MAX
-		speed_state = "crouch"
-	elseif self._state_data.in_air and managers.player:has_category_upgrade("player", "ninja_escape_move") and (self._running or force_run) then
-		movement_speed = speed_tweak.INAIR_MAX * 5
-		speed_state = nil
-		self:_get_update_attention(t, force_run)
-	elseif self._state_data.in_air then
-		movement_speed = speed_tweak.INAIR_MAX
-		speed_state = nil
-	elseif self._running or force_run then
-		movement_speed = speed_tweak.RUNNING_MAX
-		speed_state = "run"
-	end
-
-	movement_speed = managers.modifiers:modify_value("PlayerStandard:GetMaxWalkSpeed", movement_speed, self._state_data, speed_tweak)
-	local morale_boost_bonus = self._ext_movement:morale_boost()
-	local multiplier = managers.player:movement_speed_multiplier(speed_state, speed_state and morale_boost_bonus and morale_boost_bonus.move_speed_bonus, nil, self._ext_damage:health_ratio())
-	multiplier = multiplier * (self._tweak_data.movement.multiplier[speed_state] or 1)
-	local apply_weapon_penalty = true
-
-	if self:_is_meleeing() then
-		local melee_entry = managers.blackmarket:equipped_melee_weapon()
-		apply_weapon_penalty = not tweak_data.blackmarket.melee_weapons[melee_entry].stats.remove_weapon_movement_penalty
-	end
-
-	if alive(self._equipped_unit) and apply_weapon_penalty then
-		multiplier = multiplier * self._equipped_unit:base():movement_penalty()
-	end
-
-	if managers.player:has_activate_temporary_upgrade("temporary", "increased_movement_speed") then
-		multiplier = multiplier * managers.player:temporary_upgrade_value("temporary", "increased_movement_speed", 1)
-	end
-
-	local final_speed = movement_speed * multiplier
-	self._cached_final_speed = self._cached_final_speed or 0
-
-	if final_speed ~= self._cached_final_speed then
-		self._cached_final_speed = final_speed
-
-		self._ext_network:send("action_change_speed", final_speed)
-	end
-	
-	return final_speed
 end
 
 function PlayerStandard:_interupt_action_reload(t)
@@ -666,7 +876,7 @@ function PlayerStandard:_update_foley(t, input)
 	end
 
 	local player_armor_eq = managers.blackmarket:equipped_armor(true, true)
-	local heavy_armor = player_armor_eq == "level_7"
+	local heavy_armor = player_armor_eq == "level_7" and RaID:get_data("toggle_sentry_skill_is_player") == true
 
 	if not self._gnd_ray and not self._state_data.on_ladder then
 		if not self._state_data.in_air then

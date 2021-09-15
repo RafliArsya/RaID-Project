@@ -4,7 +4,8 @@ function TripMineBase:_explode(col_ray)
 	end
 
 	local damage_size = tweak_data.weapon.trip_mines.damage_size * managers.player:upgrade_value("trip_mine", "explosion_size_multiplier_1", 1) * managers.player:upgrade_value("trip_mine", "damage_multiplier", 1)
-	local alert_size = tweak_data.weapon.trip_mines.alert_radius * managers.player:upgrade_value("trip_mine", "alert_size_multiplier", 1)
+	local alert_size = tweak_data.weapon.trip_mines.alert_radius
+	alert_size = managers.player:has_category_upgrade("trip_mine", "alert_size_multiplier") and alert_size * managers.player:upgrade_value("trip_mine", "alert_size_multiplier") or alert_size
 	local player = managers.player:player_unit()
 
 	managers.explosion:give_local_player_dmg(self._position, damage_size, tweak_data.weapon.trip_mines.player_damage)

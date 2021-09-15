@@ -311,14 +311,14 @@ function WeaponTweakData:init(tweak_data)
 	self.flint.NR_CLIPS_MAX = 4
 	self.flint.AMMO_MAX = self.flint.CLIP_AMMO_MAX * self.flint.NR_CLIPS_MAX
 	self.flint.AMMO_PICKUP = {0.4, 3.6}
-	self.flint.stats.damage = 95
+	self.flint.stats.damage = 96
 
 	--m16 / AMR-16
 	self.m16.CLIP_AMMO_MAX = 30
 	self.m16.NR_CLIPS_MAX = 3
 	self.m16.AMMO_MAX = self.m16.CLIP_AMMO_MAX * self.m16.NR_CLIPS_MAX
 	self.m16.AMMO_PICKUP = {0.35, 4} --self:_pickup_chan(self.m16.CLIP_AMMO_MAX, CATIDX.DMR, 1)
-	self.m16.stats.damage = 93
+	self.m16.stats.damage = 92
 
 	--AR AVERAGE 50 < (DMG+3) < 90
 	--komodo / Tempest-21
@@ -2610,15 +2610,63 @@ function WeaponTweakData:init(tweak_data)
 	self.arbiter.NR_CLIPS_MAX = 4
 	self.arbiter.AMMO_MAX = self.arbiter.CLIP_AMMO_MAX * self.arbiter.NR_CLIPS_MAX
 	self.arbiter.AMMO_PICKUP = { 0.05, 0.8 }
+
+	--Saw
+	self.saw.timers = {
+		reload_not_empty = 3.7,
+		reload_empty = 3.7,
+		unequip = 0.8,
+		equip = 0.8
+	}
+	self.saw.CLIP_AMMO_MAX = 150
+	self.saw.NR_CLIPS_MAX = 3
+	self.saw.AMMO_MAX = self.saw.CLIP_AMMO_MAX * self.saw.NR_CLIPS_MAX
+	self.saw.AMMO_PICKUP = {
+		0,
+		0
+	}
+	self.saw.FIRE_MODE = "auto"
+	self.saw.fire_mode_data = {
+		fire_rate = 0.175
+	}
+	self.saw.auto = {
+		fire_rate = 0.175
+	}
+	self.saw.panic_suppression_chance = 0.2
+	self.saw.stats.damage = 102
+	self.saw.hit_alert_size_increase = 4
+	self.saw_secondary.timers = {
+		reload_not_empty = 3.7,
+		reload_empty = 3.7,
+		unequip = 0.8,
+		equip = 0.8
+	}
+	self.saw_secondary.CLIP_AMMO_MAX = 150
+	self.saw_secondary.NR_CLIPS_MAX = 3
+	self.saw_secondary.AMMO_MAX = self.saw_secondary.CLIP_AMMO_MAX * self.saw_secondary.NR_CLIPS_MAX
+	self.saw_secondary.AMMO_PICKUP = {
+		0,
+		0
+	}
+	self.saw_secondary.FIRE_MODE = "auto"
+	self.saw_secondary.fire_mode_data = {
+		fire_rate = 0.175
+	}
+	self.saw_secondary.auto = {
+		fire_rate = 0.175
+	}
+	self.saw_secondary.panic_suppression_chance = 0.2
+	self.saw_secondary.stats.damage = 102
+	self.saw_secondary.hit_alert_size_increase = 4
 end
 
 --Trip Mine
 Hooks:PostHook(WeaponTweakData, "_init_data_player_weapons", "RaID_WeaponTweakData_init_data_player_weapons", function(self, weapon_data)
 	self.trip_mines = {
-		delay = 0.3,
+		delay = 0.25,
 		damage = 100,
 		player_damage = 5,
 		damage_size = 300,
-		alert_radius = 1800
+		alert_radius = 2000
 	}
 end)

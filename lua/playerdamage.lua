@@ -44,6 +44,12 @@ Hooks:PostHook(PlayerDamage, "revive", "RaID_PlayerDamage_revive", function(self
 			end
 		end
 	end
+	if self._has_revive_protection then
+		self._can_take_dmg_timer = managers.player:upgrade_value("player", "running_from_death")
+	end
+	if self._has_revive_heal then
+		self._has_revive_heal_t = managers.player:player_timer():time() + 12
+	end
 end)
 
 function PlayerDamage:init(unit)
@@ -97,11 +103,17 @@ function PlayerDamage:init(unit)
 	self._has_damage_speed = managers.player:has_inactivate_temporary_upgrade("temporary", "damage_speed_multiplier")
 	self._has_damage_speed_team = managers.player:upgrade_value("player", "team_damage_speed_multiplier_send", 0) ~= 0
 	self._has_damage_speed_act = nil
-	self._has_damage_speed_ab = managers.player:has_category_upgrade("player", "armor_depleted_get_absorbtion")
+	self._has_damage_speed_ab = managers.player:has_category_upgrade("player", "armor_depleted_get_absorption")
 	self._has_damage_speed_ab_act = nil
+	self._has_damage_speed_ab_t = nil
+	self._has_damage_speed_ab_key = {}
+
+	self._has_pain_killer_ab = managers.player:has_category_upgrade("player", "pain_killer_ab")
+	self._pain_killer_ab_key = {}
+	self._pain_killer_ab_t = nil
+
 	self._has_revive_protection = managers.player:has_category_upgrade("player", "running_from_death")
 	self._has_revive_heal = managers.player:has_category_upgrade("player", "up_you_goh")
-	self._has_revive_protection_t = nil
 	self._has_revive_heal_t = nil
 	
 	self._damage_boost = {
@@ -112,6 +124,13 @@ function PlayerDamage:init(unit)
 		_dmg_boost_active_t = nil,
 		_dmg_boost_cd_t = nil
 	}
+
+
+	self._doctor_kill_heal_chance = 0
+
+	if managers.player:has_category_upgrade("player", "doctor_kill_heal") then
+		self._doctor_kill_heal_chance = 0.2
+	end
 
 	local function revive_player()
 		self:revive(true)
@@ -223,6 +242,9 @@ function PlayerDamage:init(unit)
 		local function on_revive_interaction_success()
 			managers.player:remove_property("revive_damage_reduction")
 			managers.player:activate_temporary_upgrade("temporary", "revive_damage_reduction")
+			if managers.player:has_category_upgrade("player", "pain_killer_ab") then
+				self:_revive_absorption_bonuses()
+			end
 		end
 
 		self._listener_holder:add("on_revive_interaction_start", {
@@ -475,11 +497,12 @@ function PlayerDamage:update(unit, t, dt)
 
 	if self._auto_revive_timer then
 		if not managers.platform:presence() == "Playing" or not self._bleed_out or self._dead or self:incapacitated() or self:arrested() or self._check_berserker_done then
-			if self._check_berserker_done then
+			--[[if self._check_berserker_done then
 				self._auto_revive_timer = self._auto_revive_timer
 			else
 				self._auto_revive_timer = nil
-			end
+			end]]
+			self._auto_revive_timer = self._auto_revive_timer and self._check_berserker_done and self._auto_revive_timer or nil
 		else
 			self._auto_revive_timer = self._auto_revive_timer - dt
 
@@ -500,6 +523,33 @@ function PlayerDamage:update(unit, t, dt)
 		end
 	end
 	
+	if self._has_revive_heal then
+		if self._has_revive_heal_t then
+			if self._has_revive_heal_t > t and (self:incapacitated() or self:is_downed() or self:need_revive() or self:dead()) then
+				self._has_revive_heal_t = nil
+			end
+			if type(self._has_revive_heal_t)== "number" and self._has_revive_heal_t <= t then
+				self:_give_revive_heal()
+				self._has_revive_heal_t = nil
+			end
+		end
+	end
+
+	if self._has_damage_speed_ab then
+		if self._has_damage_speed_ab_t and (self._has_damage_speed_ab_t < t or self:incapacitated() or self:is_downed() or self:need_revive() or self:dead() or not self._has_damage_speed_ab_act) then
+			managers.player:set_damage_absorption(self._has_damage_speed_ab_key, nil)
+			self._has_damage_speed_ab_t = nil
+			log("Delete Damage Absorp")
+		end
+	end
+
+	if self._has_pain_killer_ab then
+		if self._pain_killer_ab_t and (self._pain_killer_ab_t < t or self:incapacitated() or self:is_downed() or self:need_revive() or self:dead()) then
+			managers.player:set_damage_absorption(self._pain_killer_ab_key, nil)
+			self._pain_killer_ab_t = nil
+		end
+	end
+
 	if self._data_dmg_resevoir.reset_t then
 		if self._data_dmg_resevoir.reset_t < t or self:incapacitated() or self:is_downed() or self:need_revive() or self:dead() then
 			self._data_dmg_resevoir.count = 0
@@ -586,9 +636,11 @@ function PlayerDamage:damage_bullet(attack_data)
 	}
 	local pm = managers.player
 	local dmg_mul = pm:damage_reduction_skill_multiplier("bullet")
+
 	if firetrap and not fire_data.delay_t then
 		self:_fire_trap_skill(attack_data, fire_data)
 	end
+
 	attack_data.damage = attack_data.damage * dmg_mul
 	attack_data.damage = managers.mutators:modify_value("PlayerDamage:TakeDamageBullet", attack_data.damage)
 	attack_data.damage = managers.modifiers:modify_value("PlayerDamage:TakeDamageBullet", attack_data.damage)
@@ -608,7 +660,16 @@ function PlayerDamage:damage_bullet(attack_data)
 	local data_resevoir = has_resevoir and self._data_dmg_resevoir
 	
 	if damage_absorption > 0 then
-		attack_data.damage = math.max(0, attack_data.damage - damage_absorption)
+		local dmg_absorp_val = damage_absorption * 0.1
+		local absorp_dmg = self:_max_health() * dmg_absorp_val
+		attack_data.damage = math.max(0, attack_data.damage - absorp_dmg)
+		--[[local dmg_absorp_over = damage_absorption > 5 and damage_absorption - 5 or nil
+		local dmg_absorp_val = math.min(damage_absorption, 5)
+		local dmg_absorp_val_over = dmg_absorp_over and math.min(dmg_absorp_over * 0.5, 5) or 0
+		dmg_absorp_val = (dmg_absorp_val + dmg_absorp_val_over) * 0.1
+		local absorp_dmg = self:_max_health() * dmg_absorp_val
+		local remaining_dmg = math.max(0, attack_data.damage - absorp_dmg)
+		attack_data.damage = remaining_dmg > 0 and remaining_dmg or 0.01]]
 	end
 
 	if self._god_mode then
@@ -654,8 +715,6 @@ function PlayerDamage:damage_bullet(attack_data)
 		data_resevoir.count = math.min(data_resevoir.count + 1, 4)
 	end
 	
-	local d_dodge = self._data_dodge
-	
 	self._last_received_dmg = attack_data.damage
 	self._next_allowed_dmg_t = Application:digest_value(pm:player_timer():time() + self._dmg_interval, true)
 	local dodge_roll = math.random()
@@ -664,6 +723,9 @@ function PlayerDamage:damage_bullet(attack_data)
 	local skill_dodge_chance = pm:skill_dodge_chance(self._unit:movement():running(), self._unit:movement():crouching(), self._unit:movement():zipline_unit())
 	dodge_value = dodge_value + armor_dodge_chance + skill_dodge_chance
 	
+	local dodge_value_orig = 0 + dodge_value
+	local dodge_value_2 = 0
+
 	local in_smoke = false
 	
 	if self._temporary_dodge_t and TimerManager:game():time() < self._temporary_dodge_t then
@@ -681,32 +743,20 @@ function PlayerDamage:damage_bullet(attack_data)
 			break
 		end
 	end
-	local dodge_value_2 = 0
-	dodge_value_2 = dodge_value_2 + dodge_value
 	
 	dodge_value = 1 - (1 - dodge_value) * (1 - smoke_dodge)
 	
-	local is_smoke_dodge = smoke_dodge ~= 0
-	local diff_dodge_val = 0
+	--local is_smoke_dodge = smoke_dodge ~= 0
 	
-	if in_smoke and is_smoke_dodge then
-		diff_dodge_val = diff_dodge_val + (dodge_value - dodge_value_2)
-	end
-	
-	local dodge_val = d_dodge._dodge_up
-	local dodge_count = d_dodge._dodge_count
-	local orig_dodge = dodge_value - diff_dodge_val
-	
-	local high_dodge = not in_smoke and dodge_value > 0.55 or orig_dodge > 0.55
-	
-	if dodge_count > 3 and high_dodge then
-		for i = 1, dodge_count - 3 do
-			dodge_value = dodge_value - 0.01
-		end
+	local high_dodge = not in_smoke and dodge_value > 0.55 or dodge_value_orig > 0.55
+
+	if self._data_dodge._dodge_count > 3 and high_dodge then
+		dodge_value = dodge_value - 0.01
+		self._data_dodge._dodge_count = 0
 	end
 	dodge_value = math.clamp(dodge_value, 0, 1)
 	
-	dodge_value = dodge_value + dodge_val
+	dodge_value = dodge_value + self._data_dodge._dodge_up
 	
 	if dodge_roll <= dodge_value then
 		if attack_data.damage > 0 then
@@ -718,10 +768,10 @@ function PlayerDamage:damage_bullet(attack_data)
 		self:_hit_direction(attack_data.attacker_unit:position())
 		
 		local interval = 0
-		interval = interval + math.random(d_dodge._dmg_interval_max)
+		interval = interval + math.random(self._data_dodge._dmg_interval_max)
 		
-		if dodge_roll <= dodge_val then
-			interval = math.min(interval + math.random(d_dodge._dmg_interval_max), d_dodge._dmg_interval_mul)
+		if dodge_roll <= self._data_dodge._dodge_up then
+			interval = math.min(interval + math.random(self._data_dodge._dmg_interval_max), self._data_dodge._dmg_interval_mul)
 		end
 		
 		interval = interval + self._dmg_interval
@@ -729,19 +779,17 @@ function PlayerDamage:damage_bullet(attack_data)
 		self._next_allowed_dmg_t = Application:digest_value(pm:player_timer():time() + interval , true)
 		self._last_received_dmg = attack_data.damage
 		
-		dodge_val = 0
-		d_dodge._dodge_count = d_dodge._dodge_count + 1
+		self._data_dodge._dodge_up = 0
+		self._data_dodge._dodge_count = self._data_dodge._dodge_count + 1
 		
 		managers.player:send_message(Message.OnPlayerDodge)
 		return
 	end
 	
-	local dodgeup = (math.random(4) * 0.01)
-	if dodge_value - dodge_val >= 0.64 then
-		dodgeup = 0.01
-	end
-	dodge_val = dodge_val + dodgeup
-	d_dodge._dodge_count = 0
+	local dodgeup = dodge_value > 0.6 and 0.01 or (math.random(4) * 0.01)
+	
+	self._data_dodge._dodge_up = self._data_dodge._dodge_up + dodgeup
+	self._data_dodge._dodge_count = 0
 	
 	local en_shareskill = self._has_sharing_ishurt
 	local val_sharing = self._data_sharing_hurting
@@ -927,9 +975,9 @@ function PlayerDamage:_chk_cheat_death()
 			end
 			if stopinfo == false then 
 				if RaID:get_data("toggle_send_feign_death_info") then
-					managers.chat:send_message(ChatManager.GAME, managers.network.account:username(), managers.localization:text("FeignDeath_Chat"))
+					managers.chat:send_message(ChatManager.GAME, managers.network.account:username(), managers.localization:text("FeignDeath_Revive_Chat"))
 				else
-					managers.chat:_receive_message(1, managers.localization:text("FeignDeath"), managers.localization:text("FeignDeath_Revive"), Color.blue)
+					managers.chat:_receive_message(1, managers.localization:text("FeignDeath"), managers.localization:text("FeignDeath_Revive_Info"), Color.blue)
 				end
 			end
 		else
@@ -1106,7 +1154,7 @@ function PlayerDamage:recover_health()
 	end
 	
 	local rally_skill_data = self._unit:movement():rally_skill_data()
-	local inspire_is_cd = rally_skill_data.long_dis_revive and managers.player:has_disabled_cooldown_upgrade("cooldown", "long_dis_revive")
+	local inspire_is_cd = rally_skill_data and rally_skill_data.long_dis_revive and managers.player:has_disabled_cooldown_upgrade("cooldown", "long_dis_revive")
 
 	if inspire_is_cd then
 		managers.player:enable_cooldown_upgrade("cooldown", "long_dis_revive")
@@ -1328,15 +1376,15 @@ function PlayerDamage:_damage_sharing(attack_data)
 						unit_dmg:damage_melee(action_data)
 						--log("given damage to enemies")
 					end
-					val_sharing.num_enemies = val_sharing.num_enemies + 1
+					self._data_sharing_hurting.num_enemies = self._data_sharing_hurting.num_enemies + 1
 				end
 			end
 		end
 	end
 	if activated then
-		val_sharing.delay_t = t + val_sharing._skill.delay
+		self._data_sharing_hurting.delay_t = t + self._data_sharing_hurting._skill.delay
 	end
-	return val_sharing.num_enemies
+	return self._data_sharing_hurting.num_enemies
 end
 
 function PlayerDamage:_revive_bonuses()
@@ -1344,6 +1392,16 @@ function PlayerDamage:_revive_bonuses()
 	local full_hp = self:_max_health()
 	local painkiller = full_hp * upg
 	self:change_health(painkiller * self._healing_reduction)
+end
+
+function PlayerDamage:_revive_absorption_bonuses()
+	if self._has_pain_killer_ab then
+		if not self._pain_killer_ab_t then
+			local t = managers.player:player_timer():time()
+			self._pain_killer_ab_t = t + 7
+			managers.player:set_damage_absorption(self._pain_killer_ab_key, managers.player:upgrade_value("player", "pain_killer_ab", 1))
+		end
+	end
 end
 
 function PlayerDamage:_activate_combat_medic_damage_reduction()
@@ -1356,8 +1414,19 @@ end
 
 function PlayerDamage:_on_damage_armor_grinding()
 	self._current_state = self._update_armor_grinding
+end
 
-	local armor_broken = self:_max_armor() > 0 and self:get_real_armor() <= 0
+function PlayerDamage:_update_armor_grinding(t, dt)
+	self._armor_grinding.elapsed = self._armor_grinding.elapsed + dt
+
+	if self._armor_grinding.target_tick <= self._armor_grinding.elapsed then
+		self._armor_grinding.elapsed = 0
+
+		self:change_armor(self._armor_grinding.armor_value)
+	end
+
+	local armor_broken = self:_max_armor() ~= 0 and self:get_real_armor() == 0
+	local t = managers.player:player_timer():time()
 	if armor_broken and self._has_damage_speed and not self._has_damage_speed_act then
 		managers.player:activate_temporary_upgrade("temporary", "damage_speed_multiplier")
 
@@ -1366,12 +1435,19 @@ function PlayerDamage:_on_damage_armor_grinding()
 		end
 		self._has_damage_speed_act = true
 	end
+	if armor_broken and self._has_damage_speed_ab and not self._has_damage_speed_ab_act and not self._has_damage_speed_ab_t then
+		local absorption = math.max(self:_max_health()*0.5, 4)
+		self._has_damage_speed_ab_t = t + 5
+		managers.player:set_damage_absorption(self._has_damage_speed_ab_key, absorption)
+		self._has_damage_speed_ab_act = true
+		log("set damage absorp anarchist")
+	end
 end
 
 function PlayerDamage:_on_damage_event()
 	self:set_regenerate_timer_to_max()
 	
-	local t = TimerManager:game():time()
+	local t = managers.player:player_timer():time()
 	
 	local armor_broken = self:_max_armor() > 0 and self:get_real_armor() <= 0
 
@@ -1381,6 +1457,14 @@ function PlayerDamage:_on_damage_event()
 		if self._has_damage_speed_team then
 			managers.player:send_activate_temporary_team_upgrade_to_peers("temporary", "team_damage_speed_multiplier_received")
 		end
+	end
+
+	if armor_broken and self._has_damage_speed_ab and not self._has_damage_speed_ab_act and not self._has_damage_speed_ab_t then
+		local absorption = math.max(self:_max_health()*0.5, 4)
+		self._has_damage_speed_ab_t = t + 5
+		managers.player:set_damage_absorption(self._has_damage_speed_ab_key, absorption)
+		self._has_damage_speed_ab_act = true
+		log("set damage absorp regular")
 	end
 	
 	local dmg_bst = self._damage_boost
@@ -1399,14 +1483,22 @@ function PlayerDamage:_on_damage_event()
 	end
 end
 
+--[[function PlayerDamage:change_armor(change)
+	self:_check_update_max_armor()
+	self:set_armor(self:get_real_armor() + change)
+	self:_chk_armor_for_skill()
+end]]
+
 function PlayerDamage:set_armor(armor)
 	self:_check_update_max_armor()
 
-	armor = math.clamp(armor, 0, self:_max_armor())
+	local get_armor = armor
+	local armored = self:_max_armor() > 0
+	local maxed_arm = armored and get_armor >= self:_max_armor() and true or false
 
+	armor = math.clamp(armor, 0, self:_max_armor())
 	if self._armor then
 		local current_armor = self:get_real_armor()
-		local armor_fully_generated = self:_max_armor() > 0 and current_armor == self:_max_armor()
 
 		if current_armor == 0 and armor ~= 0 then
 			self:consume_armor_stored_health()
@@ -1417,17 +1509,72 @@ function PlayerDamage:set_armor(armor)
 
 			managers.player:add_coroutine(PlayerAction.DireNeed, PlayerAction.DireNeed, clbk, managers.player:upgrade_value("player", "armor_depleted_stagger_shot", 0))
 		end
+	end
+	if maxed_arm then
+		if self._has_damage_speed_act then
+			self._has_damage_speed_act = nil
+			log("set dmg active to "..tostring(self._has_damage_speed_act))
+		end
+		if self._has_damage_speed_ab_act then
+			self._has_damage_speed_ab_act = nil
+			log("set ab active to "..tostring(self._has_damage_speed_ab_act))
+		end
+		
+	end
+	self._armor = Application:digest_value(armor, true)
+end
 
-		if armor_fully_generated and self._has_damage_speed_act then
+function PlayerDamage:_give_revive_heal()
+	self:change_health(self:_max_health())
+end
+
+--[[function PlayerDamage:_chk_armor_for_skill()
+	self:_check_update_max_armor()
+	local armor = self:get_real_armor()
+	local max_armor = self:_max_armor()
+	local armor_fully_generated = max_armor > 0 and armor >= max_armor
+	if armor_fully_generated then
+		if self._has_damage_speed_act then
 			self._has_damage_speed_act = nil
 		end
+		if self._has_damage_speed_ab_act then
+			self._has_damage_speed_ab_act = nil
+		end
 	end
+end]]
 
-	self._armor = Application:digest_value(armor, true)
+function PlayerDamage:_medic_heal()
+	if managers.platform:presence() == "Playing" and (self:arrested() or self:incapacitated() or self:is_downed() or self:need_revive()) then
+		return
+	end
+	if self:dead() then
+		return
+	end
+	local chance = self._doctor_kill_heal_chance
+	if math.random() < chance then
+		self:_do_medic_heal()
+		self._doctor_kill_heal_chance = 0.2
+	else
+		self._doctor_kill_heal_chance = self._doctor_kill_heal_chance + (math.random(10) * 0.01)
+	end
+end
+
+function PlayerDamage:_do_medic_heal()
+	local full_hp = self:_max_health()
+	local heal = full_hp * 0.05 * self._healing_reduction
+	self:change_health(heal)
 end
 
 if RequiredScript == "lib/units/beings/player/playerdamage" then
 local old_band_aid_health = PlayerDamage.band_aid_health
+local old_restore_health = PlayerDamage.restore_health
+
+function PlayerDamage:restore_health(health_restored, is_static, chk_health_ratio, ...)
+	if health_restored * self._healing_reduction == 0 then
+		return
+	end
+	return old_restore_health(self, health_restored, is_static, chk_health_ratio, ...)
+end
 
 function PlayerDamage:band_aid_health(...)
 	if managers.player:has_category_upgrade("first_aid_kit", "downs_restore_chance") or managers.player:has_category_upgrade("first_aid_kit", "recharge_messiah_chance") then
@@ -1459,7 +1606,7 @@ function PlayerDamage:ace_band_aid_health()
 		managers.environment_controller:set_last_life(Application:digest_value(self._revives, false) <= 1)
 		
 		self._down_restore_inc = 0
-		managers.chat:_receive_message(1, managers.localization:text("FAK"), managers.localization:text("FAK_Downs"), Color.blue)
+		managers.chat:_receive_message(1, managers.localization:text("FAK"), managers.localization:text("FAK_Downs_Info"), Color.blue)
 	else
 		self._down_restore_inc = self._down_restore_inc + math.random(10)
 	end
@@ -1467,7 +1614,7 @@ function PlayerDamage:ace_band_aid_health()
 	if r <= base_ then
 		managers.player:_on_messiah_recharge_event()
 
-		managers.chat:_receive_message(1, managers.localization:text("FAK"), managers.localization:text("FAK_Messiah"), Color.blue) 
+		managers.chat:_receive_message(1, managers.localization:text("FAK"), managers.localization:text("FAK_Messiah_Info"), Color.blue) 
 		self._recharge_messiah_inc = 0
 	else
 		self._recharge_messiah_inc = self._recharge_messiah_inc + math.random(10)

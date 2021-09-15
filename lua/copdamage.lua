@@ -358,3 +358,54 @@ function CopDamage:_on_damage_received(damage_info)
 	self:_update_debug_ws(damage_info)
 end
 
+function CopDamage:_send_fire_attack_result(attack_data, attacker, damage_percent, is_fire_dot_damage, direction, healed)
+	local weapon_type, weapon_unit = nil
+
+	if attack_data.attacker_unit and alive(attack_data.attacker_unit) and attack_data.attacker_unit:base()._grenade_entry == "molotov" or attack_data.is_molotov then
+		weapon_type = CopDamage.WEAPON_TYPE_GRANADE
+		weapon_unit = "molotov"
+	elseif alive(attack_data.weapon_unit) and attack_data.weapon_unit:base()._name_id ~= nil and tweak_data.weapon[attack_data.weapon_unit:base()._name_id] ~= nil and tweak_data.weapon[attack_data.weapon_unit:base()._name_id].fire_dot_data ~= nil then
+		weapon_type = CopDamage.WEAPON_TYPE_FLAMER
+		weapon_unit = attack_data.weapon_unit:base()._name_id
+		--fix custom flamer weapon crash?
+		if tweak_data.weapon[weapon_unit] then
+			if tweak_data.weapon[weapon_unit].custom then
+				if tweak_data.weapon[weapon_unit].based_on then
+					weapon_unit = tweak_data.weapon[weapon_unit].based_on
+				elseif tweak_data.weapon[weapon_unit]:base()._selection_index then
+					weapon_unit = tweak_data.weapon[weapon_unit]:base()._selection_index == 2 and "wpn_fps_ass_amcar" or "wpn_fps_pis_g17"
+				else
+					weapon_unit = "wpn_fps_ass_amcar"
+				end
+			end
+		end
+	elseif alive(attack_data.weapon_unit) and attack_data.weapon_unit:base()._parts then
+		for part_id, part in pairs(attack_data.weapon_unit:base()._parts) do
+			if tweak_data.weapon.factory.parts[part_id].custom_stats and tweak_data.weapon.factory.parts[part_id].custom_stats.fire_dot_data then
+				weapon_type = CopDamage.WEAPON_TYPE_BULLET
+				weapon_unit = part_id
+			end
+		end
+		--fix dragon breath mod crash?
+		if tweak_data.weapon.factory.parts[weapon_unit] then
+			if tweak_data.weapon.factory.parts[weapon_unit].custom then
+				if tweak_data.weapon.factory.parts[weapon_unit].based_on then
+					weapon_unit = tweak_data.weapon.factory.parts[weapon_unit].based_on
+				else
+					weapon_unit = "wpn_fps_upg_a_dragons_breath"
+				end
+			end
+		end
+	end
+
+	--[[
+		if tweak_data.weapon[weapon_unit] and tweak_data.weapon[weapon_unit].based_on and tweak_data.weapon[weapon_unit].custom == true then
+			weapon_unit = tweak_data.weapon[weapon_unit].based_on
+		end
+	]]
+
+	local start_dot_dance_antimation = attack_data.fire_dot_data and attack_data.fire_dot_data.start_dot_dance_antimation
+	damage_percent = math.clamp(damage_percent, 0, 512)
+
+	self._unit:network():send("damage_fire", attacker, damage_percent, start_dot_dance_antimation, self._dead and true or false, direction, weapon_type, weapon_unit, healed)
+end

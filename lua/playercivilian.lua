@@ -4,8 +4,6 @@ local old__update_check_actions = PlayerCivilian._update_check_actions
 local old__check_action_jump = PlayerCivilian._check_action_jump
 local old__check_action_duck = PlayerCivilian._check_action_duck
 
-PlayerCivilian._player_is_duck = nil or false
-
 function PlayerCivilian:_check_action_duck(t, input, ...)
 	local pass = managers.player:has_category_upgrade("player", "suspicious_movement")
 	if pass then
@@ -31,19 +29,17 @@ end
 
 function PlayerCivilian:__check_action_duck(t, input, ...)
 	if managers.user:get_setting("hold_to_duck") and input.btn_duck_release then
-		if self._state_data.ducking and self._player_is_duck == true then
-			self._player_is_duck = false
+		if self._state_data.ducking then
 			self:_end_action_ducking(self, t)
 		end
 	elseif input.btn_duck_press and not self._unit:base():stats_screen_visible() then
 		if not self._state_data.ducking then
-			self._player_is_duck = true
-			PlayerStandard._start_action_ducking(self, t)
+			self:_start_action_ducking(self, t)
 		elseif self._state_data.ducking then
-			self._player_is_duck = false
 			self:_end_action_ducking(self, t)
 		end
 	end
+	--self:_upd_attention()
 end
 
 function PlayerCivilian:_update_check_actions(t, dt)

@@ -38,6 +38,8 @@ function RaID:DefSet()
 	self:settings_data("toggle_send_feign_death_info")
 	self._settings["toggle_sentry_skill_is_player"] = true
 	self:settings_data("toggle_sentry_skill_is_player")
+	self._settings["toggle_heavy_armor_drop"] = false
+	self:settings_data("toggle_toggle_heavy_armor_drop")
 	self._settings["toggle_caps_npc_weapon_rays"] = false
 	self:settings_data("toggle_caps_npc_weapon_rays")
 	self._settings["value_caps_npc_weapon_rays"] = 4
@@ -95,6 +97,12 @@ Hooks:Add( "MenuManagerInitialize", "MenuManagerInitialize_RaID", function( menu
 		RaID:Save()
 		RaID:settings_data("toggle_sentry_skill_is_player")
 	end
+
+	MenuCallbackHandler.RaID_heavy_armor_drop = function(self, item)
+		RaID._settings.toggle_heavy_armor_drop = (item:value() == "on" and true or false)
+		RaID:Save()
+		RaID:settings_data("toggle_heavy_armor_drop")
+	end
 	
 	MenuCallbackHandler.RaID_toggle_caps_npc_weapon_rays = function(self, item)
 		RaID._settings.toggle_caps_npc_weapon_rays = (item:value() == "on" and true or false)
@@ -144,6 +152,7 @@ function RaID:update_settings(item)
 	
 	MenuHelper:ResetItemsToDefaultValue(item, {["op_toggle_send_feign_death_info"] = true}, RaID:settings_now("toggle_send_feign_death_info"))
 	MenuHelper:ResetItemsToDefaultValue(item, {["op_toggle_sentry_skill_is_player"] = true}, RaID:settings_now("toggle_sentry_skill_is_player"))
+	MenuHelper:ResetItemsToDefaultValue(item, {["op_toggle_heavy_armor_drop"] = true}, RaID:settings_now("toggle_heavy_armor_drop"))
 	MenuHelper:ResetItemsToDefaultValue(item, {["op_toggle_caps_npc_weapon_rays"] = true}, RaID:settings_now("toggle_caps_npc_weapon_rays"))
 	
 	MenuHelper:ResetItemsToDefaultValue(item, {["op_slider_value_caps_npc_weapon_rays"] = true}, RaID:settings_now("value_caps_npc_weapon_rays"))

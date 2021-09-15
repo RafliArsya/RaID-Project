@@ -3,6 +3,49 @@ function SkillTreeTweakData:init(...)
 	data(self, ...)
 	
 	--MEDIC--
+	self.skills.inspire = {
+		{
+			upgrades = {
+				"player_revive_interaction_speed_multiplier",
+				"player_morale_boost"
+			},
+			cost = self.costs.hightier
+		},
+		{
+			upgrades = {
+				"cooldown_long_dis_revive",
+				"player_long_dis_reduce" --addon
+			},
+			cost = self.costs.hightierpro
+		},
+		name_id = "menu_inspire_beta",
+		desc_id = "menu_inspire_beta_desc",
+		icon_xy = {
+			4,
+			9
+		}
+	}
+	self.skills.medic_2x = {
+		{
+			upgrades = {
+				"doctor_bag_quantity"
+			},
+			cost = self.costs.hightier
+		},
+		{
+			upgrades = {
+				"doctor_bag_amount_increase1",
+				"doctor_kill_heal" --addon
+			},
+			cost = self.costs.hightierpro
+		},
+		name_id = "menu_medic_2x_beta",
+		desc_id = "menu_medic_2x_beta_desc",
+		icon_xy = {
+			5,
+			8
+		}
+	}
 	self.skills.tea_cookies = {
 		{
 			upgrades = {
@@ -13,7 +56,7 @@ function SkillTreeTweakData:init(...)
 		{
 			upgrades = {
 				"first_aid_kit_quantity_increase_2",
-				"first_aid_kit_auto_recovery_1"
+				"first_aid_kit_downs_restore_chance" --addon
 			},
 			cost = self.costs.hightierpro
 		},
@@ -22,6 +65,31 @@ function SkillTreeTweakData:init(...)
 		icon_xy = {
 			2,
 			11
+		}
+	}
+	self.skills.fast_learner = {
+		{
+			upgrades = {
+				"player_revive_damage_reduction_level_1",
+				--addon
+				"player_pain_killer_a1"
+				--"temporary_passive_revive_damage_reduction_2" canceled
+			},
+			cost = self.costs.default
+		},
+		{
+			upgrades = {
+				"player_revive_damage_reduction_level_2",
+				--addon
+				"player_pain_killer_a2"
+			},
+			cost = self.costs.pro
+		},
+		name_id = "menu_fast_learner_beta",
+		desc_id = "menu_fast_learner_beta_desc",
+		icon_xy = {
+			0,
+			10
 		}
 	}
 	self.skills.tea_time = {
@@ -34,7 +102,7 @@ function SkillTreeTweakData:init(...)
 		{
 			upgrades = {
 				"first_aid_kit_damage_reduction_upgrade",
-				"first_aid_kit_downs_restore_chance"--addon
+				"first_aid_kit_auto_recovery_1" -- moved from tea_cookies
 			},
 			cost = self.costs.pro
 		},
@@ -68,71 +136,51 @@ function SkillTreeTweakData:init(...)
 			7
 		}
 	}
-	self.skills.fast_learner = {
+	
+	--CONTROLLER--
+	self.skills.control_freak = {
 		{
 			upgrades = {
-				"player_revive_damage_reduction_level_1",
-				--addon
-				"player_pain_killer_1"
-				--"temporary_passive_revive_damage_reduction_2" canceled
+				"player_minion_master_speed_multiplier",
+				"player_passive_convert_enemies_health_multiplier_1",
+				"player_convert_enemies_max_minions_2" --moved from cable guy aced
 			},
-			cost = self.costs.default
+			cost = self.costs.hightier
 		},
 		{
 			upgrades = {
-				"player_revive_damage_reduction_level_2",
-				--addon
-				"player_pain_killer_2"
+				"player_convert_enemies_health_multiplier", --addon
+				"player_minion_master_health_multiplier",
+				"player_passive_convert_enemies_health_multiplier_2"
 			},
-			cost = self.costs.pro
+			cost = self.costs.hightierpro
 		},
-		name_id = "menu_fast_learner_beta",
-		desc_id = "menu_fast_learner_beta_desc",
+		name_id = "menu_control_freak_beta",
+		desc_id = "menu_control_freak_beta_desc",
 		icon_xy = {
-			0,
+			1,
 			10
 		}
 	}
-	
-	--CONTROLLER--
 	self.skills.stockholm_syndrome = {
 		{
 			upgrades = {
-				"player_civ_calming_alerts",
 				"player_super_syndrome_1"
 			},
 			cost = self.costs.hightier
 		},
 		{
-			upgrades = {"player_replenish_super_syndrome_chance"},
+			upgrades = {
+				--addon
+				"player_hostage_replenish_super_syndrome_chance",
+				"player_replenish_super_syndrome_chance"
+			},
 			cost = self.costs.hightierpro
 		},
 		name_id = "menu_stockholm_syndrome_beta",
 		desc_id = "menu_stockholm_syndrome_beta_desc",
 		icon_xy = {
 			3,
-			8
-		}
-	}
-	self.skills.cable_guy = {
-		{
-			upgrades = {
-				"player_intimidate_range_mul",
-				"player_intimidate_aura",
-				"player_civ_intimidation_mul"
-			},
-			cost = self.costs.default
-		},
-		{
-			upgrades = {
-				"player_crowd_control_mk2_1"
-			},
-			cost = self.costs.pro
-		},
-		name_id = "menu_cable_guy_beta",
-		desc_id = "menu_cable_guy_beta_desc",
-		icon_xy = {
-			2,
 			8
 		}
 	}
@@ -160,32 +208,100 @@ function SkillTreeTweakData:init(...)
 			8
 		}
 	}
-	self.skills.control_freak = {
+	self.skills.cable_guy = {
 		{
 			upgrades = {
-				"player_convert_enemies_max_minions_2", --moved from confident 'cable_guy' aced
-				"player_minion_master_speed_multiplier",
-				"player_passive_convert_enemies_health_multiplier_1"
+				"player_intimidate_range_mul",
+				"player_intimidate_aura",
+				"player_civ_intimidation_mul",
+				"player_civ_calming_alerts" --moved from stockholm syndrome aced
+			},
+			cost = self.costs.default
+		},
+		{
+			upgrades = {
+				"player_AOE_intimidate" --addon
+				--"player_crowd_control_mk2_1" canceled
+			},
+			cost = self.costs.pro
+		},
+		name_id = "menu_cable_guy_beta",
+		desc_id = "menu_cable_guy_beta_desc",
+		icon_xy = {
+			2,
+			8
+		}
+	}
+	self.skills.triathlete = {
+		{
+			upgrades = {
+				"cable_tie_quantity",
+				"cable_tie_interact_speed_multiplier"
+			},
+			cost = self.costs.default
+		},
+		{
+			upgrades = {
+				"team_damage_hostage_absorption"
+			},
+			cost = self.costs.pro
+		},
+		name_id = "menu_triathlete_beta",
+		desc_id = "menu_triathlete_beta_desc",
+		icon_xy = {
+			4,
+			7
+		}
+	}
+	
+	--TANK--
+	self.skills.juggernaut = {
+		{
+			upgrades = {
+				"player_armor_multiplier"
 			},
 			cost = self.costs.hightier
 		},
 		{
 			upgrades = {
-				"player_convert_enemies_health_multiplier", --addon
-				"player_minion_master_health_multiplier",
-				"player_passive_convert_enemies_health_multiplier_2"
+				"player_armor_multiplier2",
+				"body_armor6"
 			},
 			cost = self.costs.hightierpro
 		},
-		name_id = "menu_control_freak_beta",
-		desc_id = "menu_control_freak_beta_desc",
+		name_id = "menu_juggernaut_beta",
+		desc_id = "menu_juggernaut_beta_desc",
 		icon_xy = {
-			1,
-			10
+			3,
+			1
 		}
 	}
-	
-	--TANK--
+	self.skills.show_of_force = {
+		{
+			upgrades = {
+				"player_interacting_damage_multiplier"
+			},
+			cost = self.costs.default
+		},
+		{
+			upgrades = {
+				"player_level_2_armor_addend",
+				"player_level_3_armor_addend",
+				"player_level_4_armor_addend",
+				--addon
+				"player_level_5_armor_addend",
+				"player_level_6_armor_addend",
+				"player_level_7_armor_addend"
+			},
+			cost = self.costs.pro
+		},
+		name_id = "menu_show_of_force_beta",
+		desc_id = "menu_show_of_force_beta_desc",
+		icon_xy = {
+			8,
+			9
+		}
+	}
 	self.skills.oppressor = {
 		{
 			upgrades = {
@@ -219,8 +335,8 @@ function SkillTreeTweakData:init(...)
 		},
 		{
 			upgrades = {
-				"player_double_drop_1",
-				"player_lucky_mag_1"
+				"player_double_drop_1"
+				-- canceled "player_lucky_mag_1"
 			},
 			cost = self.costs.hightierpro
 		},
@@ -242,7 +358,7 @@ function SkillTreeTweakData:init(...)
 			upgrades = {
 				"temporary_no_ammo_cost_2",
 				--addon
-				"temporary_no_ammo_cost_mk2"
+				"weapon_add_pickup_ammo"
 			},
 			cost = self.costs.pro
 		},
@@ -258,7 +374,7 @@ function SkillTreeTweakData:init(...)
 			upgrades = {
 				"ammo_bag_quantity",
 				--addon
-				"temporary_no_ammo_cost_mk2_extra"
+				"temporary_no_ammo_cost_mk2"
 			},
 			cost = self.costs.hightier
 		},
@@ -266,7 +382,8 @@ function SkillTreeTweakData:init(...)
 			upgrades = {
 				"ammo_bag_ammo_increase1",
 				--addon
-				"player_lucky_mag_special"
+				"temporary_no_ammo_cost_mk2_extra"
+				-- canceled "player_lucky_mag_special"
 			},
 			cost = self.costs.hightierpro
 		},
@@ -305,9 +422,7 @@ function SkillTreeTweakData:init(...)
 	self.skills.carbon_blade = {
 		{
 			upgrades = {
-				"saw_enemy_slicer",
-				--addon
-				"player_lucky_mag_saw"
+				"saw_enemy_slicer"
 			},
 			cost = self.costs.hightier
 		},
@@ -487,15 +602,15 @@ function SkillTreeTweakData:init(...)
 			upgrades = {
 				"deploy_interact_faster_1",
 				--addon
-				"player_second_deployable_mul_2",
 				"sentry_gun_kill_restore_ammo_chance_1"
+				--"player_second_deployable_mul_2", canceled moved to aced
 			},
 			cost = self.costs.hightier
 		},
 		{
 			upgrades = {
 				--addon
-				"player_second_deployable_mul_3",
+				"player_second_deployable_mul_2",
 				"sentry_gun_destroy_auto_pickup_2"
 			},
 			cost = self.costs.hightierpro
@@ -509,6 +624,52 @@ function SkillTreeTweakData:init(...)
 	}
 	
 	--BREACHER--
+	self.skills.hardware_expert = {
+		{
+			upgrades = {
+				"player_drill_fix_interaction_speed_multiplier",
+				"player_trip_mine_deploy_time_multiplier_1", --mod value
+				"player_drill_alert",
+				"player_silent_drill"
+			},
+			cost = self.costs.default
+		},
+		{
+			upgrades = {
+				"player_drill_autorepair_1"
+			},
+			cost = self.costs.pro
+		},
+		name_id = "menu_hardware_expert_beta",
+		desc_id = "menu_hardware_expert_beta_desc",
+		icon_xy = {
+			9,
+			6
+		}
+	}
+	self.skills.combat_engineering = {
+		{
+			upgrades = {
+				"player_trip_mine_deploy_time_multiplier_2" --addon
+				
+			},
+			cost = self.costs.hightier
+		},
+		{
+			upgrades = {
+				"trip_mine_damage_multiplier_1",
+				--moved to ace
+				"trip_mine_explosion_size_multiplier_1"
+			},
+			cost = self.costs.hightierpro
+		},
+		name_id = "menu_combat_engineering",
+		desc_id = "menu_combat_engineering_desc",
+		icon_xy = {
+			1,
+			5
+		}
+	}
 	self.skills.drill_expert = {
 		{
 			upgrades = {
@@ -519,7 +680,6 @@ function SkillTreeTweakData:init(...)
 		{
 			upgrades = {
 				"player_drill_speed_multiplier2",
-				"player_drill_autorepair_2" --moved from kickstarter basic
 			},
 			cost = self.costs.pro
 		},
@@ -533,14 +693,15 @@ function SkillTreeTweakData:init(...)
 	self.skills.kick_starter = {
 		{
 			upgrades = {
+				"player_drill_autorepair_2",
 				"player_drill_resume_1" --addon
 			},
 			cost = self.costs.hightier
 		},
 		{
 			upgrades = {
-				"player_drill_melee_hit_restart_chance_1",
-				"player_drill_resume_2" --addon
+				"player_drill_melee_hit_restart_chance_1"
+				--"player_drill_resume_2" --addon
 			},
 			cost = self.costs.hightierpro
 		},
@@ -557,7 +718,8 @@ function SkillTreeTweakData:init(...)
 				"shape_charge_quantity_increase_1",
 				"trip_mine_quantity_increase_1",
 				--addon
-				"trip_mine_alert_size_multiplier_1"
+				"trip_mine_breach_mk2"
+				--"trip_mine_alert_size_multiplier_1"
 			},
 			cost = self.costs.hightier
 		},
@@ -565,8 +727,9 @@ function SkillTreeTweakData:init(...)
 			upgrades = {
 				"shape_charge_quantity_increase_2",
 				"trip_mine_quantity_increase_2",
+				"trip_mine_alert_size_multiplier_1"
 				--addon
-				"trip_mine_alert_size_multiplier_2"
+				--"trip_mine_alert_size_multiplier_2"
 			},
 			cost = self.costs.hightierpro
 		},
@@ -696,16 +859,16 @@ function SkillTreeTweakData:init(...)
 	self.skills.scavenger = {
 		{
 			upgrades = {
-				"temporary_damage_speed_multiplier" --nerf
+				"temporary_damage_speed_multiplier", --nerf
+				"player_team_damage_speed_multiplier_send" --moved from aced
 			},
 			cost = self.costs.default
 		},
 		{
 			upgrades = {
-				"player_team_damage_speed_multiplier_send",
 				--addon
 				"temporary_damage_speed_multiplier_2", --aced nerf
-				"temporary_damage_boost_multiplier"
+				"player_armor_depleted_get_absorption_1"
 			},
 			cost = self.costs.pro
 		},
@@ -742,21 +905,47 @@ function SkillTreeTweakData:init(...)
 		}
 	}
 	
-	--REVENANT--
-	self.skills.up_you_go = {
+
+	--GUNSLINGER
+	self.skills.akimbo = {
 		{
 			upgrades = {
-				"player_revived_damage_resist_1",
-				--addon
-				"player_revived_up_enemy_fall_1"
+				"akimbo_recoil_index_addend_2"
 			},
 			cost = self.costs.hightier
 		},
 		{
 			upgrades = {
-				"player_revived_health_regain_1",
-				--addon
-				"player_revived_up_enemy_fall_2"
+				"akimbo_extra_ammo_multiplier_1",
+				"akimbo_recoil_index_addend_3",
+				"akimbo_recoil_index_addend_4"
+			},
+			cost = self.costs.hightierpro
+		},
+		name_id = "menu_akimbo_skill_beta",
+		desc_id = "menu_akimbo_skill_beta_desc",
+		icon_xy = {
+			3,
+			11
+		}
+	}
+
+	--REVENANT--
+	self.skills.up_you_go = {
+		{
+			upgrades = {
+				"player_revived_damage_resist_1",
+				--buff
+				"player_revived_health_regain_1"
+				--[[addon canceled
+				"player_revived_up_enemy_fall_1"]]
+			},
+			cost = self.costs.hightier
+		},
+		{
+			upgrades = {
+				--add on
+				"player_up_you_goh_1"
 			},
 			cost = self.costs.hightierpro
 		},
@@ -771,9 +960,11 @@ function SkillTreeTweakData:init(...)
 		{
 			upgrades = {
 				"player_temp_swap_weapon_faster_1",
-				"player_temp_reload_weapon_faster_1",
-				--addon
+				"player_temp_reload_weapon_faster_1"
+				--[[
+					--addon canceled
 				"player_revived_up_running_1"
+				]]
 			},
 			cost = self.costs.hightier
 		},
@@ -781,7 +972,7 @@ function SkillTreeTweakData:init(...)
 			upgrades = {
 				"player_temp_increased_movement_speed_1",
 				--addon
-				"player_revived_up_running_2"
+				"player_running_from_death_2"
 			},
 			cost = self.costs.hightierpro
 		},
@@ -973,6 +1164,7 @@ function SkillTreeTweakData:init(...)
 	}
 	--END OF REVAMPED GHOST--
 	
+	--Default Skills
 	self.default_upgrades = {
 		"player_fall_damage_multiplier",
 		"player_fall_health_damage_multiplier",
@@ -1000,7 +1192,7 @@ function SkillTreeTweakData:init(...)
 		"ecm_jammer_affects_cameras",
 		"striker_reload_speed_default",
 		"temporary_first_aid_damage_reduction",
-		--"temporary_passive_revive_damage_reduction_1", --unused?
+		--Removed because unused? "temporary_passive_revive_damage_reduction_2",
 		"akimbo_recoil_index_addend_1",
 		"doctor_bag",
 		"ammo_bag",
@@ -1033,6 +1225,7 @@ function SkillTreeTweakData:init(...)
 		"player_second_deployable_mul_1"
 		
 	}
+
 	--[[self.specialization_convertion_rate = {
 		1,
 		2,
@@ -1106,7 +1299,8 @@ function SkillTreeTweakData:init(...)
 				name_id = "menu_deck1_1",
 				upgrades = {
 					"team_damage_reduction_1",
-					"player_passive_damage_reduction_1"
+					"player_passive_damage_reduction_1", 
+					"player_damage_dampener_close_contact_1" -- moved from deck 3
 				},
 				icon_xy = {
 					0,
@@ -1121,8 +1315,7 @@ function SkillTreeTweakData:init(...)
 				upgrades = {
 					"team_passive_stamina_multiplier_1",
 					"player_passive_intimidate_range_mul",
-					"player_damage_dampener_close_contact_1",
-					"player_passive_health_regen_low" --addon
+					"player_passive_health_multiplier_1" -- moved from deck 5
 				},
 				icon_xy = {
 					2,
@@ -1136,8 +1329,8 @@ function SkillTreeTweakData:init(...)
 				name_id = "menu_deck1_5",
 				upgrades = {
 					"team_passive_health_multiplier",
-					"player_passive_health_multiplier_1",
-					"player_passive_health_multiplier_2" --addon
+					"player_passive_health_multiplier_2", --addon
+					"player_passive_damage_reduction_2" --addon
 				},
 				icon_xy = {
 					4,
@@ -1151,8 +1344,8 @@ function SkillTreeTweakData:init(...)
 				name_id = "menu_deck1_7",
 				upgrades = {
 					"player_tier_armor_multiplier_1",
-					"player_tier_armor_multiplier_2", -- addon
-					"team_passive_armor_multiplier"
+					"team_passive_armor_multiplier",
+					"player_tier_armor_multiplier_2" -- addon
 				},
 				icon_xy = {
 					6,
@@ -1168,8 +1361,7 @@ function SkillTreeTweakData:init(...)
 					"player_passive_loot_drop_multiplier",
 					"team_hostage_health_multiplier",
 					"team_hostage_stamina_multiplier",
-					"team_hostage_damage_dampener_multiplier",
-					"player_passive_damage_reduction_2" --addon
+					"team_hostage_damage_dampener_multiplier"
 				},
 				icon_xy = {
 					0,
@@ -1186,7 +1378,8 @@ function SkillTreeTweakData:init(...)
 				desc_id = "menu_deck2_1_desc",
 				name_id = "menu_deck2_1",
 				upgrades = {
-					"player_passive_health_multiplier_1"
+					"player_passive_health_multiplier_1",
+					"player_passive_health_multiplier_2" --moved from deck 3
 				},
 				icon_xy = {
 					0,
@@ -1199,7 +1392,7 @@ function SkillTreeTweakData:init(...)
 				desc_id = "menu_deck2_3_desc",
 				name_id = "menu_deck2_3",
 				upgrades = {
-					"player_passive_health_multiplier_2",
+					"player_passive_health_multiplier_3", --moved from deck 5
 					"player_uncover_multiplier"
 				},
 				icon_xy = {
@@ -1213,7 +1406,8 @@ function SkillTreeTweakData:init(...)
 				desc_id = "menu_deck2_5_desc",
 				name_id = "menu_deck2_5",
 				upgrades = {
-					"player_passive_health_multiplier_3"
+					"player_passive_health_multiplier_4", --moved from deck 9
+					"player_shield_knock" --addon
 				},
 				icon_xy = {
 					2,
@@ -1227,7 +1421,7 @@ function SkillTreeTweakData:init(...)
 				name_id = "menu_deck2_7",
 				upgrades = {
 					"player_panic_suppression",
-					"player_passive_health_multiplier_4" --moved from deck 9
+					"player_passive_health_multiplier_5" --addon
 				},
 				icon_xy = {
 					3,
@@ -1241,7 +1435,7 @@ function SkillTreeTweakData:init(...)
 				name_id = "menu_deck2_9",
 				upgrades = {
 					"player_passive_loot_drop_multiplier",
-					"player_passive_health_multiplier_5", --addon
+					"player_passive_health_multiplier_6", --addon
 					"player_passive_health_regen"
 				},
 				icon_xy = {
@@ -1274,7 +1468,7 @@ function SkillTreeTweakData:init(...)
 				name_id = "menu_deck3_3",
 				upgrades = {
 					"player_tier_armor_multiplier_3",
-					"player_tier_armor_multiplier_4" --move from deck 4
+					"player_tier_armor_multiplier_4" --move from deck 5
 				},
 				icon_xy = {
 					5,
@@ -1289,7 +1483,7 @@ function SkillTreeTweakData:init(...)
 				upgrades = {
 					--move from deck 9
 					"player_tier_armor_multiplier_5",
-					"player_tier_armor_multiplier_6"
+					"player_tier_armor_multiplier_6",
 				},
 				icon_xy = {
 					7,
@@ -1303,7 +1497,9 @@ function SkillTreeTweakData:init(...)
 				name_id = "menu_deck3_7",
 				upgrades = {
 					"player_armor_regen_timer_multiplier_passive",
-					"temporary_armor_break_invulnerable_1"
+					"temporary_armor_break_invulnerable_1",
+					--addon
+					"player_tier_armor_multiplier_7"
 				},
 				icon_xy = {
 					6,
@@ -1318,7 +1514,7 @@ function SkillTreeTweakData:init(...)
 				upgrades = {
 					"player_passive_loot_drop_multiplier",
 					"team_passive_armor_regen_time_multiplier",
-					"player_tier_armor_multiplier_7" --addon
+					"player_tier_armor_multiplier_8" --addon
 				},
 				icon_xy = {
 					0,
@@ -1408,7 +1604,7 @@ function SkillTreeTweakData:init(...)
 				name_id = "menu_deck5_1",
 				upgrades = {
 					"player_perk_armor_regen_timer_multiplier_1",
-					"akimbo_recoil_index_addend_4" --moved from deck 3
+					"akimbo_recoil_index_addend_3" --moved from akimbo aced, "akimbo_recoil_index_addend_4" moved from deck 3
 				},
 				icon_xy = {
 					6,
@@ -1464,8 +1660,8 @@ function SkillTreeTweakData:init(...)
 				name_id = "menu_deck5_9",
 				upgrades = {
 					"player_passive_loot_drop_multiplier",
-					"player_perk_armor_regen_timer_multiplier_6", --addon
-					"player_passive_always_regen_armor_1"
+					"player_passive_always_regen_armor_1",
+					"weapon_passive_armor_piercing_chance" --addon
 				},
 				icon_xy = {
 					3,
@@ -1482,7 +1678,12 @@ function SkillTreeTweakData:init(...)
 				desc_id = "menu_deck6_1_desc",
 				name_id = "menu_deck6_1",
 				upgrades = {
-					"player_passive_dodge_chance_1"
+					"player_passive_dodge_chance_1",
+					--addon
+					"player_tier_armor_multiplier_1",
+					"player_tier_armor_multiplier_2",
+					"player_level_1_dodge_addend_1",
+					"player_level_1_armor_multiplier_1"
 				},
 				icon_xy = {
 					1,
@@ -1500,7 +1701,10 @@ function SkillTreeTweakData:init(...)
 					"player_level_4_dodge_addend_1",
 					"player_level_2_armor_multiplier_1",
 					"player_level_3_armor_multiplier_1",
-					"player_level_4_armor_multiplier_1"
+					"player_level_4_armor_multiplier_1",
+					--addon
+					"player_level_1_dodge_addend_2",
+					"player_level_1_armor_multiplier_2"
 				},
 				icon_xy = {
 					4,
@@ -1518,7 +1722,12 @@ function SkillTreeTweakData:init(...)
 					"player_level_4_dodge_addend_2",
 					"player_level_2_armor_multiplier_2",
 					"player_level_3_armor_multiplier_2",
-					"player_level_4_armor_multiplier_2"
+					"player_level_4_armor_multiplier_2",
+					--addon
+					"player_level_1_dodge_addend_3",
+					"player_level_1_armor_multiplier_3",
+					"player_level_5_dodge_addend_1",
+					"player_level_5_armor_multiplier_1"
 				},
 				icon_xy = {
 					5,
@@ -1536,7 +1745,10 @@ function SkillTreeTweakData:init(...)
 					"player_level_4_dodge_addend_3",
 					"player_level_2_armor_multiplier_3",
 					"player_level_3_armor_multiplier_3",
-					"player_level_4_armor_multiplier_3"
+					"player_level_4_armor_multiplier_3",
+					--addon
+					"player_level_5_dodge_addend_2",
+					"player_level_5_armor_multiplier_2"
 				},
 				icon_xy = {
 					6,
@@ -1550,7 +1762,11 @@ function SkillTreeTweakData:init(...)
 				name_id = "menu_deck6_9",
 				upgrades = {
 					"player_passive_loot_drop_multiplier",
-					"player_armor_regen_timer_multiplier_tier"
+					"player_armor_regen_timer_multiplier_tier",
+					--addon
+					"player_tier_armor_multiplier_3",
+					"player_level_5_dodge_addend_3",
+					"player_level_5_armor_multiplier_3"
 				},
 				icon_xy = {
 					6,
@@ -1567,7 +1783,8 @@ function SkillTreeTweakData:init(...)
 				desc_id = "menu_deck7_1_desc",
 				name_id = "menu_deck7_1",
 				upgrades = {
-					"player_tier_dodge_chance_1"
+					"player_tier_dodge_chance_1",
+					"player_stand_still_crouch_camouflage_bonus_1" --moved from deck 3
 				},
 				icon_xy = {
 					1,
@@ -1580,7 +1797,7 @@ function SkillTreeTweakData:init(...)
 				desc_id = "menu_deck7_3_desc",
 				name_id = "menu_deck7_3",
 				upgrades = {
-					"player_stand_still_crouch_camouflage_bonus_1",
+					"player_tier_dodge_chance_2", --moved from deck 5
 					"player_corpse_dispose_speed_multiplier"
 				},
 				icon_xy = {
@@ -1594,7 +1811,6 @@ function SkillTreeTweakData:init(...)
 				desc_id = "menu_deck7_5_desc",
 				name_id = "menu_deck7_5",
 				upgrades = {
-					"player_tier_dodge_chance_2",
 					"player_stand_still_crouch_camouflage_bonus_2",
 					"player_pick_lock_speed_multiplier"
 				},
@@ -1645,7 +1861,8 @@ function SkillTreeTweakData:init(...)
 				name_id = "menu_deck8_7",
 				upgrades = {
 					"player_damage_dampener_outnumbered_strong",
-					"melee_stacking_hit_damage_multiplier_1"
+					"melee_stacking_hit_damage_multiplier_1",
+					"melee_stacking_hit_damage_multiplier_2" -- moved from deck 5
 				},
 				icon_xy = {
 					6,
@@ -1676,7 +1893,7 @@ function SkillTreeTweakData:init(...)
 				upgrades = {
 					"player_damage_dampener_close_contact_2",
 					"melee_stacking_hit_expire_t",
-					"melee_stacking_hit_damage_multiplier_2"
+					"melee_stacking_hit_damage_multiplier_3" --addon
 				},
 				icon_xy = {
 					4,
@@ -1691,8 +1908,7 @@ function SkillTreeTweakData:init(...)
 				upgrades = {
 					"player_damage_dampener_close_contact_3",
 					--addon
-					"player_tier_armor_multiplier_3",
-					"player_allowed_dmg_dam"
+					"player_tier_armor_multiplier_3"
 				},
 				icon_xy = {
 					5,
@@ -1726,7 +1942,7 @@ function SkillTreeTweakData:init(...)
 				upgrades = {
 					"player_damage_dampener_outnumbered_strong",
 					"melee_stacking_hit_damage_multiplier_1",
-					"player_tier_armor_multiplier_1" --move from deck 2
+					"melee_stacking_hit_damage_multiplier_2" --addon
 				},
 				icon_xy = {
 					6,
@@ -1740,8 +1956,8 @@ function SkillTreeTweakData:init(...)
 				name_id = "menu_deck9_3",
 				upgrades = {
 					"player_killshot_regen_armor_bonus",
-					"player_tier_armor_multiplier_2",
-					"player_tier_armor_multiplier_3" --move from deck 7
+					"player_tier_armor_multiplier_1",
+					"player_tier_armor_multiplier_2"
 				},
 				icon_xy = {
 					0,
@@ -1756,7 +1972,7 @@ function SkillTreeTweakData:init(...)
 				upgrades = {
 					"player_melee_kill_life_leech",
 					"player_damage_dampener_close_contact_1",
-					"player_tier_armor_multiplier_4" --addon
+					"player_tier_armor_multiplier_3" --move from deck 7
 				},
 				icon_xy = {
 					1,
@@ -1771,7 +1987,7 @@ function SkillTreeTweakData:init(...)
 				upgrades = {
 					"player_killshot_close_regen_armor_bonus",
 					--addon
-					"player_sharing_is_hurting_1",
+					"player_tier_armor_multiplier_4",
 					"player_tier_armor_multiplier_5"
 				},
 				icon_xy = {
@@ -1788,7 +2004,7 @@ function SkillTreeTweakData:init(...)
 					"player_passive_loot_drop_multiplier",
 					"player_killshot_close_panic_chance",
 					--addon
-					"player_passive_health_multiplier_1"
+					"player_tier_armor_multiplier_6"
 				},
 				icon_xy = {
 					3,
@@ -1963,7 +2179,8 @@ function SkillTreeTweakData:init(...)
 				upgrades = {
 					"player_armor_regen_damage_health_ratio_multiplier_1",
 					--addon
-					"player_passive_health_multiplier_1"
+					"player_tier_armor_multiplier_1",
+					"player_tier_armor_multiplier_2"
 				},
 				icon_xy = {
 					6,
@@ -1978,8 +2195,8 @@ function SkillTreeTweakData:init(...)
 				upgrades = {
 					"player_movement_speed_damage_health_ratio_multiplier",
 					--addon
+					"player_tier_armor_multiplier_3",
 					"melee_stacking_hit_damage_multiplier_1"
-					
 				},
 				icon_xy = {
 					7,
@@ -1994,7 +2211,8 @@ function SkillTreeTweakData:init(...)
 				upgrades = {
 					"player_armor_regen_damage_health_ratio_multiplier_2",
 					--addon
-					"player_passive_health_multiplier_2" 
+					"player_tier_armor_multiplier_4",
+					"melee_stacking_hit_damage_multiplier_2" 
 				},
 				icon_xy = {
 					0,
@@ -2009,7 +2227,8 @@ function SkillTreeTweakData:init(...)
 				upgrades = {
 					"player_armor_regen_damage_health_ratio_multiplier_3",
 					--addon
-					"player_allowed_dmg_dam"
+					"player_tier_armor_multiplier_5",
+					"player_melee_kill_regen_armor"
 				},
 				icon_xy = {
 					1,
@@ -2122,8 +2341,7 @@ function SkillTreeTweakData:init(...)
 				upgrades = {
 					"player_cocaine_stacking_1",
 					--addon
-					"player_tier_armor_multiplier_1",
-					"player_tier_armor_multiplier_2"
+					"player_passive_health_multiplier_1"
 				},
 				icon_xy = {
 					0,
@@ -2139,7 +2357,7 @@ function SkillTreeTweakData:init(...)
 				upgrades = {
 					"player_sync_cocaine_stacks",
 					--addon
-					"player_damage_dampener_close_contact_1"
+					"player_passive_health_multiplier_2"
 				},
 				icon_xy = {
 					1,
@@ -2155,7 +2373,7 @@ function SkillTreeTweakData:init(...)
 				upgrades = {
 					"player_cocaine_stacks_decay_multiplier_1",
 					--addon
-					"player_passive_health_multiplier_1"
+					"player_passive_health_multiplier_3"
 				},
 				icon_xy = {
 					2,
@@ -2171,7 +2389,7 @@ function SkillTreeTweakData:init(...)
 				upgrades = {
 					"player_sync_cocaine_upgrade_level_1",
 					--addon
-					"player_passive_health_multiplier_2"
+					"melee_stacking_hit_damage_multiplier_1"
 				},
 				icon_xy = {
 					3,

@@ -6,7 +6,7 @@ function ArrowBase:_setup_from_tweak_data(arrow_entry)
 	self._mass_look_up_modifier = tweak_entry.mass_look_up_modifier
 	self._damage = tweak_entry.damage or 1
 	self._slot_mask = managers.slot:get_mask("arrow_impact_targets")
-	self._damage = self._damage * 2.5
+	self._damage = self._damage
 end
 
 function ArrowBase:set_weapon_unit(weapon_unit)

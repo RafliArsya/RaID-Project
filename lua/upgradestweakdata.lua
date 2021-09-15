@@ -5,8 +5,8 @@ function UpgradesTweakData:init(...)
 	
 	-- Start up Ammo --
 	self.values.player.extra_ammo_multiplier = {
-		1.35,
-		1.75
+		1.25,
+		1.7
 	}
 	self.definitions.extra_ammo_multiplier2 = {
 		category = "feature",
@@ -43,8 +43,8 @@ function UpgradesTweakData:init(...)
 		0.03,
 		0.01,
 		0,
-		0,
-		0
+		-0.01,
+		-0.05
 	}
 	self.values.player.body_armor.damage_shake = {
 		1,
@@ -76,8 +76,9 @@ function UpgradesTweakData:init(...)
 	
 	--Default Skills
 	self.values.weapon.passive_headshot_damage_multiplier = {
-		1.5
+		1.275
 	}
+
 	self.values.temporary.first_aid_damage_reduction = {
 		{
 			0.88,
@@ -95,14 +96,15 @@ function UpgradesTweakData:init(...)
 		health = 7
 	}
 	
-	--Akimbo Stability thing
+	--Akimbo Stability things
 	self.values.akimbo.recoil_index_addend = {
 		-6,
 		-3,
-		0,
-		2,
-		3
+		-1,
+		-1,
+		1 --addon
 	}
+	--not sure needed
 	self.definitions.akimbo_recoil_index_addend_5 = {
 		incremental = true,
 		name_id = "menu_akimbo_recoil_index_addend",
@@ -137,9 +139,14 @@ function UpgradesTweakData:init(...)
 	
 	--Deck 8
 	self.values.weapon.passive_damage_multiplier = {
-		1.07
+		1.05
 	}
 	
+	--Deck 9 Bonus
+	self.values.player.passive_loot_drop_multiplier = {
+		1.25
+	}
+
 	--crew chief
 	self.values.team.health.hostage_multiplier = {
 		1.06
@@ -176,15 +183,25 @@ function UpgradesTweakData:init(...)
 	self.values.player.passive_health_multiplier = {
 		1.2,
 		1.4,
-		1.8,
-		2.1,
-		2.3
+		1.6,
+		1.9,
+		2.2,
+		2.5
 	}
 	self.definitions.player_passive_health_multiplier_5 = {
 		name_id = "menu_player_health_multiplier",
 		category = "feature",
 		upgrade = {
 			value = 5,
+			upgrade = "passive_health_multiplier",
+			category = "player"
+		}
+	}
+	self.definitions.player_passive_health_multiplier_6 = {
+		name_id = "menu_player_health_multiplier",
+		category = "feature",
+		upgrade = {
+			value = 6,
 			upgrade = "passive_health_multiplier",
 			category = "player"
 		}
@@ -215,13 +232,14 @@ function UpgradesTweakData:init(...)
 	}
 	--Armorer Armor tier multiplier
 	self.values.player.tier_armor_multiplier = {
-		1.15, 
 		1.2, 
-		1.35, 
+		1.3, 
 		1.4, 
-		1.45, 
-		1.55,
-		1.7 --[[1.05, 1.1, 1.2, 1.3, 1.15, 1.35]]
+		1.5, 
+		1.6, 
+		1.7,
+		1.85,
+		2 --[[1.05, 1.1, 1.2, 1.3, 1.15, 1.35]]
 	}
 	self.definitions.player_tier_armor_multiplier_7 = {
 		name_id = "menu_player_tier_armor_multiplier_7",
@@ -232,51 +250,19 @@ function UpgradesTweakData:init(...)
 			category = "player"
 		}
 	}
+	self.definitions.player_tier_armor_multiplier_8 = {
+		name_id = "menu_player_tier_armor_multiplier_8",
+		category = "feature",
+		upgrade = {
+			value = 8,
+			upgrade = "tier_armor_multiplier",
+			category = "player"
+		}
+	}
 	
 	--Armor break Invulnerable
 	self.values.temporary.armor_break_invulnerable = {
-		{2.5, 12.5}
-	}
-	
-	--Hitman
-	self.values.player.passive_always_regen_armor = {
-		1.2,
-		10
-	}
-	self.definitions.player_passive_always_regen_armor_1 = {
-		name_id = "player_always_regen_armor",
-		category = "feature",
-		upgrade = {
-			value = 1,
-			upgrade = "passive_always_regen_armor",
-			category = "player"
-		}
-	}
-	self.definitions.player_passive_always_regen_armor_slow = {
-		name_id = "player_always_regen_armor",
-		category = "feature",
-		upgrade = {
-			value = 2,
-			upgrade = "passive_always_regen_armor",
-			category = "player"
-		}
-	}
-	self.values.player.perk_armor_regen_timer_multiplier = {
-		0.9,
-		0.8,
-		0.7,
-		0.65,
-		0.55,
-		0.49
-	}
-	self.definitions.player_perk_armor_regen_timer_multiplier_6 = {
-		name_id = "menu_player_perk_armor_regen_timer_multiplier",
-		category = "feature",
-		upgrade = {
-			value = 6,
-			upgrade = "perk_armor_regen_timer_multiplier",
-			category = "player"
-		}
+		{2, 12}
 	}
 	
 	--Ex-President
@@ -309,12 +295,15 @@ function UpgradesTweakData:init(...)
 	
 	--Rogue Swap Speed
 	self.values.weapon.passive_swap_speed_multiplier = {
-		1.35,
-		1.8
+		1.375,
+		1.825
 	}
 	--Rouge AP
 	self.values.weapon.armor_piercing_chance = {
-		0.27
+		0.3
+	}
+	self.values.weapon.armor_piercing_chance_2 = {
+		0.15
 	}
 	--Rogue Dodge || Passive dodge chance || 1/9 crook dodge
 	self.values.player.passive_dodge_chance = {
@@ -322,7 +311,51 @@ function UpgradesTweakData:init(...)
 		0.3,
 		0.45
 	}
+	--Rogue camouflage
+	self.values.player.camouflage_multiplier = {0.8}
 	
+	--Hitman
+	self.values.player.passive_always_regen_armor = {
+		1.25 --, 10
+	}
+	self.definitions.player_passive_always_regen_armor_1 = {
+		name_id = "player_always_regen_armor",
+		category = "feature",
+		upgrade = {
+			value = 1,
+			upgrade = "passive_always_regen_armor",
+			category = "player"
+		}
+	}
+	--[[self.definitions.player_passive_always_regen_armor_slow = {
+		name_id = "player_always_regen_armor",
+		category = "feature",
+		upgrade = {
+			value = 2,
+			upgrade = "passive_always_regen_armor",
+			category = "player"
+		}
+	}
+	]]
+	
+	self.values.player.perk_armor_regen_timer_multiplier = {
+		0.95,
+		0.825,
+		0.7,
+		0.65,
+		0.525,
+		0.5
+	}
+	self.definitions.player_perk_armor_regen_timer_multiplier_6 = {
+		name_id = "menu_player_perk_armor_regen_timer_multiplier",
+		category = "feature",
+		upgrade = {
+			value = 6,
+			upgrade = "perk_armor_regen_timer_multiplier",
+			category = "player"
+		}
+	}
+
 	--Crook
 	self.values.player.level_2_armor_multiplier = {
 		1.2,
@@ -347,26 +380,166 @@ function UpgradesTweakData:init(...)
 	self.values.player.level_3_dodge_addend = {
 		0.05,
 		0.15,
-		0.22
+		0.25
 	}
 	self.values.player.level_4_dodge_addend = {
 		0.05,
 		0.15,
-		0.2
+		0.25
 	}
 	self.values.player.armor_regen_timer_multiplier_tier = {
-		0.82
+		0.85
 	}
-	
+	--Crook addon
+	self.values.player.level_1_dodge_addend = {
+		0.04,
+		0.08,
+		0.16
+	}
+	self.values.player.level_1_armor_multiplier = {
+		1.5,
+		2,
+		2.75
+	}
+	self.values.player.level_5_dodge_addend = {
+		0.04,
+		0.08,
+		0.16
+	}
+	self.values.player.level_5_armor_multiplier = {
+		1.2,
+		1.4,
+		1.6
+	}
+	self.definitions.player_level_1_armor_multiplier_1 = {
+		incremental = true,
+		name_id = "menu_player_level_1_armor_multiplier",
+		category = "feature",
+		upgrade = {
+			value = 1,
+			upgrade = "level_1_armor_multiplier",
+			category = "player"
+		}
+	}
+	self.definitions.player_level_1_armor_multiplier_2 = {
+		incremental = true,
+		name_id = "menu_player_level_1_armor_multiplier",
+		category = "feature",
+		upgrade = {
+			value = 2,
+			upgrade = "level_1_armor_multiplier",
+			category = "player"
+		}
+	}
+	self.definitions.player_level_1_armor_multiplier_3 = {
+		incremental = true,
+		name_id = "menu_player_level_1_armor_multiplier",
+		category = "feature",
+		upgrade = {
+			value = 3,
+			upgrade = "level_1_armor_multiplier",
+			category = "player"
+		}
+	}
+	self.definitions.player_level_5_armor_multiplier_1 = {
+		incremental = true,
+		name_id = "menu_player_level_5_armor_multiplier",
+		category = "feature",
+		upgrade = {
+			value = 1,
+			upgrade = "level_5_armor_multiplier",
+			category = "player"
+		}
+	}
+	self.definitions.player_level_5_armor_multiplier_2 = {
+		incremental = true,
+		name_id = "menu_player_level_5_armor_multiplier",
+		category = "feature",
+		upgrade = {
+			value = 2,
+			upgrade = "level_5_armor_multiplier",
+			category = "player"
+		}
+	}
+	self.definitions.player_level_5_armor_multiplier_3 = {
+		incremental = true,
+		name_id = "menu_player_level_5_armor_multiplier",
+		category = "feature",
+		upgrade = {
+			value = 3,
+			upgrade = "level_5_armor_multiplier",
+			category = "player"
+		}
+	}
+	self.definitions.player_level_1_dodge_addend_1 = {
+		incremental = true,
+		name_id = "menu_player_level_1_dodge_addend",
+		category = "feature",
+		upgrade = {
+			value = 1,
+			upgrade = "level_1_dodge_addend",
+			category = "player"
+		}
+	}
+	self.definitions.player_level_1_dodge_addend_2 = {
+		incremental = true,
+		name_id = "menu_player_level_1_dodge_addend",
+		category = "feature",
+		upgrade = {
+			value = 2,
+			upgrade = "level_1_dodge_addend",
+			category = "player"
+		}
+	}
+	self.definitions.player_level_1_dodge_addend_3 = {
+		incremental = true,
+		name_id = "menu_player_level_1_dodge_addend",
+		category = "feature",
+		upgrade = {
+			value = 3,
+			upgrade = "level_1_dodge_addend",
+			category = "player"
+		}
+	}
+	self.definitions.player_level_5_dodge_addend_1 = {
+		incremental = true,
+		name_id = "menu_player_level_1_dodge_addend",
+		category = "feature",
+		upgrade = {
+			value = 1,
+			upgrade = "level_5_dodge_addend",
+			category = "player"
+		}
+	}
+	self.definitions.player_level_5_dodge_addend_2 = {
+		incremental = true,
+		name_id = "menu_player_level_5_dodge_addend",
+		category = "feature",
+		upgrade = {
+			value = 2,
+			upgrade = "level_5_dodge_addend",
+			category = "player"
+		}
+	}
+	self.definitions.player_level_5_dodge_addend_3 = {
+		incremental = true,
+		name_id = "menu_player_level_5_dodge_addend",
+		category = "feature",
+		upgrade = {
+			value = 3,
+			upgrade = "level_5_dodge_addend",
+			category = "player"
+		}
+	}
+
 	--Buglar
 	self.values.player.corpse_dispose_speed_multiplier = {
 		0.75
 	}
 	self.values.player.pick_lock_speed_multiplier = {
-		0.7
+		0.725
 	}
 	self.values.player.alarm_pager_speed_multiplier = {0.7}
-	self.values.player.camouflage_multiplier = {0.65}
 	self.values.player.stand_still_crouch_camouflage_bonus = {
 		0.85,
 		0.75,
@@ -382,9 +555,18 @@ function UpgradesTweakData:init(...)
 	}
 	
 	--Infiltrator
-	self.values.melee.stacking_hit_damage_multiplier = {12, 15}
+	self.values.melee.stacking_hit_damage_multiplier = {14, 21, 43}
+	self.definitions.melee_stacking_hit_damage_multiplier_3 = {
+		name_id = "menu_melee_stacking_hit_damage_multiplier",
+		category = "feature",
+		upgrade = {
+			value = 3,
+			upgrade = "stacking_hit_damage_multiplier",
+			category = "melee"
+		}
+	}
 	self.values.melee.stacking_hit_expire_t = {7}
-	self.max_melee_weapon_dmg_mul_stacks = 5
+	self.max_melee_weapon_dmg_mul_stacks = 1
 	self.values.temporary.melee_life_leech = {
 		{
 			0.2,
@@ -418,7 +600,7 @@ function UpgradesTweakData:init(...)
 	
 	--Sociopath
 	self.values.player.melee_kill_life_leech = {
-		0.2
+		0.15
 	}
 	self.values.player.killshot_regen_armor_bonus = {
 		3.5
@@ -431,6 +613,23 @@ function UpgradesTweakData:init(...)
 	}
 	
 	--Gambler
+	self.loose_ammo_restore_health_values = {
+		{
+			0,
+			4
+		},
+		{
+			4,
+			8
+		},
+		{
+			8,
+			12
+		},
+		multiplier = 0.25,
+		cd = 3,
+		base = 8
+	}
 	self.values.temporary.loose_ammo_restore_health = {
 		{
 			{
@@ -444,14 +643,14 @@ function UpgradesTweakData:init(...)
 				12,
 				16
 			},
-			2.25
+			2
 		},
 		{
 			{
 				20,
 				25
 			},
-			1.7
+			1.5
 		}
 	}
 	
@@ -470,18 +669,27 @@ function UpgradesTweakData:init(...)
 	self.values.player.movement_speed_damage_health_ratio_threshold_multiplier = {
 		2
 	}
+	self.values.player.melee_kill_regen_armor = {true}
+	self.definitions.player_melee_kill_regen_armor = {
+		name_id = "menu_player_melee_kill_regen_armor",
+		category = "feature",
+		upgrade = {
+			value = 1,
+			upgrade = "melee_kill_regen_armor",
+			category = "player"
+		}
+	}
 	
 	--Grinder
 	self.damage_to_hot_data = {
 		tick_time = 0.3,
 		works_with_armor_kit = true,
-		stacking_cooldown = 1.2,
+		stacking_cooldown = 1.4,
 		total_ticks = 10,
 		max_stacks = false,
 		armors_allowed = {
 			"level_1",
-			"level_2",
-			"level_7"
+			"level_2"
 		},
 		add_stack_sources = {
 			projectile = true,
@@ -497,9 +705,9 @@ function UpgradesTweakData:init(...)
 	}
 	self.values.player.damage_to_hot = {
 		0.1,
-		0.215,
-		0.325,
-		0.435
+		0.2,
+		0.35,
+		0.45
 	}
 	self.values.player.damage_to_hot_extra_ticks = {
 		5
@@ -624,10 +832,10 @@ function UpgradesTweakData:init(...)
 		30,
 		25
 	}
-	self.cocaine_stacks_tick_t = 3 --4
-	self.max_cocaine_stacks_per_tick = 300 --240 555
+	self.cocaine_stacks_tick_t = 2 --4
+	self.max_cocaine_stacks_per_tick = 240 --240 555
 	self.max_total_cocaine_stacks = 1500 --600 1500
-	self.cocaine_stacks_decay_t = 8.5 --8
+	self.cocaine_stacks_decay_t = 8 --8
 	self.cocaine_stacks_decay_amount_per_tick = 80
 	self.cocaine_stacks_decay_percentage_per_tick = 0.6 --0.6
 	self.values.player.cocaine_stacks_decay_multiplier = {
@@ -684,7 +892,7 @@ function UpgradesTweakData:init(...)
 	self.values.temporary.chico_injector = {
 		{
 			0.8,
-			6.5
+			6
 		}
 	}
 	self.values.player.chico_preferred_target = {
@@ -693,7 +901,7 @@ function UpgradesTweakData:init(...)
 	self.values.player.chico_injector_low_health_multiplier = {
 		{
 			0.6, --health below
-			0.3 --multiply
+			0.25 --multiply
 		}
 	}
 	self.values.player.chico_injector_health_to_speed = {
@@ -791,7 +999,7 @@ function UpgradesTweakData:init(...)
 			kill_health_gain = 2,
 			radius = 0.6, --LOL WUT?
 			distance = 18.5,
-			kill_extension = 1,
+			kill_extension = 1, --1.3,
 			duration = 13,
 			tagged_health_gain_ratio = 0.4
 		}
@@ -803,13 +1011,13 @@ function UpgradesTweakData:init(...)
 		},
 		{
 			tagged = 2,
-			owner = 3
+			owner = 2
 		}
 	}
 	self.values.player.tag_team_damage_absorption = {
 		{
 			kill_gain = 0.2,
-			max = 10
+			max = 5
 		}
 	}
 	
@@ -837,7 +1045,7 @@ function UpgradesTweakData:init(...)
 	--Forced Friendship
 	self.values.team.damage = {
 		hostage_absorption = {
-			0.15
+			0.2 --0.05
 		},
 		hostage_absorption_limit = 8
 	}
@@ -875,9 +1083,21 @@ function UpgradesTweakData:init(...)
 	
 	--Inspire Cooldown
 	self.values.cooldown.long_dis_revive = {
-		{1, 20}
+		--orig {1, 20},
+		{1, 40} --addon
 	}
-	
+	--Inspire Cooldown Addon
+	self.values.player.long_dis_reduce = {true}
+	self.definitions.player_long_dis_reduce = {
+		category = "feature",
+		name_id = "menu_player_long_dis_reduce",
+		upgrade = {
+			value = 1,
+			upgrade = "long_dis_reduce",
+			category = "player"
+		}
+	}
+
 	--Combat Medic
 	self.values.temporary.revive_damage_reduction = {
 		{
@@ -901,7 +1121,7 @@ function UpgradesTweakData:init(...)
 	self.values.player.revive_damage_reduction = {
 		0.7
 	}
-	
+		
 	--Passive revive damage reduction
 	self.values.temporary.passive_revive_damage_reduction = {
 		{
@@ -931,14 +1151,14 @@ function UpgradesTweakData:init(...)
 			category = "temporary"
 		}
 	}
-	--unfortunately this not implemented, so i reworked
+	--unfortunately this not implemented, so i reworked -not really lol
 	
 	--Resilience
 	self.values.player.armor_regen_time_mul = {
 		0.8
 	}
 	--Flashbang
-	self.values.player.flashbang_multiplier = {-1, -2}
+	self.values.player.flashbang_multiplier = {0.25, 0.1}
 
 	--Saw Massacre
 	self.values.saw.enemy_slicer = {
@@ -983,6 +1203,69 @@ function UpgradesTweakData:init(...)
 		1.8
 	}
 	
+	--Transporter
+	self.values.player.armor_carry_bonus = {
+		1.02
+	}
+
+	--Die Hard
+	self.values.player.level_2_armor_addend = {5}
+	self.values.player.level_3_armor_addend = {5}
+	self.values.player.level_4_armor_addend = {5}
+	--addon
+	self.values.player.level_5_armor_addend = {2}
+	self.values.player.level_6_armor_addend = {2}
+	self.values.player.level_7_armor_addend = {2}
+	self.definitions.player_level_5_armor_addend = {
+		name_id = "menu_player_level_5_armor_addend",
+		category = "feature",
+		upgrade = {
+			value = 1,
+			upgrade = "level_5_armor_addend",
+			category = "player"
+		}
+	}
+	self.definitions.player_level_6_armor_addend = {
+		name_id = "menu_player_level_6_armor_addend",
+		category = "feature",
+		upgrade = {
+			value = 1,
+			upgrade = "level_6_armor_addend",
+			category = "player"
+		}
+	}
+	self.definitions.player_level_7_armor_addend = {
+		name_id = "menu_player_level_7_armor_addend",
+		category = "feature",
+		upgrade = {
+			value = 1,
+			upgrade = "level_7_armor_addend",
+			category = "player"
+		}
+	}
+
+	--Bullseye
+	self.values.player.headshot_regen_armor_bonus = {
+		1,--0.5
+		3
+	}
+
+	--Juggernaut
+	self.values.player.armor_multiplier = {
+		1.2,
+		1.5
+
+	}
+	self.definitions.player_armor_multiplier2 = {
+		name_id = "menu_player_armor_multiplier",
+		category = "feature",
+		upgrade = {
+			value = 2,
+			upgrade = "armor_multiplier",
+			category = "player"
+		}
+	}
+
 	--Chameleon
 	self.values.player.suspicion_multiplier = {
 		0.5
@@ -1131,7 +1414,7 @@ function UpgradesTweakData:init(...)
 	--Bloodthrist Basic
 	self.values.player.melee_damage_stacking = {
 		{
-			max_multiplier = 20,
+			max_multiplier = 21,
 			melee_multiplier = 1
 		},
 		{
@@ -1190,12 +1473,12 @@ function UpgradesTweakData:init(...)
 	--Graze Explode
 	self.values.snp.graze_damage = {
 		{
-			radius = 415,
+			radius = 375,
 			damage_factor = 0.5,
 			damage_factor_headshot = 0.85
 		},
 		{
-			radius = 525,
+			radius = 485,
 			damage_factor = 0.85,
 			damage_factor_headshot = 1.05
 		}
@@ -1207,6 +1490,18 @@ function UpgradesTweakData:init(...)
 		3
 	}
 	
+	--Trip Mine Deploy
+	self.values.player.trip_mine_deploy_time_multiplier = {
+		0.6,
+		0.5
+	}
+
+	--More Firepower
+	self.values.shape_charge.quantity = {
+		1,
+		3
+	}
+
 	--Combat Engineering
 	self.values.trip_mine.explosion_size_multiplier_1 = {
 		1.45
@@ -1219,10 +1514,10 @@ function UpgradesTweakData:init(...)
 		1.7
 	}
 	
-	--More Firepower
+	--Trip Mine Alert Size
 	self.values.trip_mine.alert_size_multiplier = {
-		0.6,
-		0.445
+		0.15,
+		0.15
 	}
 	self.definitions.trip_mine_alert_size_multiplier_1 = {
 		name_id = "menu_trip_mine_alert_size_multiplier",
@@ -1239,6 +1534,20 @@ function UpgradesTweakData:init(...)
 		upgrade = {
 			value = 2,
 			upgrade = "alert_size_multiplier",
+			category = "trip_mine"
+		}
+	}
+
+	--Trip Mine Breach Door MK2
+	self.values.trip_mine.breach_mk2 = {
+		true
+	}
+	self.definitions.trip_mine_breach_mk2 = {
+		name_id = "menu_trip_mine_breach_mk2",
+		category = "feature",
+		upgrade = {
+			value = 1,
+			upgrade = "breach_mk2",
 			category = "trip_mine"
 		}
 	}
@@ -1291,10 +1600,10 @@ function UpgradesTweakData:init(...)
 	
 	--Drill auto repair
 	self.values.player.drill_autorepair_1 = {
-		0.25
+		0.20
 	}
 	self.values.player.drill_autorepair_2 = {
-		0.35
+		0.30
 	}
 	
 	--Drill
@@ -1398,14 +1707,6 @@ function UpgradesTweakData:init(...)
 		1,
 		2
 	}
-	self.values.player.convert_enemies_damage_multiplier = {
-		1.15,
-		1.5
-	}
-	self.values.player.passive_convert_enemies_health_multiplier = {
-		0.5,
-		0.01
-	}
 	self.values.player.minion_master_speed_multiplier = {
 		1.175
 	}
@@ -1415,12 +1716,20 @@ function UpgradesTweakData:init(...)
 	self.values.player.convert_enemies_interaction_speed_multiplier = {
 		0.3
 	}
-	--Not Working Convert enemies stats
+	--Not Working Convert enemies stats? or perhaps Server Side Check?
 	self.values.player.passive_convert_enemies_damage_multiplier = {
-		1.25
+		1.25 --1.15
+	}
+	self.values.player.convert_enemies_damage_multiplier = {
+		1, --0.65
+		1.35 --1
+	}
+	self.values.player.passive_convert_enemies_health_multiplier = {
+		0.55,
+		0.01
 	}
 	self.values.player.convert_enemies_health_multiplier = {
-		0.3
+		0.45
 	}
 	
 	--Nine Lives
@@ -1559,7 +1868,7 @@ function UpgradesTweakData:init(...)
 		category = "feature",
 		name_id = "menu_player_allowed_dmg_dam",
 		upgrade = {
-			value = 4,
+			value = 1,
 			upgrade = "allowed_dmg_dam",
 			category = "player"
 		}
@@ -1813,7 +2122,19 @@ function UpgradesTweakData:init(...)
 			category = "player"
 		}
 	}
-	
+	self.values.player.AOE_intimidate = {
+		true
+	}
+	self.definitions.player_AOE_intimidate = {
+		name_id = "menu_player_player_AOE_intimidate",
+		category = "feature",
+		upgrade = {
+			value = 1,
+			upgrade = "AOE_intimidate",
+			category = "player"
+		}
+	}
+		
 	--Sure fire mk2
 	self.values.player.sure_fire_mk2 = {
 		{
@@ -1963,6 +2284,23 @@ function UpgradesTweakData:init(...)
 			category = "player"
 		}
 	}
+
+	--Ammo Pickup Add
+	self.values.player.weapon_add_pickup_ammo = {
+		{
+			base = 0.33,
+			inc = 3,
+		}
+	}
+	self.definitions.weapon_add_pickup_ammo = {
+		name_id = "menu_player_weapon_add_pickup_ammo",
+		category = "feature",
+		upgrade = {
+			value = 1,
+			upgrade = "weapon_add_pickup_ammo",
+			category = "player"
+		}
+	}
 	
 	--Bullet Storm 2
 	self.values.player.no_ammo_cost_mk2 = {{
@@ -1982,7 +2320,7 @@ function UpgradesTweakData:init(...)
 		}
 	}
 	self.values.player.no_ammo_cost_mk2_extra = { 4 }
-	self.definitions.player_no_ammo_cost_mk2_extra = {
+	self.definitions.temporary_no_ammo_cost_mk2_extra = {
 		name_id = "menu_player_no_ammo_cost_mk2_extra",
 		category = "feature",
 		upgrade = {
@@ -1994,7 +2332,19 @@ function UpgradesTweakData:init(...)
 	
 	
 	--Stockholm Syndrome Replenish
-	self.values.player.replenish_super_syndrome_chance = {0.75}
+	--docbag
+	self.values.player.replenish_super_syndrome_chance = {0.32}
+	self.definitions.player_replenish_super_syndrome_chance = {
+		name_id = "menu_player_replenish_super_syndrome_chance",
+		category = "feature",
+		upgrade = {
+			value = 1,
+			upgrade = "replenish_super_syndrome_chance",
+			category = "player"
+		}
+	}
+	--hostage
+	self.values.player.replenish_super_syndrome_chance = {0.1}
 	self.definitions.player_replenish_super_syndrome_chance = {
 		name_id = "menu_player_replenish_super_syndrome_chance",
 		category = "feature",
@@ -2020,7 +2370,7 @@ function UpgradesTweakData:init(...)
 	--Normal Second Deployable
 	self.values.player.second_deployable_mul = {
 		0.5,
-		0.75,
+		1,
 		1
 	}
 	self.definitions.player_second_deployable_mul_1 = {
@@ -2236,7 +2586,7 @@ function UpgradesTweakData:init(...)
 	}
 	
 	--Revive pain killer
-	self.values.player.pain_killer = {
+	--[[self.values.player.pain_killer = {
 		0.03,
 		0.1
 	}
@@ -2258,23 +2608,60 @@ function UpgradesTweakData:init(...)
 			value = 2
 		}
 	}
+	]]--
 
-	--Armor Break Give Absorbtion
-	self.values.player.armor_depleted_get_absorbtion = {
-		5
+	--Revive pain killer abs
+	self.values.player.pain_killer_ab = {
+		0.7,
+		1.5
 	}
-	self.definitions.player_armor_depleted_get_absorbtion_1 = {
+	self.definitions.player_pain_killer_a1 = {
 		category = "feature",
-		name_id = "menu_player_armor_depleted_get_absorbtion",
+		name_id = "menu_player_pain_killer",
 		upgrade = {
 			category = "player",
-			upgrade = "armor_depleted_get_absorbtion",
+			upgrade = "pain_killer_ab",
+			value = 1
+		}
+	}
+	self.definitions.player_pain_killer_a2 = {
+		category = "feature",
+		name_id = "menu_player_pain_killer",
+		upgrade = {
+			category = "player",
+			upgrade = "pain_killer_ab",
+			value = 2
+		}
+	}
+
+	--Kill Medic Heal My Self
+	self.values.player.doctor_kill_heal = {true}
+	self.definitions.doctor_kill_heal = {
+		category = "feature",
+		name_id = "menu_player_doctor_kill_heal",
+		upgrade = {
+			value = 1,
+			upgrade = "doctor_kill_heal",
+			category = "player"
+		}
+	}
+
+	--Armor Break Give Absorbtion
+	self.values.player.armor_depleted_get_absorption = {
+		true
+	}
+	self.definitions.player_armor_depleted_get_absorption_1 = {
+		category = "feature",
+		name_id = "menu_player_armor_depleted_get_absorption",
+		upgrade = {
+			category = "player",
+			upgrade = "armor_depleted_get_absorption",
 			value = 1
 		}
 	}
 
 	--Running From The Death MK2
-	self.values.player.running_from_death = {true}
+	self.values.player.running_from_death = {2, 4}
 	self.definitions.player_running_from_death_1 = {
 		category = "feature",
 		name_id = "menu_player_running_from_death",
@@ -2282,6 +2669,15 @@ function UpgradesTweakData:init(...)
 			category = "player",
 			upgrade = "running_from_death",
 			value = 1
+		}
+	}
+	self.definitions.player_running_from_death_2 = {
+		category = "feature",
+		name_id = "menu_player_running_from_death",
+		upgrade = {
+			category = "player",
+			upgrade = "running_from_death",
+			value = 2
 		}
 	}
 

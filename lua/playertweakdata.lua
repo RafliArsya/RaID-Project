@@ -39,10 +39,17 @@ function PlayerTweakData:init(...)
 		arrest_timeout = 200
 	}
 	
+	self.put_on_mask_time = 1
+
 	if is_console then
 		self.damage.ARMOR_INIT = 5
 	else
-		self.damage.ARMOR_INIT = 2.5
+		self.damage.ARMOR_INIT = 3
+	end
+	if is_vr then
+		self.damage.HEALTH_INIT = 27
+	else
+		self.damage.HEALTH_INIT = 25
 	end
 	
 	self.damage.REVIVE_HEALTH_STEPS = {0.5}

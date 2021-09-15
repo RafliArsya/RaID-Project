@@ -58,7 +58,7 @@ function SentryGunBase:on_death()
 				weapon_unit = self._unit,
          		col_ray = col_ray
         	}
-        	for _, hit_unit in ipairs(bodies) do
+        	for _, hit_unit in pairs(bodies) do
 				local civs, enemies, sentries = unit_stance(hit_unit)
          		if hit_unit:character_damage() and (civs or enemies or sentries) then
          	       hit_unit:character_damage():damage_explosion(action_data)

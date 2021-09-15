@@ -19,7 +19,7 @@ PlayerAction.UnseenStrike = {
 		while true do
 			current_time = Application:time()
 			
-			if not player_manager:has_activate_temporary_upgrade("temporary", "unseen_strike") then
+			if not player_manager:has_activate_temporary_upgrade("temporary", "unseen_strike") and target_time > current_time and not can_activate then
 				can_activate = true
 			end
 

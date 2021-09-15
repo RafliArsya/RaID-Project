@@ -40,7 +40,7 @@ end
 
 end
 
-function PlayerMovement:_upd_underdog_skill(t)
+--[[function PlayerMovement:_upd_underdog_skill(t)
 	local data = self._underdog_skill_data
 	
 	if not self._attackers or not data.has_dmg_dampener and not data.has_dmg_mul or (t < data.chk_t and t < data.cq_chk_t) then
@@ -146,4 +146,4 @@ Hooks:PostHook(PlayerMovement, 'init', 'RaID_PlayerMovement_Init', function(self
 		has_out = managers.player:has_category_upgrade("temporary", "dmg_dampener_outnumbered"),
 		has_cqc = managers.player:has_category_upgrade("temporary", "dmg_dampener_close_contact")
 	}
-end)
+end)]]-- overkill fixed it :)

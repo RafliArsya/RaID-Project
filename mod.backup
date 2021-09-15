@@ -1,0 +1,28 @@
+{
+	"name" : "RaID Project",
+	"description" : "RaID All In One",
+	"author" : "RaID",
+	"contact" : "RedLeo",
+	"version" : "0.0.1.0000",
+	"priority": 1000,
+	"blt_version" : 2.0,
+	"color" : "0 0.44 1",
+	"hooks" : [
+	{ "hook_id" : "lib/tweak_data/playertweakdata", "script_path" : "lua/playertweakdata.lua" },
+	{ "hook_id" : "lib/tweak_data/upgradestweakdata", "script_path" : "lua/upgradestweakdata.lua" },
+	{ "hook_id" : "lib/tweak_data/skilltreetweakdata", "script_path" : "lua/skilltreetweakdata.lua" },
+	{ "hook_id" : "lib/managers/blackmarketmanager", "script_path" : "lua/blackmarketmanager.lua" },
+	{ "hook_id" : "lib/managers/playermanager", "script_path" : "lua/playermanager.lua" },
+	{ "hook_id" : "lib/player_actions/skills/playeractionfullyloaded", "script_path" : "lua/playeractionfullyloaded.lua" },
+	{ "hook_id" : "lib/player_actions/skills/playeractiontasermalfunction", "script_path" : "lua/playeractiontasermalfunction.lua" },
+    { "hook_id" : "lib/units/beings/player/playermovement", "script_path" : "lua/playermovement.lua" },
+    { "hook_id" : "lib/units/beings/player/playerdamage", "script_path" : "lua/playerdamage.lua" },
+	{ "hook_id" : "lib/units/beings/player/states/playermaskoff", "script_path" : "lua/playermaskoff.lua" },
+	{ "hook_id" : "lib/units/beings/player/states/playerstandard", "script_path" : "lua/playerstandard.lua" },
+	{ "hook_id" : "lib/units/equipment/ammo_bag/ammobagbase", "script_path" : "lua/ammobagbase.lua" },
+	{ "hook_id" : "lib/units/equipment/sentry_gun/sentrygunbase", "script_path" : "lua/sentrygunbase.lua" },
+	{ "hook_id" : "lib/units/interactions/interactionext", "script_path" : "lua/interactionext.lua" },
+	{ "hook_id" : "lib/units/weapons/projectiles/arrowbase", "script_path" : "lua/arrowbase.lua" },
+	{ "hook_id" : "lib/units/weapons/sentrygunweapon", "script_path" : "lua/sentrygunweapon.lua" }
+  	]
+}

@@ -4,8 +4,6 @@ local old__update_check_actions = PlayerMaskOff._update_check_actions
 local old__check_action_jump = PlayerMaskOff._check_action_jump
 local old__check_action_duck = PlayerMaskOff._check_action_duck
 
-PlayerMaskOff._player_is_duck = nil or false
-
 function PlayerMaskOff:_check_action_duck(t, input, ...)
 	local pass = managers.player:has_category_upgrade("player", "suspicious_movement")
 	if pass then
@@ -31,26 +29,22 @@ end
 
 function PlayerMaskOff:__check_action_duck(t, input, ...)
 	if managers.user:get_setting("hold_to_duck") == true and input.btn_duck_release then
-		if self._state_data.ducking and self._player_is_duck == true then
-			self._player_is_duck = false
-			PlayerStandard._end_action_ducking(self, t)
+		if self._state_data.ducking then
+			self:_end_action_ducking(self, t)
 		end
 	elseif input.btn_duck_press and not self._unit:base():stats_screen_visible() then
 		if not self._state_data.ducking then
-			self._player_is_duck = true
-			PlayerStandard._start_action_ducking(self, t)
+			self:_start_action_ducking(self, t)
 		elseif self._state_data.ducking then
-			self._player_is_duck = false
-			PlayerStandard._end_action_ducking(self, t)
+			self:_end_action_ducking(self, t)
 		end
 	end
-	self:_upd_attention()
 end
 
 function PlayerMaskOff:_update_check_actions(t, dt, ...)
 	if not managers.player:has_category_upgrade("player", "suspicious_movement") then
-		old__update_check_actions(self, t, dt)
-	else
+		return old__update_check_actions(self, t, dt)
+	end
 	local input = self:_get_input(t, dt)
 	self._stick_move = self._controller:get_input_axis("move")
 
@@ -81,7 +75,6 @@ function PlayerMaskOff:_update_check_actions(t, dt, ...)
 	self:_check_action_duck(t, input)
 	self:_check_action_run(t, input)
 	self:_check_action_change_equipment(t, input)
-	end
 end
 
 end

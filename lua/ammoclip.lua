@@ -56,7 +56,7 @@ function AmmoClip:_pickup(unit)
 				CABLE_TIE_GET_CHANCE = 0.2
 				--log("reset cable tie")
 			elseif rand > CABLE_TIE_GET_CHANCE and self._ammo_box then
-				CABLE_TIE_GET_CHANCE = math.min(CABLE_TIE_GET_CHANCE + (math.random(3, 7) * 0.01), 1)
+				CABLE_TIE_GET_CHANCE = math.min(CABLE_TIE_GET_CHANCE + (math.random(1, 7) * 0.01), 1)
 				--log("trigger up cable tie")
 			end
 
@@ -74,6 +74,7 @@ function AmmoClip:_pickup(unit)
 
 						if player_manager:num_connected_players() > 0 then
 							num_more_hp = player_manager:num_players_with_more_health()
+							--log("Connected player > 1")
 						end
 						
 						num_more_hp = math.min(num_more_hp, 4) --big lobby exploit prevention

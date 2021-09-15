@@ -1,21 +1,23 @@
 {
 	"FeignDeath" : "Feign Death",
-	"FeignDeath_Revive" : "Auto Revived",
-	"FeignDeath_Chat" : "My feign death skill activated, Saves your inspire skill for later!"
+	"FeignDeath_Revive_Info" : "Auto Revived",
+	"FeignDeath_Revive_Chat" : "My feign death skill activated, Saves your inspire skill for later!",
 	
 	"FAK" : "First Aid Kit",
-	"FAK_Downs" : "Down Restored",
-	"FAK_Messiah" : "Messiah Recharged",
+	"FAK_Downs_Info" : "Down Restored",
+	"FAK_Messiah_Info" : "Messiah Recharged",
 	
 	"Messiah" : "Messiah",
-	"Messiah_Free" : "Free Charges",
-	
+	"Messiah_Free_Info" : "Free Charges",
 
+	"StockholmSyndrome" : "Stockholm Syndrome",
+	"StockholmSyndrome_Doc_Info" : "Doctor bags recharge Stockholm Syndrome",
+	"StockholmSyndrome_Hos_Info" : "Hostage recharge Stockholm Syndrome",
+	
 	"RaID_menu_main_name" : "RaID",
 	"RaID_menu_main_desc" : "Configuration RaID Settings",
 	"defaultset_desc" : "Reset Setting",
 	"defaultset_name" : "Reset",
-	"defaultset_desc" : "Reset Setting",
 	"reload_set_name" : "Reload Setting",
 	"reload_set_desc" : "Update/Reload Setting",
 	"sync_sentry_mark_name" : "Synchronize Sentry Mark",
@@ -32,14 +34,23 @@
 	"value_caps_npc_weapon_rays_desc" : "Set Limit Value Npc Weapon Rays",
 	
 
-	"menu_inspire_beta_desc" : "BASIC: ##$basic##\nYou revive crew members ##100%## faster. Shouting at your teammates will increase their movement and reload speed by ##20%## for ##10## seconds.\n\nACE: ##$pro##\nYou can revive crew members at a distance up to ##9## meters by shouting at them. This effect chain to other crew members that around ##6## meters. This cannot occur more than once every ##20## seconds.",
-	"menu_tea_cookies_beta_desc" : "BASIC: ##$basic##\nAdds ##7## more First Aid Kits to your inventory. First aid kits has chance to restore ##1## down counters.\n\nACE: ##$pro##\nAdds ##3## First Aid kits to your inventory. Your deployed First Aid kits will be automatically used if a player is downed within a ##5## meters radius of the First Aid Kit. This cannot occur more than once every ##20## seconds.",
-	"menu_stockholm_syndrome_beta_desc" : "BASIC: ##$basic##\nCivilians are intimidated by a noise you make and remain intimidated ##50%## longer. Your hostage will not flee when they have been rescued by law enforcers. Whenever you get into custody, your hostages will trade themselves for your safe return. This effect can occur during assaults, and only ##1## charges.\n\nACE: ##$pro##\nNow you have chance to recharge whenever you use doctor bag.",
-	"menu_joker_beta_desc" : "BASIC: ##$basic##\nYou can convert a ##non-special enemy## to fight on your side.\nThis can not be done during stealth and the enemy must have ##surrendered## in order for you to convert them. You can only convert ##one## at a time.\n\nACE: ##$pro##\nYour converted enemy deals ##35%## more damage. The time to convert an enemy is reduced by ##65%##.",
-	"menu_cable_guy_beta_desc" : "BASIC: ##$basic##\nThe power and range of your intimidation is increased by ##50%##.\n\nACE: ##$pro##\nYou can now have ##2## converted enemies at the same time.",
-	"menu_cable_guy_beta_old_desc" : "BASIC: ##$basic##\nThe power and range of your intimidation is increased by ##50%##.\n\nACE: ##$pro##\nClose to ##hostage## grant you ##Health## up to ##120%## and ##Armor## up to ##70%##.",
-	"menu_control_freak_beta_desc" : "BASIC: ##$basic##\nHaving a converted enemy increases your movement speed by ##10%##. Your converted enemy takes ##45%## less damage.\n\nACE: ##$pro##\nHaving a converted enemy increases your health by ##30%##. Your converted enemy takes an additional ##54%## less damage.",
-	"menu_sniper_graze_damage_desc" : "BASIC: ##$basic##\nSnipers that hit their target bounce the bullet around ##3## meters radius and deal ##100%## of the damage.\nIf a bullet would headshot-kill someone, the graze skill will deal ##125%## of the weapon's damage instead of ##100%##.\n\nACE: ##$pro##\nNow doubled the ##Radius## and ##Damage##.",
+	"menu_combat_medic_beta_desc" : "BASIC: ##$basic##\n##30%## damage reduction for ##5## seconds during and after success reviving other player.\n\nACE: ##$pro##\n##30%## damage reduction for ##8## seconds during and after success reviving other player.##[Upgrade]##\n##30%## more health revived crew member.",
+	"menu_tea_time_beta_desc" : "BASIC: ##$basic##\nReduce ##50%## time to deploy First Aid Kit and Doctor Bag.\n\nACE: ##$pro##\n##10%## Damage reduction lasts ##120## seconds for Anyone in the crew that use your First Aid Kits or Doctor Bags.\n##Anyone## in the crew will be automatically healed from Your deployed First Aid Kit within ##5## meters radius. Cannot occur more than once every ##20## seconds.",
+	"menu_fast_learner_beta_desc" : "BASIC: ##$basic##\n##5## seconds ##30%## Damage Reduction for Revived Crew member.\nDamage absorption ##7%## for ##7## seconds after success reviving other player.\n\nACE: ##$pro##\n##5## seconds ##80%## Damage Reduction for Revived Crew member.##[Upgrade]##\nDamage absorption ##15%## for ##7## seconds after success reviving other player.##[Upgrade]##",
+	"menu_tea_cookies_beta_desc" : "BASIC: ##$basic##\n##11## First Aid Kits.\n\nACE: ##$pro##\n##14## First Aid kits.\nFirst aid kits has chance to restore ##1## down counters.",
+	"menu_medic_2x_beta_desc" : "BASIC: ##$basic##\n##2## Doctor bags.\n\nACE: ##$pro##\n##4## Doctor bags charges.\nChance to Heal ##5%## when killing medic.",
+	"menu_inspire_beta_desc" : "BASIC: ##$basic##\nReduce ##50%## time to revive crew members.\n##20%## faster movement and reload speed lasts ##10## seconds for teammates when you ##shouting## at them.\n\nACE: ##$pro##\nRevive crew members in radius ##9## meters by ##shouting## at them. Chain effect to other crew members around ##6## meters radius and cooldown in ##40## seconds. Every kill reduces cooldown by ##2## seconds and cannot occur more than once every ##1## second.",
+	
+	"menu_triathlete_beta_desc" : "BASIC: ##$basic##\n##8## max amount of cable ties.\n##75%## faster tie hostages. \n\nACE: ##$pro##\n##2%## team damage absorption for each hostage and stack up to ##8## hostages.*\n\n*Note: This skill does not stack with other players Forced Friendship skill.",
+	"menu_cable_guy_beta_desc" : "BASIC: ##$basic##\nIncrease the power and range of your intimidation by ##50%##.\nCivilians are intimidated by a ##noise## you make and remain intimidated ##50%## longer.\n\nACE: ##$pro##\nStealth mode:Anyone ##3## meters around you also ##intimidated##.\nLoud mode: Anyone ##3## meters around you has chance to ##burnt##.",
+	"menu_joker_beta_desc" : "BASIC: ##$basic##\nYou can convert a ##non-special enemy## to fight on your side. This can not be done during stealth and the enemy must have ##surrendered## in order for you to convert them. You can only convert ##one## at a time.\n\nACE: ##$pro##\nYour converted enemy deals ##35%## more damage. The time to convert an enemy is reduced by ##65%##.",
+	"menu_stockholm_syndrome_beta_desc" : "BASIC: ##$basic##\nYour hostage will ##not## flee when they have been rescued by law enforcers. Whenever you get into custody, your hostages will ##trade## themselves for your safe return. This can only occur during assaults and only ##1## charges.\n\nACE: ##$pro##\nHostage has chance to recharge ##stockholm syndrome charges## every ##10## minutes and now you have chance to recharge ##stockholm syndrome charges## whenever you use ##doctor bag##.",
+	"menu_control_freak_beta_desc" : "BASIC: ##$basic##\n##10%## faster movement speed for having a converted enemy and your converted enemy takes ##45%## less damage.\nYou can now have ##2## jokers at the same time.\n\nACE: ##$pro##\n##30%## more max health for having a converted enemy and your converted enemy takes an additional ##54%## less damage.",
+
+	"menu_sniper_graze_damage_desc" : "BASIC: ##$basic##\nSnipers that hit their target bounce the bullet around ##3## meters radius and deal ##50%## of the damage, ##100%## If a bullet would headshot-kill someone.\n\nACE: ##$pro##\nNow doubled the ##Radius## and ##Damage##.",
+
+	"menu_cable_guy_beta_old_desc1" : "BASIC: ##$basic##\nThe power and range of your intimidation is increased by ##50%##.\n\nACE: ##$pro##\nClose to ##hostage## grant you ##Health## up to ##120%## and ##Armor## up to ##70%##.",
+	"menu_cable_guy_beta_old_desc2" : "BASIC: ##$basic##\nIncrease the power and range of your intimidation by ##50%##.\n\nACE: ##$pro##\nShouting has a chance for a chain effect around a ##5## meter radius from the enemy you are shouting and even chance to burn enemies within a ##5## meter radius from you.*\n\n *Note: Burning effect can not be done during stealth.",
 	
 	"menu_oppressor_beta_desc" : "BASIC: ##$basic##\nIncrease your armor recovery rate by ##15%##. Reduces the visual effect duration of Flashbangs by ##50%##.\n\nACE: ##$pro##\nReduces the visual effect duration of Flashbang by ##30%##.",
 	"menu_bandoliers_beta_desc" : "BASIC: ##$basic##\nYour total ammo capacity is increased by ##25%##.\n\nACES: ##$pro##\n##Double## the base chance increase of gain throwable from ammo box.\nIncreases the amount of ammo you gain from ammo boxes by ##80%##.\n\nNote: Does not stack with the perk deck skill Walk-in Closet.",
@@ -56,8 +67,8 @@
 	"menu_jail_workout_beta_desc" : "BASIC: ##$basic##\nIncrease the time before you start getting detected by ##25%## while in casing mode. You can also ##mark## enemies while in casing mode. You can now ##jump## and ##crouch## while ##mask off##.\n\nACE: ##$pro##\nYou can pick up items while in casing mode. You also gain ##30%## more value to items and cashes that you pick up.",
 	"menu_second_chances_beta_desc" : "BASIC: ##$basic##\nYour ##ECM## can now also be used to ##hack## certain electronic doors. \n\nACE: ##$pro##\nYou lockpick ##2## times faster. You also gain the ability to lockpick ##regular## safes.",
 	"menu_ecm_2x_beta_desc" : "BASIC: ##$basic##\nYou can now place ##2## ECM jammers instead of just one. \n\nACE: ##$pro##\nYour ECM jammer and feedback duration is increased by ##25%##.Pagers are ##delayed## by the ECM jammer.",
-	"menu_ecm_booster_beta" : "Ninja Overdrive"
-	"menu_ecm_booster_beta_desc" : "BASIC: ##$basic##\nYou gain the ability to loop ##1## camera screen. Effect lasts for 25 seconds.\n##Shunshin'nojutsu## : Jump Run can now ##hide## your presence to anyone for ##2## second. This cannot occur more than once every ##4## seconds.\n\nACE: ##$pro##\nThe ECM jammer duration is increased by an additional ##25%## and the ECM feedback duration lasts ##25%## longer. ",
+	"menu_ecm_booster_beta" : "Ninja Overdrive",
+	"menu_ecm_booster_beta_desc" : "BASIC: ##$basic##\nYou gain the ability to loop ##1## camera screen. Effect lasts for 25 seconds.\n##Shunshin'nojutsu## : While jump-running you can now ##hide## your presence to anyone for ##2## second. This cannot occur more than once every ##15## seconds.(*)\n\nACE: ##$pro##\nThe ECM jammer duration is increased by an additional ##25%## and the ECM feedback duration lasts ##25%## longer.\n\n(*)Automaticly applied whenever get suspicious and when activated gives you speed boost.",
 	"menu_chameleon_beta_desc" : "BASIC: ##$basic##\nYou gain the ability to automatically mark enemies within a ##12## meters radius around you after ##stay still## for ##3## seconds while in stealth. \n\nACE: ##$pro##\nYou gain access to ##all insider## assets. Cleaning costs after killing a civilian is reduced by ##75%##.",
 	"menu_spotter_teamwork_beta" : "Specialized Killing",
 	"menu_spotter_teamwork_beta_desc" : "BASIC: ##$basic##\nYou deal ##7%## more damage with all silenced weapons\nEnemies you mark take ##15%## more damage.\n\nACE: ##$pro##\nYou deal additional ##8%## more damage with all silenced weapons.\nEnemies you mark take an additional ##50%## damage when further away than ##10## meters. Increases the duration of marked enemies by ##2x## and you can now ##mark## specials by ##aiming## at them with any weapon.",
@@ -66,6 +77,16 @@
 	"menu_trigger_happy_beta_desc" : "BASIC: ##$basic##\nFor every hit with a pistol you gain ##20%## damage boost that lasts for ##4## seconds. Stacks up to ##5## times.\n\nACE: ##$pro##\nIncreases the damage boost duration to ##7## seconds.",
 	"menu_pistol_beta_messiah_desc" : "BASIC: ##$basic##\nWhile in bleedout, you can revive yourself if you kill an enemy. You only have ##1## charge. Your messiah charge is ##replenished## whenever you use a doctor bag.\n\nACE: ##$pro##\nFirst aid kit has chance to ##replenish## messiah charges. You have chance of ##free## messiah charges.",
 	"menu_drop_soap_beta_desc" : "BASIC: ##$basic##\nWhen charging your melee weapon you will counterattack enemies that try to strike you, knocking them down. The knockdown does not deal any damage.\n\nACE: ##$pro##\nYou have ##50%## chance to auto counter cloakers and their kicks.",
+
+
+	"menu_deck1_8_desc" : "You do ##5%## more damage. Does not apply to melee damage, throwables, and specials.\n\nIncreases your doctor bag interaction speed by ##20%##.",
+
+
+	"menu_deck1_1_desc" : "##10%## Team damage reduction. Doubled for you when your hp ratio under ##50%##.\n\n##10%## damage reduction when you are within medium range of an enemy.",
+	"menu_deck1_3_desc" : "##50%## More team stamina.*\n\nIncreases your shout distance by ##50%##.\n\n##20%## More Health.\n\n*Note: Crew perks do not stack.",
+	"menu_deck1_5_desc" : "##10%## More Health for team.*\n\n##40%## More Health.\n\nTeam damage reduction bonus now doubled when your hp ratio under ##75%##.\n\n*Note: Crew perks do not stack.",
+	"menu_deck1_7_desc" : "##20%## More Armor.\n\n##5%## More armor for team.*\n\n*Note: Crew perks do not stack.",
+	"menu_deck1_9_desc" : "##6%## More health and ##12%## more stamina for each hostage up to ##4## times for You and team.*\n\n##10%## Damage reduction for having at least ##1## hostage for You and team.*\n\nDeck Completion Bonus: Your chance of getting a higher quality item during a Payday is increased by ##25%##.\n\n*Note: Crew perks do not stack and can be triggered on ##Joker## as well.",
 
 	"bm_wp_upg_o_shortdot" : "Vanilla Scope"	
 }

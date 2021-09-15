@@ -1,12 +1,10 @@
-if RequiredScript == "lib/units/beings/player/states/playermaskoff" then
+if RequiredScript == "lib/units/beings/player/states/playerclean" then
 
-local old__update_check_actions = PlayerMaskOff._update_check_actions
-local old__check_action_jump = PlayerMaskOff._check_action_jump
-local old__check_action_duck = PlayerMaskOff._check_action_duck
+local old__update_check_actions = PlayerClean._update_check_actions
+local old__check_action_jump = PlayerClean._check_action_jump
+local old__check_action_duck = PlayerClean._check_action_duck
 
-player_is_duck = false
-
-function PlayerMaskOff:_check_action_duck(t, input, ...)
+function PlayerClean:_check_action_duck(t, input, ...)
 	local pass = managers.player:has_category_upgrade("player", "suspicious_movement")
 	if pass then
 		return self:__check_action_duck(t, input)
@@ -15,7 +13,7 @@ function PlayerMaskOff:_check_action_duck(t, input, ...)
 end
 
 
-function PlayerMaskOff:_check_action_jump(t, input, ...)
+function PlayerClean:_check_action_jump(t, input, ...)
 	local pass = managers.player:has_category_upgrade("player", "suspicious_movement")
 	if pass then
 		return self:__check_action_jump(t, input)
@@ -23,30 +21,34 @@ function PlayerMaskOff:_check_action_jump(t, input, ...)
 	return old__check_action_jump(self, t, input, ...)
 end
 
-function PlayerMaskOff:__check_action_jump(t, input, ...)
+function PlayerClean:__check_action_jump(t, input, ...)
 	if input.btn_jump_press then
 		PlayerStandard._check_action_jump(self, t, input)
 	end
 end
 
-function PlayerMaskOff:__check_action_duck(t, input, ...)
+function PlayerClean:__check_action_duck(t, input, ...)
 	if PlayerStandard._setting_hold_to_duck and input.btn_duck_release then
-		if self._state_data.ducking and player_is_duck == true then
-			player_is_duck = false
-			PlayerStandard._end_action_ducking(self, t)
+		if self._state_data.ducking then
+			self:_end_action_ducking(self, t)
 		end
 	elseif input.btn_duck_press and not self._unit:base():stats_screen_visible() then
 		if not self._state_data.ducking then
-			player_is_duck = true
-			PlayerStandard._start_action_ducking(self, t)
+			self:_start_action_ducking(self, t)
 		elseif self._state_data.ducking then
-			player_is_duck = false
-			PlayerStandard._end_action_ducking(self, t)
+			self:_end_action_ducking(self, t)
 		end
 	end
+	--self:_upd_attention()
 end
 
-function PlayerMaskOff:_update_check_actions(t, dt, ...)
+function PlayerClean:_update_check_actions(t, dt, ...)
+	self._ext_movement:set_attention_settings({
+		"pl_mask_off_friend_combatant",
+		"pl_mask_off_friend_non_combatant",
+		"pl_mask_off_foe_combatant",
+		"pl_mask_off_foe_non_combatant"
+	})
 	if not managers.player:has_category_upgrade("player", "suspicious_movement") then
 		old__update_check_actions(self, t, dt)
 	else

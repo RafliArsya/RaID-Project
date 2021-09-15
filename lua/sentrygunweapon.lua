@@ -63,7 +63,7 @@ function SentryGunWeapon:_fire_raycast(from_pos, direction, shoot_player, target
 				col_ray = col_ray
 			}
 			--log("Sentry Gun Damage Explode = "..self._damage_explode_t)
-			for _, hit_unit in ipairs(bodies) do
+			for _, hit_unit in pairs(bodies) do
 				local civs, enemies, sentry = unit_stance(hit_unit)
 				if hit_unit:character_damage() and (enemies or civs or sentry) then
 					hit_unit:character_damage():damage_explosion(action_data)
@@ -84,18 +84,23 @@ function SentryGunWeapon:_fire_raycast(from_pos, direction, shoot_player, target
 			local interval = data.interval * math.min((math.floor(math.random()*100)/100)+0.1,1)
 			interval = math.clamp(interval, data.min_interval, data.interval)
 			self._tower_explode_t = _t + interval
-			local action_data = {
+			--[[local action_data = {
 				variant = "explosion",
 				damage = data.damage,
 				attacker_unit = RaID:get_data("toggle_sentry_skill_is_player") and player or self._unit,
 				weapon_unit = self._unit,
 				col_ray = col_ray
-			}
+			}]]
 			--log("Sentry Gun Damage Explode = "..self._tower_explode_t)
-			for _, hit_unit in ipairs(bodies) do
+			for _, hit_unit in pairs(bodies) do
 				local civs, enemies, sentry = unit_stance(hit_unit)
-				if hit_unit:character_damage() and (enemies or sentry) then
+				--[[if hit_unit:character_damage() and (enemies or sentry) then
 					hit_unit:character_damage():damage_explosion(action_data)
+				end]]
+				if hit_unit:character_damage() and enemies then
+					local attacker = RaID:get_data("toggle_sentry_skill_is_player") and player or self._unit
+					local weapon = RaID:get_data("toggle_sentry_skill_is_player") and player:inventory():equipped_unit() or self._unit
+					managers.fire:add_doted_enemy( hit_unit , _t , weapon , math.random(2, 7) , data.damage, attacker, false )
 				end
 			end
 		end
