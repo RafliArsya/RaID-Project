@@ -1,7 +1,7 @@
-init_pd2_ = UpgradesTweakData.init
+_init_UpgradesTweakData = UpgradesTweakData.init
 
 function UpgradesTweakData:init(...)
-	init_pd2_(self, ...)
+	_init_UpgradesTweakData(self, ...)
 	
 	-- Start up Ammo --
 	self.values.player.extra_ammo_multiplier = {
@@ -833,16 +833,16 @@ function UpgradesTweakData:init(...)
 		25
 	}
 	self.cocaine_stacks_tick_t = 2 --4
-	self.max_cocaine_stacks_per_tick = 240 --240 555
+	self.max_cocaine_stacks_per_tick = 250 --240 555
 	self.max_total_cocaine_stacks = 1500 --600 1500
 	self.cocaine_stacks_decay_t = 8 --8
-	self.cocaine_stacks_decay_amount_per_tick = 80
+	self.cocaine_stacks_decay_amount_per_tick = 70 --80
 	self.cocaine_stacks_decay_percentage_per_tick = 0.6 --0.6
 	self.values.player.cocaine_stacks_decay_multiplier = {
 		0.5
 	}
 	--Cocaine convert per value
-	self.cocaine_stacks_dmg_absorption_value = 0.1
+	self.cocaine_stacks_dmg_absorption_value = 0.01
 	--Maniac Networked data
 	self.values.player.sync_cocaine_stacks = {
 		true
@@ -1045,7 +1045,7 @@ function UpgradesTweakData:init(...)
 	--Forced Friendship
 	self.values.team.damage = {
 		hostage_absorption = {
-			0.2 --0.05
+			0.09 --0.05
 		},
 		hostage_absorption_limit = 8
 	}
@@ -1368,15 +1368,16 @@ function UpgradesTweakData:init(...)
 	--Second Wind
 	self.values.temporary.damage_speed_multiplier = {
 		{
-			1.25,
+			1.35,
 			5
-		},
+		}--[[,
 		{
-			1.33,
+			1.40,
 			5
 		}
+		]]
 	}
-	self.definitions.temporary_damage_speed_multiplier_2 = {
+	--[[self.definitions.temporary_damage_speed_multiplier_2 = {
 		name_id = "menu_temporary_damage_speed_1",
 		category = "temporary",
 		upgrade = {
@@ -1384,21 +1385,93 @@ function UpgradesTweakData:init(...)
 			upgrade = "damage_speed_multiplier",
 			category = "temporary"
 		}
+	}]]
+	--Send to peers
+	self.values.temporary.team_damage_speed_multiplier_received = {
+		{
+			1.3,
+			5
+		}
 	}
 	
-	--Second Wind DMG Boost
-	self.values.temporary.damage_boost_multiplier = {
+	--Second wind reload speed
+	self.values.temporary.reload_weapon_faster_second = {
 		{
-			1.07,
+			1.3,
 			7
 		}
 	}
-	self.definitions.temporary_damage_boost_multiplier = {
+	self.definitions.reload_weapon_faster_second_multiplier_1 = {
+		name_id = "menu_temporary_reload_weapon_faster_second_multiplier_1",
+		category = "temporary",
+		upgrade = {
+			value = 1,
+			upgrade = "reload_weapon_faster_second",
+			category = "temporary"
+		}
+	}
+	
+	--running from death
+	self.values.temporary.increased_movement_speed = {
+		{
+			1.25,
+			10
+		}
+	}
+	--[[self.values.temporary.swap_weapon_faster = {
+		{
+			2,
+			10
+		}
+	}
+	self.values.temporary.reload_weapon_faster = {
+		{
+			2,
+			10
+		}
+	}]]
+	--Running from death no ammo cost
+	self.values.temporary.no_ammo_revenge = {
+		{
+			true,
+			7
+		}
+	}
+	self.definitions.temporary_no_ammo_revenge = {
+		name_id = "menu_temporary_no_ammo_revenge_1",
+		category = "temporary",
+		upgrade = {
+			value = 1,
+			upgrade = "no_ammo_revenge",
+			category = "temporary"
+		}
+	}
+
+    --Up you go
+	--[[self.values.temporary.revived_damage_resist = {
+		{
+			0.7,
+			10
+		}
+	}
+	self.values.player.revived_health_regain = {
+		1.4
+	}
+	]]
+
+	--Up you go dmg boost
+	self.values.temporary.damage_boost_revenge = {
+		{
+			50,
+			7
+		}
+	}
+	self.definitions.temporary_damage_boost_revenge = {
 		name_id = "menu_temporary_damage_boost_1",
 		category = "temporary",
 		upgrade = {
 			value = 1,
-			upgrade = "damage_boost_multiplier",
+			upgrade = "damage_boost_revenge",
 			category = "temporary"
 		}
 	}
@@ -1463,8 +1536,8 @@ function UpgradesTweakData:init(...)
 		1
 	}
 	self.values.player.health_damage_reduction = {
-		0.75,
-		0.48
+		0.68,
+		0.35
 	}
 	self.values.player.max_health_reduction = {
 		0.335
@@ -1484,6 +1557,21 @@ function UpgradesTweakData:init(...)
 		}
 	}
 	
+	--explosive breacher
+	self.values.player.explosive_breacher = {
+		true
+	}
+	self.definitions.player_explosive_breacher_1 = {
+		name_id = "menu_trip_mine_explosive_breacher",
+		category = "feature",
+		upgrade = {
+			value = 1,
+			upgrade = "explosive_breacher",
+			category = "player"
+		}
+	}
+
+
 	--Tower Defense
 	self.values.sentry_gun.quantity = {
 		1,
@@ -1498,8 +1586,8 @@ function UpgradesTweakData:init(...)
 
 	--More Firepower
 	self.values.shape_charge.quantity = {
-		1,
-		3
+		3,
+		5 --1, 3
 	}
 
 	--Combat Engineering
@@ -1512,6 +1600,36 @@ function UpgradesTweakData:init(...)
 	--unused Combat Engineering
 	self.values.trip_mine.explosion_size_multiplier_2 = {
 		1.7
+	}
+	
+	--Expanded and Enhanced Explosion
+	self.values.player.expanded_n_enhanced = {
+		{
+			base = 0.5,
+			inc = 0.02
+		},
+		{
+			base = 0.5,
+			inc = 0.05
+		}
+	}
+	self.definitions.player_expanded_n_enhanced_1 = {
+		name_id = "menu_player_expanded_n_enhanced",
+		category = "feature",
+		upgrade = {
+			value = 1,
+			upgrade = "expanded_n_enhanced",
+			category = "player"
+		}
+	}
+	self.definitions.player_expanded_n_enhanced_2 = {
+		name_id = "menu_player_expanded_n_enhanced",
+		category = "feature",
+		upgrade = {
+			value = 2,
+			upgrade = "expanded_n_enhanced",
+			category = "player"
+		}
 	}
 	
 	--Trip Mine Alert Size
@@ -1556,6 +1674,66 @@ function UpgradesTweakData:init(...)
 	self.values.trip_mine.fire_trap = {
 		{15, 1.25},
 		{25, 1.875}
+	}
+
+	--Lockdown Trap
+	self.values.trip_mine.lockdown_trap = {
+		{
+			dmg = 50,
+			range = 1000
+		},
+		{
+			dmg = 100,
+			range = 2000
+		}
+	}
+	self.definitions.trip_mine_lockdown_trap_1 = {
+		name_id = "menu_player_lockdown_trap",
+		category = "feature",
+		upgrade = {
+			value = 1,
+			upgrade = "lockdown_trap",
+			category = "trip_mine"
+		}
+	}
+	self.definitions.trip_mine_lockdown_trap_2 = {
+		name_id = "menu_player_lockdown_trap",
+		category = "feature",
+		upgrade = {
+			value = 2,
+			upgrade = "lockdown_trap",
+			category = "trip_mine"
+		}
+	}
+
+	--Flame Trap
+	self.values.player.flame_trap = {
+		{
+			chance = 0.15,
+			inc = 0.02
+		},
+		{
+			chance = 0.32,
+			inc = 0.02
+		}
+	}
+	self.definitions.player_flame_trap_1 = {
+		name_id = "menu_player_flame_trap",
+		category = "feature",
+		upgrade = {
+			value = 1,
+			upgrade = "flame_trap",
+			category = "player"
+		}
+	}
+	self.definitions.player_flame_trap_2 = {
+		name_id = "menu_player_flame_trap",
+		category = "feature",
+		upgrade = {
+			value = 2,
+			upgrade = "flame_trap",
+			category = "player"
+		}
 	}
 	
 	--Fire Trap MK2
@@ -2612,8 +2790,8 @@ function UpgradesTweakData:init(...)
 
 	--Revive pain killer abs
 	self.values.player.pain_killer_ab = {
-		0.7,
-		1.5
+		0.07,
+		0.15
 	}
 	self.definitions.player_pain_killer_a1 = {
 		category = "feature",
@@ -2767,10 +2945,26 @@ function UpgradesTweakData:init(...)
 			upgrade = "double_drop_s",
 			category = "player"
 		}
-	}]]
+	}
 	
-	--[[HOST ONLY SKILL
+	--Second Wind DMG Boost
+	self.values.temporary.damage_boost_multiplier = {
+		{
+			1.07,
+			7
+		}
+	}
+	self.definitions.temporary_damage_boost_multiplier = {
+		name_id = "menu_temporary_damage_boost_1",
+		category = "temporary",
+		upgrade = {
+			value = 1,
+			upgrade = "damage_boost_multiplier",
+			category = "temporary"
+		}
+	}
 	
+	--HOST ONLY SKILL
 	--ECM (HOST ONLY)
 	self.ecm_jammer_base_range = 3000
 	self.ecm_feedback_interval = 1

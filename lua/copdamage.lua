@@ -261,10 +261,46 @@ function CopDamage:damage_bullet(attack_data)
 
 	local variant = nil
 
+	local function do_tase_dire_need(self)
+		local pm = managers.player
+		if not pm then
+			return
+		end
+		local player = pm:local_player()
+		if not player then
+			return
+		end
+		local t = pm:player_timer():time()
+		local slotmask = managers.slot:get_mask("enemies")
+		
+		if alive(self._unit) and self._unit:character_damage() and not self._unit:character_damage():dead() then
+			local is_converted = self._unit:brain() and self._unit:brain()._logic_data and self._unit:brain()._logic_data.is_converted
+			local is_enggage = self._unit:brain() and self._unit:brain():is_hostile()
+			local unit_dmg = self._unit:character_damage()
+			local unit_mov = self._unit:movement()
+			local unit_enggage = unit_mov and not unit_mov:cool()
+			local unit_hostile = unit_mov and unit_mov:stance_name() == "hos"
+			local unit_cbt = unit_mov and unit_mov:stance_name() == "cbt"
+			if not is_converted and is_enggage and unit_enggage and (unit_hostile or unit_cbt) then
+				--[[local action_data = {
+					variant = "light",
+					damage = 70,
+					attacker_unit = player,
+					col_ray = { body = self._unit:body("body"), position = self._unit:position() + math.UP * 100, ray = self._unit:body("body") and self._unit:center_of_mass() or alive(self._unit) and self._unit:position()},
+				}]]
+				if unit_dmg then
+					--unit_dmg:damage_tase(action_data)
+					managers.fire:add_doted_enemy( self._unit , t , attack_data.weapon_unit , 7 , 5 , player , true )
+				end
+			end
+		end
+	end
+
 	if result.type == "knock_down" then
 		variant = 1
 	elseif result.type == "stagger" then
 		variant = 2
+		do_tase_dire_need(self)
 		self._has_been_staggered = true
 	elseif result.type == "healed" then
 		variant = 3
@@ -321,10 +357,83 @@ function CopDamage:_on_damage_received(damage_info)
 		managers.player:on_damage_dealt(self._unit, damage_info)
 	end
 
+	--modd
+	local function randomFloat(min, max, precision)
+		local range = max - min
+		local offset = range * math.random()
+		local unrounded = min + offset
+	
+		if not precision then
+			return unrounded
+		end
+	
+		local powerOfTen = 10 ^ precision
+		return math.floor(unrounded * powerOfTen + 0.5) / powerOfTen
+	end
+
+	
+	if (attacker_unit == managers.player:player_unit() or alive(attacker_unit) and attacker_unit:base() and attacker_unit:base().thrower_unit) and damage_info then
+		if damage_info.variant == "explosion" and managers.player:has_category_upgrade("player", "expanded_n_enhanced") then
+			if damage_info.result.type ~= "death" and not self._dead and 0.5 >= randomFloat(0,1,2) then
+				local fire_dot_data = {
+					dot_damage = 5,
+					dot_trigger_max_distance = 3000,
+					dot_trigger_chance = 100,
+					dot_length = 6,
+					dot_tick_period = 0.5
+				}
+				local action_data = {
+					variant = "fire",
+					damage = 1,
+					attacker_unit = attacker_unit,
+					weapon_unit = attacker_unit == managers.player:player_unit() and managers.player:player_unit():inventory():equipped_unit() or damage_info.weapon_unit or nil,
+					ignite_character = true,
+					col_ray = damage_info.col_ray,
+					is_fire_dot_damage = false,
+					fire_dot_data = fire_dot_data,
+					is_molotov = true
+				}
+				self:damage_fire(action_data)
+			end
+		end
+		if damage_info.variant == "fire" and managers.player:has_category_upgrade("player", "flame_trap") then
+			if damage_info.result.type == "death" and 0.7 >= randomFloat(0,1,2) then
+				local position = self._unit:position()
+				local rotation = self._unit:rotation()
+				local attacker = self._unit or nil
+				local params = {
+					sound_event = "molotov_impact",
+					range = 75,
+					curve_pow = 3,
+					damage = 1,
+					fire_alert_radius = 100,
+					hexes = 6,
+					sound_event_burning = "burn_loop_gen",
+					is_molotov = true,
+					player_damage = 2,
+					sound_event_impact_duration = 4,
+					burn_tick_period = 0.4,
+					burn_duration = 4, --16,
+					alert_radius = 50,
+					effect_name = "effects/payday2/particles/explosions/molotov_grenade",
+					fire_dot_data = {
+						dot_trigger_chance = 30,
+						dot_damage = 15,
+						dot_length = 7,
+						dot_trigger_max_distance = 3000,
+						dot_tick_period = 0.5
+					}
+				}
+				EnvironmentFire.spawn(position, rotation, params, math.UP, attacker, 0, 1)
+			end
+		end
+	end
+	--endmodd
+
 	if damage_info.variant == "melee" then
 		managers.statistics:register_melee_hit()
 	end
-
+	--modd
 	local cd = sentry_kill and sentry_kill_chance and pm:_s_kill_restore_chance_is_cd() or true
 
 	if damage_info.result.type == "death" and sentry_kill and sentry_kill_chance and not cd then
@@ -346,7 +455,7 @@ function CopDamage:_on_damage_received(damage_info)
 			local index = pm:equipped_weapon_index()
 			if not_full and (not saw or not special) then
 				if pm:_s_roll_restore_chance() == true then
-					local add = ammo * (math.floor(math.random(20)*100)/10000)
+					local add = ammo * ((math.random(20)*100)*0.0001)
 					add = add - math.floor(add) >= 0.5 and math.floor(add) > 0 and math.ceil(add) or math.floor(add) > 0 and math.floor(add) or 1
 					equipped_unit:add_ammo_to_pool(add, index)
 					pm:_s_kill_restore_chance_cd()
@@ -354,6 +463,7 @@ function CopDamage:_on_damage_received(damage_info)
 			end
 		end
 	end
+	--endmodd
 	
 	self:_update_debug_ws(damage_info)
 end
@@ -373,7 +483,7 @@ function CopDamage:_send_fire_attack_result(attack_data, attacker, damage_percen
 				if tweak_data.weapon[weapon_unit].based_on then
 					weapon_unit = tweak_data.weapon[weapon_unit].based_on
 				elseif tweak_data.weapon[weapon_unit]:base()._selection_index then
-					weapon_unit = tweak_data.weapon[weapon_unit]:base()._selection_index == 2 and "wpn_fps_ass_amcar" or "wpn_fps_pis_g17"
+					weapon_unit = tweak_data.weapon[weapon_unit]:base()._selection_index % 2 == 0 and "wpn_fps_ass_amcar" or "wpn_fps_pis_g17"
 				else
 					weapon_unit = "wpn_fps_ass_amcar"
 				end

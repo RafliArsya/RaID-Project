@@ -44,6 +44,16 @@ Hooks:PostHook(PlayerDamage, "revive", "RaID_PlayerDamage_revive", function(self
 			end
 		end
 	end
+	if self._has_damage_revenge then
+		if not self._has_active_damage_revenge then
+			managers.player:activate_temporary_upgrade("temporary", "damage_boost_revenge")
+		end
+	end
+	if self._has_ammo_revenge then
+		if not self._has_active_ammo_revenge then
+			managers.player:activate_temporary_upgrade("temporary", "no_ammo_revenge")
+		end
+	end
 	if self._has_revive_protection then
 		self._can_take_dmg_timer = managers.player:upgrade_value("player", "running_from_death")
 	end
@@ -102,6 +112,8 @@ function PlayerDamage:init(unit)
 	self._dire_need = managers.player:has_category_upgrade("player", "armor_depleted_stagger_shot")
 	self._has_damage_speed = managers.player:has_inactivate_temporary_upgrade("temporary", "damage_speed_multiplier")
 	self._has_damage_speed_team = managers.player:upgrade_value("player", "team_damage_speed_multiplier_send", 0) ~= 0
+	self._has_damage_speed_reload = managers.player:has_inactivate_temporary_upgrade("temporary", "reload_weapon_faster_second")
+
 	self._has_damage_speed_act = nil
 	self._has_damage_speed_ab = managers.player:has_category_upgrade("player", "armor_depleted_get_absorption")
 	self._has_damage_speed_ab_act = nil
@@ -125,6 +137,10 @@ function PlayerDamage:init(unit)
 		_dmg_boost_cd_t = nil
 	}
 
+	self._has_damage_revenge = managers.player:has_category_upgrade("temporary", "damage_boost_revenge")
+	self._has_active_damage_revenge = managers.player:has_activate_temporary_upgrade("temporary", "damage_boost_revenge")
+	self._has_ammo_revenge = managers.player:has_category_upgrade("temporary", "no_ammo_revenge")
+	self._has_active_ammo_revenge = managers.player:has_activate_temporary_upgrade("temporary", "no_ammo_revenge")
 
 	self._doctor_kill_heal_chance = 0
 
@@ -660,8 +676,12 @@ function PlayerDamage:damage_bullet(attack_data)
 	local data_resevoir = has_resevoir and self._data_dmg_resevoir
 	
 	if damage_absorption > 0 then
-		local dmg_absorp_val = damage_absorption * 0.1
+		--log("Dmg abs = "..tonumber(damage_absorption))
+		local dmg_absorp_val = damage_absorption
 		local absorp_dmg = self:_max_health() * dmg_absorp_val
+		--log("atk damage = "..tonumber(attack_data.damage))
+		--log("player max hp = "..tonumber(self:_max_health()))
+		--log("Dmg abs val = "..tonumber(absorp_dmg))
 		attack_data.damage = math.max(0, attack_data.damage - absorp_dmg)
 		--[[local dmg_absorp_over = damage_absorption > 5 and damage_absorption - 5 or nil
 		local dmg_absorp_val = math.min(damage_absorption, 5)
@@ -670,6 +690,12 @@ function PlayerDamage:damage_bullet(attack_data)
 		local absorp_dmg = self:_max_health() * dmg_absorp_val
 		local remaining_dmg = math.max(0, attack_data.damage - absorp_dmg)
 		attack_data.damage = remaining_dmg > 0 and remaining_dmg or 0.01]]
+	end
+
+	if attack_data.damage <= 0 then
+		self:_send_damage_drama(attack_data, attack_data.damage)
+		self:_call_listeners(damage_info)
+		return
 	end
 
 	if self._god_mode then
@@ -912,6 +938,7 @@ function PlayerDamage:_calc_health_damage(attack_data)
 		if managers.player:has_category_upgrade("player", "maniac_ictb") then
 			lives = self:_get_ictb("_maniac")
 			local cocaine = managers.player:_get_local_cocaine_stack()
+			log("cocaine local count ="..cocaine)
 			if lives > 0 and cocaine ~= 0 then
 				self:change_health(math.min(cocaine, full_hp))
 				self:activate_revived_skill()
@@ -1435,6 +1462,9 @@ function PlayerDamage:_update_armor_grinding(t, dt)
 		end
 		self._has_damage_speed_act = true
 	end
+	if armor_broken and self._has_damage_speed_reload then
+		managers.player:activate_temporary_upgrade("temporary", "reload_weapon_faster_second")
+	end
 	if armor_broken and self._has_damage_speed_ab and not self._has_damage_speed_ab_act and not self._has_damage_speed_ab_t then
 		local absorption = math.max(self:_max_health()*0.5, 4)
 		self._has_damage_speed_ab_t = t + 5
@@ -1457,6 +1487,10 @@ function PlayerDamage:_on_damage_event()
 		if self._has_damage_speed_team then
 			managers.player:send_activate_temporary_team_upgrade_to_peers("temporary", "team_damage_speed_multiplier_received")
 		end
+	end
+
+	if armor_broken and self._has_damage_speed_reload then
+		managers.player:activate_temporary_upgrade("temporary", "reload_weapon_faster_second")
 	end
 
 	if armor_broken and self._has_damage_speed_ab and not self._has_damage_speed_ab_act and not self._has_damage_speed_ab_t then

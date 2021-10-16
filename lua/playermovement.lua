@@ -2,6 +2,9 @@ if RequiredScript == "lib/units/beings/player/playermovement" then
 local old_on_SPOOCed = PlayerMovement.on_SPOOCed
 _increase_auto_counter = 0
 function PlayerMovement:on_SPOOCed(enemy_unit)
+	if self._unit:character_damage()._god_mode or self._unit:character_damage():get_mission_blocker("invulnerable") then
+		return
+	end
 	if managers.player:has_category_upgrade("player", "counter_strike_spooc") and self._current_state.in_melee and self._current_state:in_melee() then
 		self._current_state:discharge_melee()
 		return "countered"
@@ -16,9 +19,7 @@ function PlayerMovement:on_SPOOCed(enemy_unit)
 		end
 		_increase_auto_counter = _increase_auto_counter + math.random(10)
 	end
-	if self._unit:character_damage()._god_mode or self._unit:character_damage():get_mission_blocker("invulnerable") then
-		return
-	end
+	
 	if self._current_state_name == "standard" or self._current_state_name == "carry" or self._current_state_name == "bleed_out" or self._current_state_name == "tased" or self._current_state_name == "bipod" then
 		local state = "incapacitated"
 		state = managers.modifiers:modify_value("PlayerMovement:OnSpooked", state)

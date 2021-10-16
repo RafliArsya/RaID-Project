@@ -509,7 +509,7 @@ end)
 function PlayerManager:update(t, dt)
 	self._message_system:update()
 	self:_update_timers(t)
-
+	
 	if self._need_to_send_player_status then
 		self._need_to_send_player_status = nil
 
@@ -658,15 +658,28 @@ function PlayerManager:update(t, dt)
 	self:update_smoke_screens(t, dt)
 end
 
+function PlayerManager:damage_absorption()
+	local total = 0
+
+	for _, absorption in pairs(self._damage_absorption) do
+		total = total + Application:digest_value(absorption, false)
+	end
+	--log(self:get_best_cocaine_damage_absorption(managers.network:session():local_peer():id()))
+	total = total + self:get_best_cocaine_damage_absorption(managers.network:session():local_peer():id())
+	total = managers.modifiers:modify_value("PlayerManager:GetDamageAbsorption", total)
+	--log(total)
+	return total
+end
+
 function PlayerManager:set_damage_absorption(key, value)
 	self._damage_absorption[key] = value and Application:digest_value(value, true) or nil
 
-	managers.hud:set_absorb_active(HUDManager.PLAYER_PANEL, self:damage_absorption() * 0.1 * (self:local_player():character_damage():_max_health() or 10))
+	managers.hud:set_absorb_active(HUDManager.PLAYER_PANEL, self:damage_absorption() * (self:local_player():character_damage() and self:local_player():character_damage():_max_health() or 1))
 end
 
 function PlayerManager:update_cocaine_hud()
 	if managers.hud then
-		managers.hud:set_absorb_active(HUDManager.PLAYER_PANEL, self:damage_absorption() * 0.1 * (self:local_player():character_damage():_max_health() or 10))
+		managers.hud:set_absorb_active(HUDManager.PLAYER_PANEL, self:damage_absorption() * (self:local_player():character_damage() and self:local_player():character_damage():_max_health() or 1))
 	end
 end
 
@@ -1122,8 +1135,8 @@ function PlayerManager:AOE_intimidate(prime_target)
 			end
 		end
 		log("Chances = "..tostring(self._AOE_int_chance_t))
-		self._affected_enemy_unit = nil
 	end					
+	self._affected_enemy_unit = nil
 end
 
 function PlayerManager:_on_enemy_killed_melee_regen_armor(equipped_unit, variant, killed_unit)

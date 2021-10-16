@@ -4,8 +4,6 @@ function TripMineBase:_explode(col_ray)
 	end
 
 	local damage_size = tweak_data.weapon.trip_mines.damage_size * managers.player:upgrade_value("trip_mine", "explosion_size_multiplier_1", 1) * managers.player:upgrade_value("trip_mine", "damage_multiplier", 1)
-	local alert_size = tweak_data.weapon.trip_mines.alert_radius
-	alert_size = managers.player:has_category_upgrade("trip_mine", "alert_size_multiplier") and alert_size * managers.player:upgrade_value("trip_mine", "alert_size_multiplier") or alert_size
 	local player = managers.player:player_unit()
 
 	managers.explosion:give_local_player_dmg(self._position, damage_size, tweak_data.weapon.trip_mines.player_damage)
@@ -74,8 +72,49 @@ function TripMineBase:_explode(col_ray)
 		end
 	end
 
+	local function lockdown_trap_skill(self)
+		local pm = managers.player
+		if not pm then
+			return
+		end
+		local player = pm:local_player()
+		if not player then
+			return
+		end
+		local trap_data = managers.player:upgrade_value("trip_mine", "lockdown_trap", nil)
+		local t = pm:player_timer():time()
+		local slotmask = managers.slot:get_mask("enemies")
+		local units = World:find_units_quick("sphere", self._position, trap_data.range, slotmask)
+		for e_key, unit_key in pairs(units) do
+			if alive(unit_key) and unit_key:character_damage() and not unit_key:character_damage():dead() then
+				local is_converted = unit_key:brain() and unit_key:brain()._logic_data and unit_key:brain()._logic_data.is_converted
+				local is_enggage = unit_key:brain() and unit_key:brain():is_hostile()
+				local unit_dmg = unit_key:character_damage()
+				local unit_mov = unit_key:movement()
+				local unit_enggage = unit_mov and not unit_mov:cool()
+				local unit_hostile = unit_mov and unit_mov:stance_name() == "hos"
+				local unit_cbt = unit_mov and unit_mov:stance_name() == "cbt"
+				if not is_converted and is_enggage and unit_enggage and (unit_hostile or unit_cbt) then
+					local action_data = {
+						variant = "light",
+						damage = trap_data.dmg,
+						attacker_unit = player,
+						col_ray = { body = unit_key:body("body"), position = unit_key:position() + math.UP * 100, ray = unit_key:body("body") and unit_key:center_of_mass() or alive(unit_key) and unit_key:position()},
+					}
+					if unit_dmg then
+						unit_dmg:damage_tase(action_data)
+						managers.fire:add_doted_enemy( unit_key , t , self._unit , 6 , 5 , player , true )
+					end
+				end
+			end
+		end
+	end
+
 	if managers.network:session() then
 		if managers.player:has_category_upgrade("trip_mine", "fire_trap") then
+			if managers.player:has_category_upgrade("trip_mine", "lockdown_trap") then
+				lockdown_trap_skill(self)
+			end
 			local fire_trap_data = managers.player:upgrade_value("trip_mine", "fire_trap", nil)
 
 			if fire_trap_data then
@@ -83,16 +122,20 @@ function TripMineBase:_explode(col_ray)
 				self:_spawn_environment_fire(player, fire_trap_data[1], fire_trap_data[2])
 			end
 		elseif player then
+			if managers.player:has_category_upgrade("trip_mine", "lockdown_trap") then
+				lockdown_trap_skill(self)
+			end
 			managers.network:session():send_to_peers_synched("sync_trip_mine_explode", self._unit, player, self._ray_from_pos, self._ray_to_pos, damage_size, damage)
 		else
 			managers.network:session():send_to_peers_synched("sync_trip_mine_explode_no_user", self._unit, self._ray_from_pos, self._ray_to_pos, damage_size, damage)
 		end
 	end
 
+
 	local alert_event = {
 		"aggression",
 		self._position,
-		alert_size,
+		tweak_data.weapon.trip_mines.alert_radius,
 		self._alert_filter,
 		self._unit
 	}

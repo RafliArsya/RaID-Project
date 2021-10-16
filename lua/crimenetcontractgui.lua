@@ -30,7 +30,7 @@ function CrimeNetContractGui:mouse_pressed(o, button, x, y)
 					end
 				end
 				
-				Steam:overlay_activate("url", "https://www.google.com/search?q=payday+2+" .. search .. "+mod")
+				Steam:overlay_activate("url", "https://www.google.com/search?q=payday+2+" .. search )
 
 				break
 			end

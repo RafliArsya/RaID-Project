@@ -72,10 +72,16 @@ end
 
 local orig_npc_fire_ray = NPCRaycastWeaponBase._fire_raycast
 function NPCRaycastWeaponBase:_fire_raycast(user_unit, from_pos, direction, dmg_mul, shoot_player, spread_mul, autohit_mul, suppr_mul, target_unit)
-	if user_unit:in_slot(16) and managers.player:player_unit() and target_unit and user_unit:base()._minion_owner == managers.player:player_unit() then
-		local player = managers.player:player_unit()
+	if user_unit:in_slot(16) and managers.player and managers.player:player_unit() and target_unit and user_unit:base()._minion_owner and user_unit:base()._minion_owner == managers.player:player_unit() then
+		local player = managers.player:player_unit() or managers.player:local_player()
 		local _t = TimerManager:game():time()
-		if _t >= self._minion_damage_explode_t then
+		if not alive(player)then
+			return orig_npc_fire_ray(self, user_unit, from_pos, direction, dmg_mul, shoot_player, spread_mul, autohit_mul, suppr_mul, target_unit)
+		end
+		if self._minion_damage_explode_t and not self._minion_damage_explode_t[user_unit:key()] then
+			self._minion_damage_explode_t[user_unit:key()] = _t + 1
+		end
+		if _t >= self._minion_damage_explode_t[user_unit:key()] then
 			local e_pos = target_unit:position()
 			local bodies = World:find_units_quick("sphere", e_pos, 325, managers.slot:get_mask("enemies"))
 			local col_ray = { }
@@ -83,15 +89,15 @@ function NPCRaycastWeaponBase:_fire_raycast(user_unit, from_pos, direction, dmg_
 			col_ray.position = e_pos
 			local interval = 10 * math.min((math.floor(math.random()*100)/100)+0.1,1)
 			interval = math.max(interval, 1)
-			self._minion_damage_explode_t = _t + interval
+			self._minion_damage_explode_t[user_unit:key()] = _t + interval
 			local action_data = {
 				variant = "explosion",
 				damage = 100,
 				attacker_unit = user_unit,
-				weapon_unit = user_unit:base()._minion_owner:inventory():equipped_unit(),
+				--weapon_unit = user_unit:base()._minion_owner:inventory():equipped_unit(),
 				col_ray = col_ray
 			}
-			log("Minion Damage Explode = "..self._minion_damage_explode_t)
+			log("Minion Damage Explode"..tostring(user_unit:key()).." = "..self._minion_damage_explode_t[user_unit:key()])
 			for _, hit_unit in ipairs(bodies) do
 				if hit_unit:character_damage() then
 					hit_unit:character_damage():damage_explosion(action_data)
@@ -102,6 +108,12 @@ function NPCRaycastWeaponBase:_fire_raycast(user_unit, from_pos, direction, dmg_
     return orig_npc_fire_ray(self, user_unit, from_pos, direction, dmg_mul, shoot_player, spread_mul, autohit_mul, suppr_mul, target_unit)
 end
 
+function NPCRaycastWeaponBase:_remove_dmg_explode(user_unit)
+	if self._minion_damage_explode_t and self._minion_damage_explode_t[user_unit:key()] then
+		self._minion_damage_explode_t[user_unit:key()] = nil
+	end
+end
+
 Hooks:PostHook(NPCRaycastWeaponBase, "init", "RaID_NPCRaycastWeaponBase_init", function(self)
-	self._minion_damage_explode_t = 0
+	self._minion_damage_explode_t = {}
 end)

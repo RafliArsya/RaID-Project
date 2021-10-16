@@ -214,13 +214,14 @@ function SkillTreeTweakData:init(...)
 				"player_intimidate_range_mul",
 				"player_intimidate_aura",
 				"player_civ_intimidation_mul",
-				"player_civ_calming_alerts" --moved from stockholm syndrome aced
+				 
 			},
 			cost = self.costs.default
 		},
 		{
 			upgrades = {
-				"player_AOE_intimidate" --addon
+				"player_civ_calming_alerts" --moved from stockholm syndrome basic
+				-- "player_AOE_intimidate" canceled
 				--"player_crowd_control_mk2_1" canceled
 			},
 			cost = self.costs.pro
@@ -469,21 +470,21 @@ function SkillTreeTweakData:init(...)
 		}
 	}
 	
-	--SENTRY--
+	--SENTRY-/-ENGINEER--
 	self.skills.defense_up = {
 		{
 			upgrades = {
 				"sentry_gun_cost_reduction_1", 
 				--addon
-				"sentry_gun_damage_explosion_1"
+				"sentry_gun_armor_multiplier2"
+				--"sentry_gun_damage_explosion_1"
 			},
 			cost = self.costs.hightier
 		},
 		{
 			upgrades = {
 				"sentry_gun_shield",
-				--addon
-				"sentry_gun_armor_multiplier2"
+				"sentry_gun_armor_multiplier", --moved from eco sentry aced
 			},
 			cost = self.costs.hightierpro
 		},
@@ -498,18 +499,19 @@ function SkillTreeTweakData:init(...)
 		{
 			upgrades = {
 				"sentry_gun_spread_multiplier", 
-				--moved from aced
-				"sentry_gun_rot_speed_multiplier",
+				"sentry_gun_cost_reduction_2", --moved from eco sentry
 				--addon
-				"sentry_gun_special_mark"
+				"sentry_gun_special_mark",
+				"sentry_gun_mark_boost"
 			},
 			cost = self.costs.hightier
 		},
 		{
 			upgrades = {
+				"sentry_gun_rot_speed_multiplier",
 				"sentry_gun_extra_ammo_multiplier_1",
 				--addon
-				"sentry_gun_mark_boost"
+				"sentry_gun_damage_explosion_1"
 			},
 			cost = self.costs.hightierpro
 		},
@@ -523,42 +525,44 @@ function SkillTreeTweakData:init(...)
 	self.skills.eco_sentry = {
 		{
 			upgrades = {
-				"sentry_gun_cost_reduction_2",
+				--"sentry_gun_cost_reduction_2",
 				--addon
-				"sentry_gun_destroy_explosion_1",
+				--"sentry_gun_destroy_explosion_1",
 				"sentry_gun_kill_restore_ammo"
 			},
 			cost = self.costs.hightier
 		},
 		{
 			upgrades = {
-				"sentry_gun_armor_multiplier",
+				--"sentry_gun_armor_multiplier",
 				--addon
-				"sentry_gun_destroy_explosion_2"
+				"player_expanded_n_enhanced_1"
+				--"sentry_gun_destroy_explosion_2"
 			},
 			cost = self.costs.hightierpro
 		},
 		name_id = "menu_eco_sentry_beta",
 		desc_id = "menu_eco_sentry_beta_desc",
 		icon_xy = {
-			9,
-			2
-		}
+			6,
+			6
+		}--icon_xy = {9,2}
 	}
 	self.skills.engineering = {
 		{
 			upgrades = {
 				"sentry_gun_silent",
-				--Moved from ace
-				"sentry_gun_ap_bullets",
-				"sentry_gun_fire_rate_reduction_1"
+				--addon
+				"sentry_gun_destroy_explosion_1"
 			},
 			cost = self.costs.hightier
 		},
 		{
 			upgrades = {
+				"sentry_gun_ap_bullets",
+				"sentry_gun_fire_rate_reduction_1",
 				--addon
-				"sentry_gun_ap_buff",
+				--"sentry_gun_ap_buff",
 				"sentry_gun_destroy_auto_pickup"
 			},
 			cost = self.costs.hightierpro
@@ -570,33 +574,6 @@ function SkillTreeTweakData:init(...)
 			3
 		}
 	}
-	self.skills.tower_defense = {
-		{
-			upgrades = {
-				"sentry_gun_quantity_1",
-				--addon
-				"sentry_gun_damage_explosion_2",
-				"sentry_gun_tower_explosion_1"
-			},
-			cost = self.costs.hightier
-		},
-		{
-			upgrades = {
-				"sentry_gun_quantity_2",
-				--addon
-				"sentry_gun_tower_explosion_2"
-			},
-			cost = self.costs.hightierpro
-		},
-		name_id = "menu_tower_defense_beta",
-		desc_id = "menu_tower_defense_beta_desc",
-		icon_xy = {
-			9,
-			5
-		}
-	}
-	
-	--ENGINEER--
 	self.skills.jack_of_all_trades = {
 		{
 			upgrades = {
@@ -622,13 +599,38 @@ function SkillTreeTweakData:init(...)
 			4
 		}
 	}
+	self.skills.tower_defense = {
+		{
+			upgrades = {
+				"sentry_gun_quantity_1",
+				--addon
+				--"sentry_gun_damage_explosion_2",
+				"sentry_gun_tower_explosion_1"
+			},
+			cost = self.costs.hightier
+		},
+		{
+			upgrades = {
+				"sentry_gun_quantity_2",
+				--addon
+				"sentry_gun_tower_explosion_2"
+			},
+			cost = self.costs.hightierpro
+		},
+		name_id = "menu_tower_defense_beta",
+		desc_id = "menu_tower_defense_beta_desc",
+		icon_xy = {
+			9,
+			5
+		}
+	}
 	
 	--BREACHER--
 	self.skills.hardware_expert = {
 		{
 			upgrades = {
 				"player_drill_fix_interaction_speed_multiplier",
-				"player_trip_mine_deploy_time_multiplier_1", --mod value
+				"player_trip_mine_deploy_time_multiplier", --mod value
 				"player_drill_alert",
 				"player_silent_drill"
 			},
@@ -650,16 +652,15 @@ function SkillTreeTweakData:init(...)
 	self.skills.combat_engineering = {
 		{
 			upgrades = {
+				"trip_mine_explosion_size_multiplier_1",
 				"player_trip_mine_deploy_time_multiplier_2" --addon
-				
 			},
 			cost = self.costs.hightier
 		},
 		{
 			upgrades = {
 				"trip_mine_damage_multiplier_1",
-				--moved to ace
-				"trip_mine_explosion_size_multiplier_1"
+				"player_explosive_breacher_1" --addon
 			},
 			cost = self.costs.hightierpro
 		},
@@ -690,6 +691,30 @@ function SkillTreeTweakData:init(...)
 			6
 		}
 	}
+	self.skills.more_fire_power = {
+		{
+			upgrades = {
+				"shape_charge_quantity_increase_1",
+				"trip_mine_quantity_increase_1",
+				"trip_mine_fire_trap_1" --fire_trap basic
+			},
+			cost = self.costs.hightier
+		},
+		{
+			upgrades = {
+				"shape_charge_quantity_increase_2",
+				"trip_mine_quantity_increase_2",
+				"trip_mine_fire_trap_2" --fire_trap ace
+			},
+			cost = self.costs.hightierpro
+		},
+		name_id = "menu_more_fire_power",
+		desc_id = "menu_more_fire_power_desc",
+		icon_xy = {
+			9,
+			7
+		}
+	}
 	self.skills.kick_starter = {
 		{
 			upgrades = {
@@ -712,46 +737,18 @@ function SkillTreeTweakData:init(...)
 			8
 		}
 	}
-	self.skills.more_fire_power = {
-		{
-			upgrades = {
-				"shape_charge_quantity_increase_1",
-				"trip_mine_quantity_increase_1",
-				--addon
-				"trip_mine_breach_mk2"
-				--"trip_mine_alert_size_multiplier_1"
-			},
-			cost = self.costs.hightier
-		},
-		{
-			upgrades = {
-				"shape_charge_quantity_increase_2",
-				"trip_mine_quantity_increase_2",
-				"trip_mine_alert_size_multiplier_1"
-				--addon
-				--"trip_mine_alert_size_multiplier_2"
-			},
-			cost = self.costs.hightierpro
-		},
-		name_id = "menu_more_fire_power",
-		desc_id = "menu_more_fire_power_desc",
-		icon_xy = {
-			9,
-			7
-		}
-	}
 	self.skills.fire_trap = {
 		{
 			upgrades = {
-				"trip_mine_fire_trap_1",
-				"player_fire_trap_mk2_1"
+				"trip_mine_lockdown_trap_1",
+				"player_flame_trap_1"
 			},
 			cost = self.costs.hightier
 		},
 		{
 			upgrades = {
-				"trip_mine_fire_trap_2",
-				"player_fire_trap_mk2_2"
+				"trip_mine_lockdown_trap_2",
+				"player_flame_trap_2"
 			},
 			cost = self.costs.hightierpro
 		},
@@ -859,16 +856,15 @@ function SkillTreeTweakData:init(...)
 	self.skills.scavenger = {
 		{
 			upgrades = {
-				"temporary_damage_speed_multiplier", --nerf
-				"player_team_damage_speed_multiplier_send" --moved from aced
+				"temporary_damage_speed_multiplier"
 			},
 			cost = self.costs.default
 		},
 		{
 			upgrades = {
+				"player_team_damage_speed_multiplier_send",
 				--addon
-				"temporary_damage_speed_multiplier_2", --aced nerf
-				"player_armor_depleted_get_absorption_1"
+				"reload_weapon_faster_second_multiplier_1"
 			},
 			cost = self.costs.pro
 		},
@@ -905,7 +901,6 @@ function SkillTreeTweakData:init(...)
 		}
 	}
 	
-
 	--GUNSLINGER
 	self.skills.akimbo = {
 		{
@@ -935,7 +930,7 @@ function SkillTreeTweakData:init(...)
 		{
 			upgrades = {
 				"player_revived_damage_resist_1",
-				--buff
+				--moved from ace
 				"player_revived_health_regain_1"
 				--[[addon canceled
 				"player_revived_up_enemy_fall_1"]]
@@ -944,8 +939,9 @@ function SkillTreeTweakData:init(...)
 		},
 		{
 			upgrades = {
-				--add on
-				"player_up_you_goh_1"
+				--addon
+				"temporary_damage_boost_revenge"
+				--"player_up_you_goh_1" canceled
 			},
 			cost = self.costs.hightierpro
 		},
@@ -972,7 +968,7 @@ function SkillTreeTweakData:init(...)
 			upgrades = {
 				"player_temp_increased_movement_speed_1",
 				--addon
-				"player_running_from_death_2"
+				"temporary_no_ammo_revenge"
 			},
 			cost = self.costs.hightierpro
 		},
@@ -2340,8 +2336,6 @@ function SkillTreeTweakData:init(...)
 				name_id = "menu_deck14_1",
 				upgrades = {
 					"player_cocaine_stacking_1",
-					--addon
-					"player_passive_health_multiplier_1"
 				},
 				icon_xy = {
 					0,
@@ -2357,7 +2351,7 @@ function SkillTreeTweakData:init(...)
 				upgrades = {
 					"player_sync_cocaine_stacks",
 					--addon
-					"player_passive_health_multiplier_2"
+					"player_passive_health_multiplier_1"
 				},
 				icon_xy = {
 					1,
@@ -2373,7 +2367,7 @@ function SkillTreeTweakData:init(...)
 				upgrades = {
 					"player_cocaine_stacks_decay_multiplier_1",
 					--addon
-					"player_passive_health_multiplier_3"
+					"melee_stacking_hit_damage_multiplier_1"
 				},
 				icon_xy = {
 					2,
@@ -2389,7 +2383,7 @@ function SkillTreeTweakData:init(...)
 				upgrades = {
 					"player_sync_cocaine_upgrade_level_1",
 					--addon
-					"melee_stacking_hit_damage_multiplier_1"
+					"player_maniac_ictb_1"
 				},
 				icon_xy = {
 					3,
@@ -2404,9 +2398,7 @@ function SkillTreeTweakData:init(...)
 				name_id = "menu_deck14_9",
 				upgrades = {
 					"player_passive_loot_drop_multiplier",
-					"player_cocaine_stack_absorption_multiplier_1",
-					--addon
-					"player_maniac_ictb_1"
+					"player_cocaine_stack_absorption_multiplier_1"
 				},
 				icon_xy = {
 					0,

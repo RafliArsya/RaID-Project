@@ -25,8 +25,39 @@ Hooks:PostHook(ExplosionManager, "init", "RaID_ExplosionManager_init", function(
 	}]]
 end)
 
-Hooks:PostHook(ExplosionManager, "detect_and_give_dmg", "RaID_ExplosionManager_detect_and_give_dmg", function(self, params)
+function ExplosionManager:_damage_bodies2(detect_results, params)
+	local user_unit = params.user
+	local hit_pos = params.hit_pos
+	local damage = params.damage
+	local range = params.range
+	local curve_pow = params.curve_pow
+
+	local fire_dot_data = {
+		dot_damage = 5,
+		dot_trigger_max_distance = 9000,
+		dot_trigger_chance = 100,
+		dot_length = 6.1,
+		dot_tick_period = 0.5
+	}
+	local action_data = {}
+	action_data.variant = "fire" -- fire taser_tased
+	action_data.damage = 1
+	action_data.attacker_unit = nil -- managers.player:player_unit() -- or nil
+	action_data.col_ray = col_ray
+	action_data.fire_dot_data = fire_dot_data
+	--[[for _, bodies in pairs(detect_results.bodies_hit) do
+		bodies:character_damage():damage_fire(action_data)
+	end]]
+end
+
+--[[Hooks:PostHook(ExplosionManager, "detect_and_give_dmg", "RaID_ExplosionManager_detect_and_give_dmg", function(self, params, detect_results)
 	log("Executed")
+	local user_unit = params.user
+	local owner = params.owner
+	local ignore_unit = params.ignore_unit
+	log("weapon = "..tostring(user_unit))
+	log("owner = "..tostring(owner))
+	log("ignore = "..tostring(ignore_unit))
 	local hit_pos = type(params) == "table" and params.hit_pos or nil
 	local slotmask = params.collision_slotmask
 	local dmg = params.damage or nil
@@ -42,15 +73,68 @@ Hooks:PostHook(ExplosionManager, "detect_and_give_dmg", "RaID_ExplosionManager_d
 						hit_unit:base()._devices.c4.max_health = hit_unit:base()._devices.c4.max_health - dmg
 					end
 					if hit_unit:base()._devices.c4.max_health <= 0 then
-						for i=1, hit_unit:base()._devices.c4.amount, 1
-						do
-							hit_unit:base():device_completed("c4")
+						local sequence_name = "explode_door"
+						if managers.network:session() then
+							managers.network:session():send_to_peers_synched("run_mission_door_sequence", hit_unit:base(), sequence_name)
 						end
-						--[[hit_unit:base():device_completed("c4")
-						hit_unit:base():_destroy_devices()
-						hit_unit:base():_initiate_c4_sequence() work
-						hit_unit:damage():run_sequence_simple("activate_explode_sequence")
-						hit_unit:damage():run_sequence_simple("explode_door")]]
+				
+						hit_unit:base():run_sequence_simple(sequence_name)
+					end
+					break
+				end
+			end
+		end
+	end
+	local position = params.owner:position()
+	local rotation = params.owner:rotation()
+	local params2 = {
+		sound_event = "molotov_impact",
+		range = 75,
+		curve_pow = 3,
+		damage = 1,
+		fire_alert_radius = 1500,
+		hexes = 6,
+		sound_event_burning = "burn_loop_gen",
+		is_molotov = true,
+		player_damage = 2,
+		sound_event_impact_duration = 4,
+		burn_tick_period = 0.5,
+		burn_duration = 15,
+		alert_radius = 1500,
+		effect_name = "effects/payday2/particles/explosions/molotov_grenade",
+		fire_dot_data = {
+			dot_trigger_chance = 35,
+			dot_damage = 15,
+			dot_length = 6,
+			dot_trigger_max_distance = 3000,
+			dot_tick_period = 0.5
+		}
+	}
+	EnvironmentFire.spawn(position, rotation, params2, math.UP, unit, 0, 1)
+end)]]
+
+--[[Hooks:PostHook(ExplosionManager, "client_damage_and_push", "RaID_ExplosionManager_client_damage_and_push", function(self, position, normal, user_unit, dmg, range, curve_pow)
+	local hit_pos = position or nil
+	local slotmask = managers.slot:get_mask("bullet_impact_targets")
+	local dmg = dmg or nil
+	if hit_pos and dmg then
+		local units = World:find_units("sphere", hit_pos, 300, slotmask or managers.slot:get_mask("bullet_impact_targets"))
+		if type(units) == "table" and units[1] then
+			for id, hit_unit in pairs(units) do
+				if hit_unit:base() and type(hit_unit:base()._devices) == "table" and type(hit_unit:base()._devices.c4) == "table" and type(hit_unit:base()._devices.c4.amount) == "number" then
+					if not hit_unit:base()._devices.c4.max_health then
+						hit_unit:base()._devices.c4.max_health = 1
+					end
+					if hit_unit:base()._devices.c4.max_health then
+						hit_unit:base()._devices.c4.max_health = hit_unit:base()._devices.c4.max_health - dmg
+					end
+					if hit_unit:base()._devices.c4.max_health <= 0 then
+						local sequence_name = "explode_door"
+						if managers.network:session() then
+							managers.network:session():send_to_peers_synched("run_mission_door_sequence", hit_unit:base(), sequence_name)
+						end
+				
+						hit_unit:base():run_sequence_simple(sequence_name)
 					end
 					break
 				end
@@ -58,3 +142,25 @@ Hooks:PostHook(ExplosionManager, "detect_and_give_dmg", "RaID_ExplosionManager_d
 		end
 	end
 end)
+
+function ExplosionManager:client_damage_and_push(position, normal, user_unit, dmg, range, curve_pow)
+	local bodies = World:find_bodies("intersect", "sphere", position, range, managers.slot:get_mask("bullet_impact_targets"))
+	local units_to_push = {}
+
+	for _, hit_body in ipairs(bodies) do
+		local hit_unit = hit_body:unit()
+		units_to_push[hit_body:unit():key()] = hit_unit
+		local apply_dmg = hit_body:extension() and hit_body:extension().damage and hit_unit:id() == -1
+		local dir, len, damage = nil
+
+		if apply_dmg then
+			dir = hit_body:center_of_mass()
+			len = mvector3.direction(dir, position, dir)
+			damage = dmg * math.pow(math.clamp(1 - len / range, 0, 1), curve_pow)
+
+			self:_apply_body_damage(false, hit_body, user_unit, dir, damage)
+		end
+	end
+
+	self:units_to_push(units_to_push, position, range)
+end]]
