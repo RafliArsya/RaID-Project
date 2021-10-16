@@ -78,9 +78,9 @@ function NPCRaycastWeaponBase:_fire_raycast(user_unit, from_pos, direction, dmg_
 		if not alive(player)then
 			return orig_npc_fire_ray(self, user_unit, from_pos, direction, dmg_mul, shoot_player, spread_mul, autohit_mul, suppr_mul, target_unit)
 		end
-		if self._minion_damage_explode_t and not self._minion_damage_explode_t[user_unit:key()] then
+		--[[if self._minion_damage_explode_t and not self._minion_damage_explode_t[user_unit:key()] then
 			self._minion_damage_explode_t[user_unit:key()] = _t + 1
-		end
+		end]]
 		if _t >= self._minion_damage_explode_t[user_unit:key()] then
 			local e_pos = target_unit:position()
 			local bodies = World:find_units_quick("sphere", e_pos, 325, managers.slot:get_mask("enemies"))
@@ -111,6 +111,14 @@ end
 function NPCRaycastWeaponBase:_remove_dmg_explode(user_unit)
 	if self._minion_damage_explode_t and self._minion_damage_explode_t[user_unit:key()] then
 		self._minion_damage_explode_t[user_unit:key()] = nil
+	end
+end
+
+function NPCRaycastWeaponBase:_add_dmg_explode(user_unit, owner)
+	if owner == managers.player:player_unit() then
+		if self._minion_damage_explode_t and not self._minion_damage_explode_t[user_unit:key()] then
+			self._minion_damage_explode_t[user_unit:key()] = TimerManager:game():time() + 1
+		end
 	end
 end
 

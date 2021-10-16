@@ -12,10 +12,53 @@ local math_lerp = math.lerp
 local tmp_vec1 = Vector3()
 local tmp_vec2 = Vector3()
 local tmp_rot1 = Rotation()
+local _next_inc_kb = nil
+local _next_inc_kd = nil
 
 function RaycastWeaponBase:KNOCKBACK_CHANCE()
-	local rand = math.random()
+	local function randomFloat(min, max, precision)
+		local range = max - min
+		local offset = range * math.random()
+		local unrounded = min + offset
+	
+		if not precision then
+			return unrounded
+		end
+	
+		local powerOfTen = 10 ^ precision
+		return math.floor(unrounded * powerOfTen + 0.5) / powerOfTen
+	end
+	local rand = randomFloat(0.7,1,2)
+	--log(rand)
 	return rand
+end
+
+function RaycastWeaponBase:NEXT_INC_KB()
+	local _t = TimerManager:game():time()
+	if _next_inc_kb and type(_next_inc_kb)=="number" then
+		if _t >= _next_inc_kb then
+			_next_inc_kb = nil
+			return true
+		else
+			return false
+		end
+	else
+		return true
+	end
+end
+
+function RaycastWeaponBase:NEXT_INC_KD()
+	local _t = TimerManager:game():time()
+	if _next_inc_kd and type(_next_inc_kd)=="number" then
+		if _t >= _next_inc_kd then
+			_next_inc_kd = nil
+			return true
+		else
+			return false
+		end
+	else
+		return true
+	end
 end
 
 local MIN_KNOCK_BACK = 200
@@ -24,13 +67,28 @@ function InstantBulletBase:on_collision(col_ray, weapon_unit, user_unit, damage,
 	local hit_unit = col_ray.unit
 	local shield_knock = weapon_unit and weapon_unit:base()._shield_knock
 	local is_shield = hit_unit:in_slot(8) and alive(hit_unit:parent())
+	local is_knocked_down = false
+
+	local function randomFloat(min, max, precision)
+		local range = max - min
+		local offset = range * math.random()
+		local unrounded = min + offset
 	
+		if not precision then
+			return unrounded
+		end
+	
+		local powerOfTen = 10 ^ precision
+		return math.floor(unrounded * powerOfTen + 0.5) / powerOfTen
+	end
+
 	if is_shield and not hit_unit:parent():character_damage():is_immune_to_shield_knockback() and weapon_unit and shield_knock then
-		local dmg_ratio = math.clamp(damage, 0.001, MIN_KNOCK_BACK)
-		dmg_ratio = dmg_ratio / MIN_KNOCK_BACK
+		local dmg_ratio = math.clamp(damage, 1, MIN_KNOCK_BACK)
+		dmg_ratio = (dmg_ratio * 2) / MIN_KNOCK_BACK
 		local rand = dmg_ratio
 		rand = rand + weapon_unit:base():KNOCK_BACK_CHANCE()
-		if RaycastWeaponBase:KNOCKBACK_CHANCE() < rand then
+		if RaycastWeaponBase:KNOCKBACK_CHANCE() <= rand then
+			
 			local enemy_unit = hit_unit:parent()
 
 			if enemy_unit:character_damage() then
@@ -49,9 +107,50 @@ function InstantBulletBase:on_collision(col_ray, weapon_unit, user_unit, damage,
 			end
 			weapon_unit:base():KNOCK_BACK_CHANCE(0)
 		else
-			weapon_unit:base():KNOCK_BACK_CHANCE(math.clamp(dmg_ratio * math.random(), 0.005, 0.16))
+			if RaycastWeaponBase:NEXT_INC_KB() then
+				weapon_unit:base():KNOCK_BACK_CHANCE(math.clamp(dmg_ratio * randomFloat(0,1,2), 0.01, 0.4))
+				_next_inc_kb = TimerManager:game():time() + (type(weapon_unit:base():recoil_wait())=="number" and weapon_unit:base():recoil_wait() or 0.05)
+				--log(_next_inc_kb)
+			end
+			
 		end
 	end
+
+	--[[if is_shield and not hit_unit:parent():character_damage():is_immune_to_shield_knockback() and weapon_unit and weapon_unit:base()._knock_down and type(weapon_unit:base()._knock_down) == "number" and weapon_unit:base()._knock_down > 0 then
+		local is_alive_can_knockdown = is_shield and not hit_unit:parent():character_damage():is_immune_to_shield_knockback()
+		local knock_down = weapon_unit:base()._knock_down and type(weapon_unit:base()._knock_down) == "number" and weapon_unit:base()._knock_down > 0
+
+		if knock_down and not is_knocked_down then
+			local dmg_ratio = math.clamp(damage, 0.001, MIN_KNOCK_BACK)
+			dmg_ratio = dmg_ratio / MIN_KNOCK_BACK
+			local rand = dmg_ratio
+			rand = rand + weapon_unit:base():KNOCK_DOWN_CHANCE()
+			log(tonumber(rand))
+			--log("KNOCK_DOWN = "..tostring(weapon_unit:base()._knock_down))
+			if rand > 0.8 then
+				local enemy_unit = hit_unit:parent()
+
+				if enemy_unit:character_damage() then
+					local damage_info = {
+						damage = 0.5,
+						type = "shield_knock",
+						variant = "melee",
+						col_ray = col_ray,
+						result = {
+							variant = "melee",
+							type = "shield_knock"
+						}
+					}
+					enemy_unit:character_damage():_call_listeners(damage_info)
+				end
+				weapon_unit:base():KNOCK_DOWN_CHANCE(0)
+				is_knocked_down = true
+			else
+				weapon_unit:base():KNOCK_DOWN_CHANCE(0.03)
+				--log("reset knock_down")
+			end
+		end
+	end]]
 
 	local play_impact_flesh = not hit_unit:character_damage() or not hit_unit:character_damage()._no_blood
 
@@ -86,8 +185,8 @@ function InstantBulletBase:on_collision(col_ray, weapon_unit, user_unit, damage,
 	if alive(weapon_unit) and hit_unit:character_damage() and hit_unit:character_damage().damage_bullet then
 		local is_alive = not hit_unit:character_damage():dead()
 		local knock_down = weapon_unit:base()._knock_down and type(weapon_unit:base()._knock_down) == "number" and weapon_unit:base()._knock_down > 0
-		local is_knocked_down = false
-		if knock_down then
+		--local is_knocked_down = false
+		if knock_down and not is_knocked_down then
 			--log("KNOCK_DOWN = "..tostring(weapon_unit:base()._knock_down))
 			local val = weapon_unit:base()._knock_down 
 			val = val + weapon_unit:base():KNOCK_DOWN_CHANCE()
@@ -96,7 +195,11 @@ function InstantBulletBase:on_collision(col_ray, weapon_unit, user_unit, damage,
 				weapon_unit:base():KNOCK_DOWN_CHANCE(0)
 				--log("reset knock_down")
 			else
-				weapon_unit:base():KNOCK_DOWN_CHANCE(0.03)
+				if RaycastWeaponBase:NEXT_INC_KD() then
+					weapon_unit:base():KNOCK_DOWN_CHANCE(0.03)
+					_next_inc_kd = TimerManager:game():time() + (type(weapon_unit:base():recoil_wait())=="number" and weapon_unit:base():recoil_wait() or 0.05)
+					--log(_next_inc_kb)
+				end
 				--log("increase knock_down = "..tostring(weapon_unit:base():KNOCK_DOWN_CHANCE()))
 			end
 		end

@@ -528,6 +528,10 @@ function SkillTreeTweakData:init(...)
 				--"sentry_gun_cost_reduction_2",
 				--addon
 				--"sentry_gun_destroy_explosion_1",
+				"bow_reload_speed_multiplier",
+				"xbow_reload_speed_multiplier",
+				"grenade_launcher_reload_speed_multiplier",
+				"minigun_reload_speed_multiplier",
 				"sentry_gun_kill_restore_ammo"
 			},
 			cost = self.costs.hightier
@@ -536,6 +540,7 @@ function SkillTreeTweakData:init(...)
 			upgrades = {
 				--"sentry_gun_armor_multiplier",
 				--addon
+				"player_revived_drill_fixed_1",
 				"player_expanded_n_enhanced_1"
 				--"sentry_gun_destroy_explosion_2"
 			},
@@ -804,7 +809,54 @@ function SkillTreeTweakData:init(...)
 		}
 	}
 	
+	--ARTFUL DODGER--
+	self.skills.sprinter = {
+		{
+			upgrades = {
+				"player_stamina_regen_timer_multiplier",
+				"player_stamina_regen_multiplier",
+				"player_run_speed_multiplier"
+			},
+			cost = self.costs.default
+		},
+		{
+			upgrades = {
+				"player_run_dodge_chance",
+				"player_on_zipline_dodge_chance" --fixed
+			},
+			cost = self.costs.pro
+		},
+		name_id = "menu_sprinter_beta",
+		desc_id = "menu_sprinter_beta_desc",
+		icon_xy = {
+			10,
+			5
+		}
+	}
+
 	--SILENT KILLER--
+	self.skills.scavenger = {
+		{
+			upgrades = {
+				"temporary_damage_speed_multiplier"
+			},
+			cost = self.costs.default
+		},
+		{
+			upgrades = {
+				"player_team_damage_speed_multiplier_send",
+				--addon
+				"reload_weapon_faster_second_multiplier_1"
+			},
+			cost = self.costs.pro
+		},
+		name_id = "menu_scavenger_beta",
+		desc_id = "menu_scavenger_beta_desc",
+		icon_xy = {
+			10,
+			9
+		}
+	}
 	self.skills.hitman = {
 		{
 			upgrades = {
@@ -853,53 +905,6 @@ function SkillTreeTweakData:init(...)
 			4
 		}
 	}
-	self.skills.scavenger = {
-		{
-			upgrades = {
-				"temporary_damage_speed_multiplier"
-			},
-			cost = self.costs.default
-		},
-		{
-			upgrades = {
-				"player_team_damage_speed_multiplier_send",
-				--addon
-				"reload_weapon_faster_second_multiplier_1"
-			},
-			cost = self.costs.pro
-		},
-		name_id = "menu_scavenger_beta",
-		desc_id = "menu_scavenger_beta_desc",
-		icon_xy = {
-			10,
-			9
-		}
-	}
-	
-	--ARTFUL DODGER--
-	self.skills.sprinter = {
-		{
-			upgrades = {
-				"player_stamina_regen_timer_multiplier",
-				"player_stamina_regen_multiplier",
-				"player_run_speed_multiplier"
-			},
-			cost = self.costs.default
-		},
-		{
-			upgrades = {
-				"player_run_dodge_chance",
-				"player_on_zipline_dodge_chance" --fixed
-			},
-			cost = self.costs.pro
-		},
-		name_id = "menu_sprinter_beta",
-		desc_id = "menu_sprinter_beta_desc",
-		icon_xy = {
-			10,
-			5
-		}
-	}
 	
 	--GUNSLINGER
 	self.skills.akimbo = {
@@ -930,8 +935,8 @@ function SkillTreeTweakData:init(...)
 		{
 			upgrades = {
 				"player_revived_damage_resist_1",
-				--moved from ace
-				"player_revived_health_regain_1"
+				--addon
+				"player_running_from_death_1"
 				--[[addon canceled
 				"player_revived_up_enemy_fall_1"]]
 			},
@@ -939,6 +944,7 @@ function SkillTreeTweakData:init(...)
 		},
 		{
 			upgrades = {
+				"player_revived_health_regain_1",
 				--addon
 				"temporary_damage_boost_revenge"
 				--"player_up_you_goh_1" canceled
@@ -956,7 +962,9 @@ function SkillTreeTweakData:init(...)
 		{
 			upgrades = {
 				"player_temp_swap_weapon_faster_1",
-				"player_temp_reload_weapon_faster_1"
+				"player_temp_reload_weapon_faster_1",
+				--addon
+				"player_revived_drill_fixed_1"
 				--[[
 					--addon canceled
 				"player_revived_up_running_1"

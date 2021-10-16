@@ -261,7 +261,7 @@ function CopDamage:damage_bullet(attack_data)
 
 	local variant = nil
 
-	local function do_tase_dire_need(self)
+	local function do_dot_damage(self)
 		local pm = managers.player
 		if not pm then
 			return
@@ -271,7 +271,6 @@ function CopDamage:damage_bullet(attack_data)
 			return
 		end
 		local t = pm:player_timer():time()
-		local slotmask = managers.slot:get_mask("enemies")
 		
 		if alive(self._unit) and self._unit:character_damage() and not self._unit:character_damage():dead() then
 			local is_converted = self._unit:brain() and self._unit:brain()._logic_data and self._unit:brain()._logic_data.is_converted
@@ -288,9 +287,35 @@ function CopDamage:damage_bullet(attack_data)
 					attacker_unit = player,
 					col_ray = { body = self._unit:body("body"), position = self._unit:position() + math.UP * 100, ray = self._unit:body("body") and self._unit:center_of_mass() or alive(self._unit) and self._unit:position()},
 				}]]
-				if unit_dmg then
+				--[[local action_data = {
+					variant = "light",
+					damage = 2,
+					weapon_unit = attack_data.weapon_unit,
+					attacker_unit = player or attack_data.attacker_unit,
+					col_ray = { 
+						body = self._unit:body("body"), 
+						position = self._unit:position() + math.UP * 100, 
+						ray = self._unit:body("body") and self._unit:center_of_mass() or alive(self._unit) and self._unit:position()
+					},
+					hurt_animation = true,
+					weapon_id = attack_data.weapon_unit and attack_data.weapon_unit:base():get_name_id() or nil
+				}]]
+				local dot_data = {
+					type = "poison",
+					custom_data = {
+						dot_length = 7,
+						dot_damage = 5,
+						hurt_animation_chance = 0
+					}
+				}
+				local action_data = managers.dot:create_dot_data(dot_data.type, dot_data.custom_data)
+				if unit_dmg then	
+					local damage_class = CoreSerialize.string_to_classtable(action_data.damage_class)
+					action_data.dot_damage = dot_data.custom_data.dot_damage
+					log(tostring(damage_class))
+					damage_class:start_dot_damage({unit = self._unit}, nil, action_data, attack_data.weapon_unit)
 					--unit_dmg:damage_tase(action_data)
-					managers.fire:add_doted_enemy( self._unit , t , attack_data.weapon_unit , 7 , 5 , player , true )
+					--managers.fire:add_doted_enemy( self._unit , t , attack_data.weapon_unit , 7 , 5 , player , true )
 				end
 			end
 		end
@@ -298,9 +323,10 @@ function CopDamage:damage_bullet(attack_data)
 
 	if result.type == "knock_down" then
 		variant = 1
+		do_dot_damage(self)
 	elseif result.type == "stagger" then
 		variant = 2
-		do_tase_dire_need(self)
+		do_dot_damage(self)
 		self._has_been_staggered = true
 	elseif result.type == "healed" then
 		variant = 3

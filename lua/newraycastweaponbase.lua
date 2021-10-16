@@ -11,7 +11,7 @@ function NewRaycastWeaponBase:init(unit)
 	self._cosmetics_data = nil
 	self._materials = nil
 	self._use_armor_piercing = managers.player:has_category_upgrade("player", "ap_bullets")
-	self._shield_knock = managers.player:has_category_upgrade("player", "shield_knock") and true or false
+	self._shield_knock = managers.player:has_category_upgrade("player", "shield_knock") or false
 	self._knock_down = managers.player:upgrade_value("weapon", "knock_down", nil)
 	self._stagger = false
 	self._fire_mode_category = self:weapon_tweak_data().FIRE_MODE
@@ -43,10 +43,8 @@ end
 function NewRaycastWeaponBase:KNOCK_DOWN_CHANCE(value)
 	if value and value == 0 then
 		self._weapon_knockdown_inc = 0
-		return
 	elseif value and value > 0 then
 		self._weapon_knockdown_inc = self._weapon_knockdown_inc + value
-		return
 	else
 		return self._weapon_knockdown_inc
 	end

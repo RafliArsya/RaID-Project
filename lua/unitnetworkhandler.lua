@@ -14,8 +14,9 @@ function UnitNetworkHandler:mark_minion(unit, minion_owner_peer_id, convert_enem
     unit:base()._minion_owner = player_unit
   end
   
+  NPCRaycastWeaponBase._add_dmg_explode(unit, unit:base()._minion_owner)
+
   mark_minion_original(self, unit, minion_owner_peer_id, convert_enemies_health_multiplier_level, passive_convert_enemies_health_multiplier_level, sender, ...)
-  
 end
 
 function UnitNetworkHandler:remove_minion(unit, sender)
@@ -28,7 +29,7 @@ function UnitNetworkHandler:remove_minion(unit, sender)
 
 		managers.groupai:state():_set_converted_police(u_key, nil)
 	end
-  NPCRaycastWeaponBase._remove_dmg_explode(unit)
+	NPCRaycastWeaponBase._remove_dmg_explode(unit)
 end
 
 --[[function UnitNetworkHandler:m79grenade_explode_on_client(position, normal, user, damage, range, curve_pow, sender)

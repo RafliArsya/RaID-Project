@@ -1448,6 +1448,12 @@ function UpgradesTweakData:init(...)
 	}
 
     --Up you go
+	self.values.temporary.revived_damage_resist = {
+		{
+			0.7,
+			12
+		}
+	}
 	--[[self.values.temporary.revived_damage_resist = {
 		{
 			0.7,
@@ -1458,6 +1464,17 @@ function UpgradesTweakData:init(...)
 		1.4
 	}
 	]]
+	--Revived Damage Immune
+	self.values.player.running_from_death = {2}
+	self.definitions.player_running_from_death_1 = {
+		category = "feature",
+		name_id = "menu_player_running_from_death",
+		upgrade = {
+			category = "player",
+			upgrade = "running_from_death",
+			value = 1
+		}
+	}
 
 	--Up you go dmg boost
 	self.values.temporary.damage_boost_revenge = {
@@ -1656,20 +1673,6 @@ function UpgradesTweakData:init(...)
 		}
 	}
 
-	--Trip Mine Breach Door MK2
-	self.values.trip_mine.breach_mk2 = {
-		true
-	}
-	self.definitions.trip_mine_breach_mk2 = {
-		name_id = "menu_trip_mine_breach_mk2",
-		category = "feature",
-		upgrade = {
-			value = 1,
-			upgrade = "breach_mk2",
-			category = "trip_mine"
-		}
-	}
-	
 	--Fire Trap
 	self.values.trip_mine.fire_trap = {
 		{15, 1.25},
@@ -2279,39 +2282,6 @@ function UpgradesTweakData:init(...)
 			category = "player"
 		}
 	}
-	
-	--Gunshot Crowd Control
-	self.values.player.crowd_control_mk2 = {
-		{
-			radius = 600,
-			base = 0.2,
-			increment = 3,
-			active_t = 2,
-			trigger_max = 4,
-			delay = 5
-		}
-	}
-	self.definitions.player_crowd_control_mk2_1 = {
-		name_id = "menu_player_crowd_control_mk2",
-		category = "feature",
-		upgrade = {
-			value = 1,
-			upgrade = "crowd_control_mk2",
-			category = "player"
-		}
-	}
-	self.values.player.AOE_intimidate = {
-		true
-	}
-	self.definitions.player_AOE_intimidate = {
-		name_id = "menu_player_player_AOE_intimidate",
-		category = "feature",
-		upgrade = {
-			value = 1,
-			upgrade = "AOE_intimidate",
-			category = "player"
-		}
-	}
 		
 	--Sure fire mk2
 	self.values.player.sure_fire_mk2 = {
@@ -2508,7 +2478,6 @@ function UpgradesTweakData:init(...)
 		}
 	}
 	
-	
 	--Stockholm Syndrome Replenish
 	--docbag
 	self.values.player.replenish_super_syndrome_chance = {0.32}
@@ -2603,70 +2572,16 @@ function UpgradesTweakData:init(...)
 		}
 	}
 	
-	--Revived Repair Interaction
-	self.values.player.revived_up_running = {
-		{
-			chance = 0.16,
-			inc = 0.02,
-			delay_t = 15
-		},
-		{
-			chance = 0.32,
-			inc = 0.02,
-			delay_t = 12
-		}
+	--Revived Repair Drill
+	self.values.player.revived_drill_fixed = {
+		true
 	}
-	self.definitions.player_revived_up_running_1 = {
+	self.definitions.player_revived_drill_fixed_1 = {
 		category = "feature",
-		name_id = "menu_player_revived_up_running",
+		name_id = "menu_player_revived_drill_fixed",
 		upgrade = {
 			value = 1,
-			upgrade = "revived_up_running",
-			category = "player"
-		}
-	}
-	self.definitions.player_revived_up_running_2 = {
-		category = "feature",
-		name_id = "menu_player_revived_up_running",
-		upgrade = {
-			value = 2,
-			upgrade = "revived_up_running",
-			category = "player"
-		}
-	}
-	
-	--Revived Damage AOE
-	self.values.player.revived_up_enemy_fall = {
-		{
-			aoe = 700,
-			dmg = 10,
-			slotmask = "trip_mine_targets",
-			tick_t = 0.8,
-			active_t = 8
-		},
-		{
-			aoe = 900,
-			dmg = 10,
-			slotmask = "enemies",
-			tick_t = 0.8,
-			active_t = 12
-		}
-	}
-	self.definitions.player_revived_up_enemy_fall_1 = {
-		category = "feature",
-		name_id = "menu_player_revived_up_enemy_fall",
-		upgrade = {
-			value = 1,
-			upgrade = "revived_up_enemy_fall",
-			category = "player"
-		}
-	}
-	self.definitions.player_revived_up_enemy_fall_2 = {
-		category = "feature",
-		name_id = "menu_player_revived_up_enemy_fall",
-		upgrade = {
-			value = 2,
-			upgrade = "revived_up_enemy_fall",
+			upgrade = "revived_drill_fixed",
 			category = "player"
 		}
 	}
@@ -2763,31 +2678,6 @@ function UpgradesTweakData:init(...)
 		}
 	}
 	
-	--Revive pain killer
-	--[[self.values.player.pain_killer = {
-		0.03,
-		0.1
-	}
-	self.definitions.player_pain_killer_1 = {
-		category = "feature",
-		name_id = "menu_player_pain_killer",
-		upgrade = {
-			category = "player",
-			upgrade = "pain_killer",
-			value = 1
-		}
-	}
-	self.definitions.player_pain_killer_2 = {
-		category = "feature",
-		name_id = "menu_player_pain_killer",
-		upgrade = {
-			category = "player",
-			upgrade = "pain_killer",
-			value = 2
-		}
-	}
-	]]--
-
 	--Revive pain killer abs
 	self.values.player.pain_killer_ab = {
 		0.07,
@@ -2838,38 +2728,80 @@ function UpgradesTweakData:init(...)
 		}
 	}
 
-	--Running From The Death MK2
-	self.values.player.running_from_death = {2, 4}
-	self.definitions.player_running_from_death_1 = {
+	--Reload Speed Multiplier
+	self.values.saw.reload_speed_multiplier = {
+		1.3
+	}
+	self.definitions.saw_reload_speed_multiplier = {
+		name_id = "menu_saw_reload_speed_multiplier",
 		category = "feature",
-		name_id = "menu_player_running_from_death",
 		upgrade = {
-			category = "player",
-			upgrade = "running_from_death",
-			value = 1
+			value = 1,
+			upgrade = "reload_speed_multiplier",
+			category = "saw"
 		}
 	}
-	self.definitions.player_running_from_death_2 = {
+	self.values.grenade_launcher.reload_speed_multiplier = {
+		1.2
+	}
+	self.definitions.grenade_launcher_reload_speed_multiplier = {
+		name_id = "menu_saw_reload_speed_multiplier",
 		category = "feature",
-		name_id = "menu_player_running_from_death",
 		upgrade = {
-			category = "player",
-			upgrade = "running_from_death",
-			value = 2
+			value = 1,
+			upgrade = "reload_speed_multiplier",
+			category = "grenade_launcher"
+		}
+	}
+	self.values.minigun.reload_speed_multiplier = {
+		1.25
+	}
+	self.definitions.minigun_reload_speed_multiplier = {
+		name_id = "menu_saw_reload_speed_multiplier",
+		category = "feature",
+		upgrade = {
+			value = 1,
+			upgrade = "reload_speed_multiplier",
+			category = "minigun"
+		}
+	}
+	self.values.bow.reload_speed_multiplier = {
+		1.25
+	}
+	self.definitions.bow_reload_speed_multiplier = {
+		name_id = "menu_saw_reload_speed_multiplier",
+		category = "feature",
+		upgrade = {
+			value = 1,
+			upgrade = "reload_speed_multiplier",
+			category = "bow"
+		}
+	}
+	self.values.crossbow.reload_speed_multiplier = {
+		1.25
+	}
+	self.definitions.xbow_reload_speed_multiplier = {
+		name_id = "menu_saw_reload_speed_multiplier",
+		category = "feature",
+		upgrade = {
+			value = 1,
+			upgrade = "reload_speed_multiplier",
+			category = "crossbow"
+		}
+	}
+	self.values.flamethrower.reload_speed_multiplier = {
+		1.25
+	}
+	self.definitions.flamethrower_reload_speed_multiplier = {
+		name_id = "menu_saw_reload_speed_multiplier",
+		category = "feature",
+		upgrade = {
+			value = 1,
+			upgrade = "reload_speed_multiplier",
+			category = "flamethrower"
 		}
 	}
 
-	--Stay Up You Go[t] Health
-	self.values.player.up_you_goh = {true}
-	self.definitions.player_up_you_goh_1 = {
-		category = "feature",
-		name_id = "menu_player_up_you_goh",
-		upgrade = {
-			category = "player",
-			upgrade = "up_you_goh",
-			value = 1
-		}
-	}
 
 	--[[TEST SKILL START HERE
 	--Close Hostage Increase Confident
@@ -2963,7 +2895,126 @@ function UpgradesTweakData:init(...)
 			category = "temporary"
 		}
 	}
+
+	--Stay Up You Go[t] Health
+	self.values.player.up_you_goh = {true}
+	self.definitions.player_up_you_goh_1 = {
+		category = "feature",
+		name_id = "menu_player_up_you_goh",
+		upgrade = {
+			category = "player",
+			upgrade = "up_you_goh",
+			value = 1
+		}
+	}
+
+	--Trip Mine Breach Door MK2
+	self.values.trip_mine.breach_mk2 = {
+		true
+	}
+	self.definitions.trip_mine_breach_mk2 = {
+		name_id = "menu_trip_mine_breach_mk2",
+		category = "feature",
+		upgrade = {
+			value = 1,
+			upgrade = "breach_mk2",
+			category = "trip_mine"
+		}
+	}
+
+	--Revive pain killer
+	self.values.player.pain_killer = {
+		0.03,
+		0.1
+	}
+	self.definitions.player_pain_killer_1 = {
+		category = "feature",
+		name_id = "menu_player_pain_killer",
+		upgrade = {
+			category = "player",
+			upgrade = "pain_killer",
+			value = 1
+		}
+	}
+	self.definitions.player_pain_killer_2 = {
+		category = "feature",
+		name_id = "menu_player_pain_killer",
+		upgrade = {
+			category = "player",
+			upgrade = "pain_killer",
+			value = 2
+		}
+	}
 	
+	--Revived Damage AOE
+	self.values.player.revived_up_enemy_fall = {
+		{
+			aoe = 700,
+			dmg = 10,
+			slotmask = "trip_mine_targets",
+			tick_t = 0.8,
+			active_t = 8
+		},
+		{
+			aoe = 900,
+			dmg = 10,
+			slotmask = "enemies",
+			tick_t = 0.8,
+			active_t = 12
+		}
+	}
+	self.definitions.player_revived_up_enemy_fall_1 = {
+		category = "feature",
+		name_id = "menu_player_revived_up_enemy_fall",
+		upgrade = {
+			value = 1,
+			upgrade = "revived_up_enemy_fall",
+			category = "player"
+		}
+	}
+	self.definitions.player_revived_up_enemy_fall_2 = {
+		category = "feature",
+		name_id = "menu_player_revived_up_enemy_fall",
+		upgrade = {
+			value = 2,
+			upgrade = "revived_up_enemy_fall",
+			category = "player"
+		}
+	}
+
+	--Gunshot Crowd Control
+	self.values.player.crowd_control_mk2 = {
+		{
+			radius = 600,
+			base = 0.2,
+			increment = 3,
+			active_t = 2,
+			trigger_max = 4,
+			delay = 5
+		}
+	}
+	self.definitions.player_crowd_control_mk2_1 = {
+		name_id = "menu_player_crowd_control_mk2",
+		category = "feature",
+		upgrade = {
+			value = 1,
+			upgrade = "crowd_control_mk2",
+			category = "player"
+		}
+	}
+	self.values.player.AOE_intimidate = {
+		true
+	}
+	self.definitions.player_AOE_intimidate = {
+		name_id = "menu_player_player_AOE_intimidate",
+		category = "feature",
+		upgrade = {
+			value = 1,
+			upgrade = "AOE_intimidate",
+			category = "player"
+		}
+	}
+
 	--HOST ONLY SKILL
 	--ECM (HOST ONLY)
 	self.ecm_jammer_base_range = 3000

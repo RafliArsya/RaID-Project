@@ -71,7 +71,7 @@ function PlayerStandard:init(unit)
 		"shaped_sharge",
 		"shaped_sharge_single"
 	}
-	self._save_interaction = nil
+	--self._save_interaction = nil
 	self._heavy_drop_damage = {
 		_count = 0,
 		_reset_t = nil
@@ -226,7 +226,7 @@ function PlayerStandard:update(t, dt)
 		end
 	end
 	
-	if self._iryf._tick then
+	--[[if self._iryf._tick then
 		if self._iryf._tick <= t or not self._iryf._active or managers.player:local_player():character_damage():need_revive() or managers.player:local_player():character_damage():is_downed() or managers.player:local_player():character_damage():incapacitated() or managers.player:local_player():character_damage():dead() then
 			self._iryf._tick = nil
 		end
@@ -239,7 +239,7 @@ function PlayerStandard:update(t, dt)
 		if self._iryf._active <= t or managers.player:local_player():character_damage():need_revive() or managers.player:local_player():character_damage():is_downed() or managers.player:local_player():character_damage():incapacitated() or managers.player:local_player():character_damage():dead() then
 			self._iryf._active = nil
 		end
-	end
+	end]]
 
 	self._last_equipped = self._equipped_unit
 end
@@ -671,52 +671,6 @@ function PlayerStandard:_check_action_primary_attack(t, input)
 	return new_action
 end
 
-function PlayerStandard:_start_action_interact(t, input, timer, interact_object)
-	self:_interupt_action_reload(t)
-	self:_interupt_action_steelsight(t)
-	self:_interupt_action_running(t)
-	self:_interupt_action_charging_weapon(t)
-
-	local final_timer = timer
-	final_timer = managers.modifiers:modify_value("PlayerStandard:OnStartInteraction", final_timer, interact_object)
-	self._interact_expire_t = final_timer
-	local start_timer = 0
-	self._interact_params = {
-		object = interact_object,
-		timer = final_timer,
-		tweak_data = interact_object:interaction().tweak_data
-	}
-	self._save_interaction = nil
-	if interact_object and interact_object == self._interaction:active_unit() and table.contains(self._interact_c4, interact_object:interaction().tweak_data) then
-		local units = World:find_units("sphere", interact_object:position(), 200, managers.slot:get_mask("bullet_impact_targets"))
-		local result = false
-		local interact_count = 0
-		local do_open = false
-		for id, unit in pairs(units) do
-			if unit and unit:interaction() and unit:interaction().tweak_data and table.contains(self._interact_c4, unit:interaction().tweak_data) then
-				if unit:interaction():active() then
-					interact_count = interact_count + 1
-					log("interact c4 = "..tostring(interact_count))
-				end
-			end
-		end
-		do_open = interact_count <= 1 and true or false
-		if do_open then
-			for id, unit in pairs(units) do
-				if unit and unit:interaction() and unit:interaction().tweak_data and table.contains(self._interact_shaped_charged, unit:interaction().tweak_data) then
-					self._save_interaction = self._save_interaction or {}
-					table.insert(self._save_interaction, unit)
-					break
-				end
-			end
-		end
-	end
-	self:_play_unequip_animation()
-	managers.hud:show_interaction_bar(start_timer, final_timer)
-	managers.network:session():send_to_peers_synched("sync_teammate_progress", 1, true, self._interact_params.tweak_data, final_timer, false)
-	self._unit:network():send("sync_interaction_anim", true, self._interact_params.tweak_data)
-end
-
 function PlayerStandard:_do_melee_damage(t, bayonet_melee, melee_hit_ray, melee_entry, hand_id)
 	melee_entry = melee_entry or managers.blackmarket:equipped_melee_weapon()
 	local instant_hit = tweak_data.blackmarket.melee_weapons[melee_entry].instant
@@ -935,68 +889,6 @@ function PlayerStandard:_do_melee_damage(t, bayonet_melee, melee_hit_ray, melee_
 	end
 
 	return col_ray
-end
-
-function PlayerStandard:_update_interaction_timers(t)
-	if self._interact_expire_t then
-		local dt = self:_get_interaction_speed()
-		self._interact_expire_t = self._interact_expire_t - dt
-
-		local get_interact_params = self._interact_params
-
-		if not alive(self._interact_params.object) or self._interact_params.object ~= self._interaction:active_unit() or self._interact_params.tweak_data ~= self._interact_params.object:interaction().tweak_data or self._interact_params.object:interaction():check_interupt() then
-			self._save_interaction = nil
-			self:_interupt_action_interact(t)
-		else
-			local current = self._interact_params.timer - self._interact_expire_t
-			local total = self._interact_params.timer
-
-			managers.hud:set_interaction_bar_width(current, total)
-
-			if self._interact_expire_t <= 0 then
-				
-				if managers.player:has_category_upgrade("trip_mine", "breach_mk2") and self._save_interaction then
-					for id, unit in ipairs(self._save_interaction) do
-						if unit:interaction() and unit:interaction().tweak_data and table.contains(self._interact_shaped_charged, unit:interaction().tweak_data) then
-							unit:interaction():interact(self._unit)
-							
-							World:effect_manager():spawn({
-								effect = Idstring("effects/particles/explosions/explosion_grenade"),
-								position = unit:position(),
-								normal = unit:rotation():y()
-							})
-						
-							local sound_source = SoundDevice:create_source("TripMineBase")
-						
-							sound_source:set_position(unit:position())
-							sound_source:post_event("molotov_impact")
-							managers.enemy:add_delayed_clbk("TrMiexpl", callback(TripMineBase, TripMineBase, "_dispose_of_sound", {
-								sound_source = sound_source
-							}), TimerManager:game():time() + 1)
-
-							local alert_size = tweak_data.weapon.trip_mines.alert_radius
-							alert_size = managers.player:has_category_upgrade("trip_mine", "alert_size_multiplier") and alert_size * managers.player:upgrade_value("trip_mine", "alert_size_multiplier") or alert_size
-
-							local alert_event = {
-								"aggression",
-								unit:position(),
-								alert_size,
-								managers.groupai:state():get_unit_type_filter("civilians_enemies"),
-								self._unit
-							}
-							managers.groupai:state():propagate_alert(alert_event)
-							table.remove(self._save_interaction, id)
-						end
-					end
-				end
-				
-				self:_end_action_interact(t)
-
-				self._interact_expire_t = nil
-				self._save_interaction = nil
-			end
-		end
-	end
 end
 
 function PlayerStandard:_update_omniscience(t, dt)
@@ -1225,7 +1117,7 @@ function PlayerStandard:_do_drop_dmg()
 	end
 end
 
-function PlayerStandard:_activate_iryf(user)
+--[[function PlayerStandard:_activate_iryf(user)
 	if user ~= self:local_player() or self._unit then
 		return
 	end
@@ -1279,3 +1171,111 @@ function PlayerStandard:_on_iryf_active()
 	end
 	self._iryf._tick = t + data.tick_t
 end
+
+function PlayerStandard:_start_action_interact(t, input, timer, interact_object)
+	self:_interupt_action_reload(t)
+	self:_interupt_action_steelsight(t)
+	self:_interupt_action_running(t)
+	self:_interupt_action_charging_weapon(t)
+
+	local final_timer = timer
+	final_timer = managers.modifiers:modify_value("PlayerStandard:OnStartInteraction", final_timer, interact_object)
+	self._interact_expire_t = final_timer
+	local start_timer = 0
+	self._interact_params = {
+		object = interact_object,
+		timer = final_timer,
+		tweak_data = interact_object:interaction().tweak_data
+	}
+	self._save_interaction = nil
+	if interact_object and interact_object == self._interaction:active_unit() and table.contains(self._interact_c4, interact_object:interaction().tweak_data) then
+		local units = World:find_units("sphere", interact_object:position(), 200, managers.slot:get_mask("bullet_impact_targets"))
+		local result = false
+		local interact_count = 0
+		local do_open = false
+		for id, unit in pairs(units) do
+			if unit and unit:interaction() and unit:interaction().tweak_data and table.contains(self._interact_c4, unit:interaction().tweak_data) then
+				if unit:interaction():active() then
+					interact_count = interact_count + 1
+					log("interact c4 = "..tostring(interact_count))
+				end
+			end
+		end
+		do_open = interact_count <= 1 and true or false
+		if do_open then
+			for id, unit in pairs(units) do
+				if unit and unit:interaction() and unit:interaction().tweak_data and table.contains(self._interact_shaped_charged, unit:interaction().tweak_data) then
+					self._save_interaction = self._save_interaction or {}
+					table.insert(self._save_interaction, unit)
+					break
+				end
+			end
+		end
+	end
+	self:_play_unequip_animation()
+	managers.hud:show_interaction_bar(start_timer, final_timer)
+	managers.network:session():send_to_peers_synched("sync_teammate_progress", 1, true, self._interact_params.tweak_data, final_timer, false)
+	self._unit:network():send("sync_interaction_anim", true, self._interact_params.tweak_data)
+end
+
+function PlayerStandard:_update_interaction_timers(t)
+	if self._interact_expire_t then
+		local dt = self:_get_interaction_speed()
+		self._interact_expire_t = self._interact_expire_t - dt
+
+		local get_interact_params = self._interact_params
+
+		if not alive(self._interact_params.object) or self._interact_params.object ~= self._interaction:active_unit() or self._interact_params.tweak_data ~= self._interact_params.object:interaction().tweak_data or self._interact_params.object:interaction():check_interupt() then
+			self._save_interaction = nil
+			self:_interupt_action_interact(t)
+		else
+			local current = self._interact_params.timer - self._interact_expire_t
+			local total = self._interact_params.timer
+
+			managers.hud:set_interaction_bar_width(current, total)
+
+			if self._interact_expire_t <= 0 then
+				
+				if managers.player:has_category_upgrade("trip_mine", "breach_mk2") and self._save_interaction then
+					for id, unit in ipairs(self._save_interaction) do
+						if unit:interaction() and unit:interaction().tweak_data and table.contains(self._interact_shaped_charged, unit:interaction().tweak_data) then
+							unit:interaction():interact(self._unit)
+							
+							World:effect_manager():spawn({
+								effect = Idstring("effects/particles/explosions/explosion_grenade"),
+								position = unit:position(),
+								normal = unit:rotation():y()
+							})
+						
+							local sound_source = SoundDevice:create_source("TripMineBase")
+						
+							sound_source:set_position(unit:position())
+							sound_source:post_event("molotov_impact")
+							managers.enemy:add_delayed_clbk("TrMiexpl", callback(TripMineBase, TripMineBase, "_dispose_of_sound", {
+								sound_source = sound_source
+							}), TimerManager:game():time() + 1)
+
+							local alert_size = tweak_data.weapon.trip_mines.alert_radius
+							alert_size = managers.player:has_category_upgrade("trip_mine", "alert_size_multiplier") and alert_size * managers.player:upgrade_value("trip_mine", "alert_size_multiplier") or alert_size
+
+							local alert_event = {
+								"aggression",
+								unit:position(),
+								alert_size,
+								managers.groupai:state():get_unit_type_filter("civilians_enemies"),
+								self._unit
+							}
+							managers.groupai:state():propagate_alert(alert_event)
+							table.remove(self._save_interaction, id)
+						end
+					end
+				end
+				
+				self:_end_action_interact(t)
+
+				self._interact_expire_t = nil
+				self._save_interaction = nil
+			end
+		end
+	end
+end]]

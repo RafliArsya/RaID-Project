@@ -5,45 +5,21 @@ Hooks:PostHook(PlayerDamage, "revive", "RaID_PlayerDamage_revive", function(self
 		self._data_dmg_resevoir.refill = 0
 		self._data_dmg_resevoir.reset_t = nil
 	end
-	if self._has_rur then
-		local data_rur = self._data_rur
-		local _skill_rur = data_rur._skill
-		local _cd = data_rur.cd_t
-		local _inc = data_rur.increment
-		local pm = managers.player
-		local t = pm:player_timer():time()
-		
-		local chance = 0
-		chance = chance + _skill_rur.chance + _inc
-		if chance >= math.random() and not _cd then
-			local activated = self:_find_Drill(self._unit)
-			if activated then
-				_cd = t + _skill_rur.delay_t
-				_inc = 0
-			else
-				_inc = _inc + _skill_rur.inc
-				_inc = math.clamp(_inc, 0, 1 - _skill_rur.chance)
-			end
-		else
-			_inc = _inc + _skill_rur.inc
+
+	if self._has_fix_drill_revive then
+		djammed_count = Drill:_count_jammed_drill()
+		if djammed_count > 0 then
+			self:find_and_interact_Drill(self._unit)
 		end
 	end
-	if self._has_iryf then
-		PlayerStandard:_activate_iryf(self._unit)
-	end
+
 	if managers.player:has_category_upgrade("player", "maniac_ictb") and self:_get_ictb("_maniac") == 0 then
 		self:_add_ictb("_maniac")
 	end
 	if managers.player:has_category_upgrade("player", "vice_prez") and self:_get_ictb("_biker") == 0 then
 		self:_add_ictb("_biker")
 	end
-	if self._damage_boost then
-		if self._damage_boost._has_dmg_boost then
-			if self._damage_boost._has_active_dmg_boost then
-				managers.player:deactivate_temporary_upgrade("temporary", "damage_boost_multiplier")
-			end
-		end
-	end
+	
 	if self._has_damage_revenge then
 		if not self._has_active_damage_revenge then
 			managers.player:activate_temporary_upgrade("temporary", "damage_boost_revenge")
@@ -57,9 +33,7 @@ Hooks:PostHook(PlayerDamage, "revive", "RaID_PlayerDamage_revive", function(self
 	if self._has_revive_protection then
 		self._can_take_dmg_timer = managers.player:upgrade_value("player", "running_from_death")
 	end
-	if self._has_revive_heal then
-		self._has_revive_heal_t = managers.player:player_timer():time() + 12
-	end
+
 end)
 
 function PlayerDamage:init(unit)
@@ -303,6 +277,9 @@ function PlayerDamage:init(unit)
 	
 	self._melee_life_leech_dmg_reset_t = nil
 	
+	self._has_fix_drill_revive = managers.player:has_category_upgrade("player", "revived_drill_fixed")
+	self._drill_jammed_data = self._drill_jammed_data or {}
+
 	self._has_sharing_ishurt = managers.player:has_category_upgrade("player", "sharing_is_hurting")
 	self._data_sharing_hurting = {
 		_skill = managers.player:upgrade_value("player", "sharing_is_hurting", 0),
@@ -1273,29 +1250,44 @@ function PlayerDamage:_fire_trap_skill(attack_data, skill_data)
 	end
 end
 
-function PlayerDamage:_find_Drill(user)
+function PlayerDamage:find_and_interact_Drill(user)
 	if self:incapacitated() or self:is_downed() or self:need_revive() or self:dead() then
-		return false
+		return
 	end
+
+	if Drill:_count_jammed_drill() < 0 then
+		return
+	end
+
 	local pm = managers.player
 	local player = pm:local_player() or user
-	local units = World:find_units("sphere", player:position(), 300, managers.slot:get_mask("bullet_impact_targets"))
-	local int_obj = {}
-	local result = false
+	local units = World:find_units("sphere", player:position(), 400, managers.slot:get_mask("bullet_impact_targets"))
+	
+	local function randomFloat(min, max, precision)
+		local range = max - min
+		local offset = range * math.random()
+		local unrounded = min + offset
+	
+		if not precision then
+			return unrounded
+		end
+	
+		local powerOfTen = 10 ^ precision
+		return math.floor(unrounded * powerOfTen + 0.5) / powerOfTen
+	end
 	
 	for id, hit_unit in pairs(units) do
 		if hit_unit:interaction() and hit_unit:interaction().tweak_data and table.contains(self._interact_jammed, hit_unit:interaction().tweak_data) then
-			table.insert(int_obj, hit_unit:interaction())
+			table.insert(self._drill_jammed_data, hit_unit:interaction())
 		end
 	end
 	
-	for interaction_id, interaction in ipairs(int_obj) do 
-		interaction:interact(player) 
-		table.remove(int_obj, interaction_id)
-		result = true
+	for interaction_id, interaction in ipairs(self._drill_jammed_data) do 
+		if 0.7 > randomFloat(0,1,2) then
+			interaction:interact(player)
+		end
+		table.remove(self._drill_jammed_data, interaction_id)
 	end 
-	
-	return result
 end
 
 function PlayerDamage:_get_ictb(category)
@@ -1331,33 +1323,7 @@ function PlayerDamage:activate_revived_skill()
 		managers.player:activate_temporary_upgrade("temporary", "reload_weapon_faster")
 	end
 	
-	if self._has_rur then
-		local data_rur = self._data_rur
-		local _skill_rur = data_rur._skill
-		local _cd = data_rur.cd_t
-		local _inc = data_rur.increment
-		local pm = managers.player
-		local t = pm:player_timer():time()
-		
-		local chance = 0
-		chance = chance + _skill_rur.chance + _inc
-		if chance >= math.random() and not _cd then
-			local activated = self:_find_Drill(self._unit)
-			if activated then
-				_cd = t + _skill_rur.delay_t
-				_inc = 0
-			else
-				_inc = _inc + _skill_rur.inc
-				_inc = math.clamp(_inc, 0, 1 - _skill_rur.chance)
-			end
-		else
-			_inc = _inc + _skill_rur.inc
-		end
-	end
 	
-	if self._has_iryf then
-		PlayerStandard:_activate_iryf(self._unit)
-	end
 end
 
 function PlayerDamage:_damage_sharing(attack_data)

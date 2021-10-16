@@ -2,7 +2,7 @@ function ProjectileBase:set_weapon_unit(weapon_unit)
 	self._weapon_unit = weapon_unit
 	self._weapon_id = weapon_unit and weapon_unit:base():get_name_id()
 	self._weapon_damage_mult = weapon_unit and weapon_unit:base().projectile_damage_multiplier and weapon_unit:base():projectile_damage_multiplier() or 1
-	self._shield_knock = managers.player:has_category_upgrade("player", "shield_knock") and true or false
+	self._shield_knock = managers.player:has_category_upgrade("player", "shield_knock") or false
 	self._knock_down = managers.player:upgrade_value("weapon", "knock_down", nil)
 end
 
@@ -11,7 +11,7 @@ function ProjectileBase.throw_projectile(projectile_type, pos, dir, owner_peer_i
 		return
 	end
 
-	log("Projectile")
+	--log("Projectile")
 
 	local tweak_entry = tweak_data.blackmarket.projectiles[projectile_type]
 	local unit_name = Idstring(not Network:is_server() and tweak_entry.local_unit or tweak_entry.unit)
