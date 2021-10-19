@@ -423,6 +423,7 @@ function SkillTreeTweakData:init(...)
 	self.skills.carbon_blade = {
 		{
 			upgrades = {
+				"saw_panic_when_kill_1",--moved from aced
 				"saw_enemy_slicer"
 			},
 			cost = self.costs.hightier
@@ -430,7 +431,7 @@ function SkillTreeTweakData:init(...)
 		{
 			upgrades = {
 				"saw_ignore_shields_1",
-				"saw_panic_when_kill_1",
+				
 				--addon
 				"saw_enemy_slicer_2"
 			},
@@ -476,7 +477,8 @@ function SkillTreeTweakData:init(...)
 			upgrades = {
 				"sentry_gun_cost_reduction_1", 
 				--addon
-				"sentry_gun_armor_multiplier2"
+				"sentry_gun_armor_multiplier2",
+				"sentry_gun_destroy_explosion_1"
 				--"sentry_gun_damage_explosion_1"
 			},
 			cost = self.costs.hightier
@@ -485,6 +487,8 @@ function SkillTreeTweakData:init(...)
 			upgrades = {
 				"sentry_gun_shield",
 				"sentry_gun_armor_multiplier", --moved from eco sentry aced
+				--addon
+				"sentry_gun_destroy_explosion_2"
 			},
 			cost = self.costs.hightierpro
 		},
@@ -501,8 +505,7 @@ function SkillTreeTweakData:init(...)
 				"sentry_gun_spread_multiplier", 
 				"sentry_gun_cost_reduction_2", --moved from eco sentry
 				--addon
-				"sentry_gun_special_mark",
-				"sentry_gun_mark_boost"
+				"sentry_gun_special_mark"
 			},
 			cost = self.costs.hightier
 		},
@@ -511,7 +514,7 @@ function SkillTreeTweakData:init(...)
 				"sentry_gun_rot_speed_multiplier",
 				"sentry_gun_extra_ammo_multiplier_1",
 				--addon
-				"sentry_gun_damage_explosion_1"
+				"sentry_gun_mark_boost"
 			},
 			cost = self.costs.hightierpro
 		},
@@ -532,7 +535,7 @@ function SkillTreeTweakData:init(...)
 				"xbow_reload_speed_multiplier",
 				"grenade_launcher_reload_speed_multiplier",
 				"minigun_reload_speed_multiplier",
-				"sentry_gun_kill_restore_ammo"
+				"flamethrower_reload_speed_multiplier"
 			},
 			cost = self.costs.hightier
 		},
@@ -551,14 +554,15 @@ function SkillTreeTweakData:init(...)
 		icon_xy = {
 			6,
 			6
-		}--icon_xy = {9,2}
+		}
+		--icon_xy = {9,2}
 	}
 	self.skills.engineering = {
 		{
 			upgrades = {
 				"sentry_gun_silent",
 				--addon
-				"sentry_gun_destroy_explosion_1"
+				"sentry_gun_damage_explosion_1"
 			},
 			cost = self.costs.hightier
 		},
@@ -568,6 +572,7 @@ function SkillTreeTweakData:init(...)
 				"sentry_gun_fire_rate_reduction_1",
 				--addon
 				--"sentry_gun_ap_buff",
+				"sentry_gun_damage_explosion_2",
 				"sentry_gun_destroy_auto_pickup"
 			},
 			cost = self.costs.hightierpro
@@ -584,7 +589,8 @@ function SkillTreeTweakData:init(...)
 			upgrades = {
 				"deploy_interact_faster_1",
 				--addon
-				"sentry_gun_kill_restore_ammo_chance_1"
+				"sentry_gun_kill_restore_ammo"
+				--"sentry_gun_kill_restore_ammo_chance_1"
 				--"player_second_deployable_mul_2", canceled moved to aced
 			},
 			cost = self.costs.hightier
@@ -592,8 +598,7 @@ function SkillTreeTweakData:init(...)
 		{
 			upgrades = {
 				--addon
-				"player_second_deployable_mul_2",
-				"sentry_gun_destroy_auto_pickup_2"
+				"player_second_deployable_mul_2"
 			},
 			cost = self.costs.hightierpro
 		},
@@ -665,7 +670,8 @@ function SkillTreeTweakData:init(...)
 		{
 			upgrades = {
 				"trip_mine_damage_multiplier_1",
-				"player_explosive_breacher_1" --addon
+				"player_explosion_dmg_mul"
+				--"player_explosive_breacher_1" --addon
 			},
 			cost = self.costs.hightierpro
 		},
@@ -686,6 +692,7 @@ function SkillTreeTweakData:init(...)
 		{
 			upgrades = {
 				"player_drill_speed_multiplier2",
+				"saw_saw_saw"
 			},
 			cost = self.costs.pro
 		},
@@ -962,13 +969,8 @@ function SkillTreeTweakData:init(...)
 		{
 			upgrades = {
 				"player_temp_swap_weapon_faster_1",
-				"player_temp_reload_weapon_faster_1",
-				--addon
-				"player_revived_drill_fixed_1"
-				--[[
-					--addon canceled
-				"player_revived_up_running_1"
-				]]
+				"player_temp_reload_weapon_faster_1"		
+				--addon canceled "player_revived_drill_fixed_1" "player_revived_up_running_1"
 			},
 			cost = self.costs.hightier
 		},
@@ -991,13 +993,13 @@ function SkillTreeTweakData:init(...)
 		{
 			upgrades = {
 				"player_messiah_revive_from_bleed_out_1",
-				"player_recharge_messiah_1"
+				"first_aid_kit_recharge_messiah_chance"
 			},
 			cost = self.costs.hightier
 		},
 		{
 			upgrades = {
-				"first_aid_kit_recharge_messiah_chance",
+				"player_recharge_messiah_1",
 				"player_cheat_messiah_chance"
 			},
 			cost = self.costs.hightierpro

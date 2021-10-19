@@ -12,8 +12,14 @@ function PlayerMovement:on_SPOOCed(enemy_unit)
 	if managers.player:has_category_upgrade("player", "auto_counter_spooc") then
 		local roll = math.random()
 		local auto = managers.player:upgrade_value("player", "auto_counter_spooc")
-		auto = auto + (_increase_auto_counter / 100)
+		auto = auto + (_increase_auto_counter * 0.01)
 		if roll <= auto then
+			--self._current_state:discharge_melee()
+			t = TimerManager:game():time()
+			input = self._current_state:_get_input(t, dt, paused)
+			self._current_state:exit(nil, "standard")
+			self._current_state:_start_action_melee(t, input, "discharge")
+			--self._current_state:discharge_melee()
 			_increase_auto_counter = 0
 			return "countered"
 		end

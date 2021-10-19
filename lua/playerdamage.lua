@@ -1,10 +1,5 @@
 Hooks:PostHook(PlayerDamage, "revive", "RaID_PlayerDamage_revive", function(self, silent)
 	self._data_dodge._dodge_count = 0
-	if self._data_dmg_resevoir.reset_t then
-		self._data_dmg_resevoir.count = 0
-		self._data_dmg_resevoir.refill = 0
-		self._data_dmg_resevoir.reset_t = nil
-	end
 
 	if self._has_fix_drill_revive then
 		djammed_count = Drill:_count_jammed_drill()
@@ -101,15 +96,6 @@ function PlayerDamage:init(unit)
 	self._has_revive_protection = managers.player:has_category_upgrade("player", "running_from_death")
 	self._has_revive_heal = managers.player:has_category_upgrade("player", "up_you_goh")
 	self._has_revive_heal_t = nil
-	
-	self._damage_boost = {
-		_has_dmg_boost = managers.player:has_category_upgrade("temporary", "damage_boost_multiplier"),
-		_upg_val = managers.player:upgrade_value("temporary", "damage_boost_multiplier", 0),
-		_has_inactive_dmg_boost = managers.player:has_inactivate_temporary_upgrade("temporary", "damage_boost_multiplier"),
-		_has_active_dmg_boost = managers.player:has_activate_temporary_upgrade("temporary", "damage_boost_multiplier"),
-		_dmg_boost_active_t = nil,
-		_dmg_boost_cd_t = nil
-	}
 
 	self._has_damage_revenge = managers.player:has_category_upgrade("temporary", "damage_boost_revenge")
 	self._has_active_damage_revenge = managers.player:has_activate_temporary_upgrade("temporary", "damage_boost_revenge")
@@ -119,7 +105,7 @@ function PlayerDamage:init(unit)
 	self._doctor_kill_heal_chance = 0
 
 	if managers.player:has_category_upgrade("player", "doctor_kill_heal") then
-		self._doctor_kill_heal_chance = 0.2
+		self._doctor_kill_heal_chance = 0.3
 	end
 
 	local function revive_player()
@@ -264,42 +250,11 @@ function PlayerDamage:init(unit)
 		_dodge_count = 0
 	}
 	
-	self._has_allowed_dmg_dampener = managers.player:has_category_upgrade("player", "allowed_dmg_dam")
-	self._data_dmg_resevoir = {
-		_last_received_dmg = 0,
-		active_t = 5,
-		hold_factor = 0.7,
-		hold_icr = 0.1,
-		count = 0,
-		refill = 0,
-		reset_t = nil
-	}
-	
 	self._melee_life_leech_dmg_reset_t = nil
 	
 	self._has_fix_drill_revive = managers.player:has_category_upgrade("player", "revived_drill_fixed")
 	self._drill_jammed_data = self._drill_jammed_data or {}
-
-	self._has_sharing_ishurt = managers.player:has_category_upgrade("player", "sharing_is_hurting")
-	self._data_sharing_hurting = {
-		_skill = managers.player:upgrade_value("player", "sharing_is_hurting", 0),
-		num_enemies = 0,
-		delay_t = nil
-	}
-
-	self._has_firetrap_arm = managers.player:has_category_upgrade("player", "fire_trap_mk2")
-	self._data_firetrap = {
-		_skill = managers.player:upgrade_value("player", "fire_trap_mk2", 0),
-		delay_t = nil
-	}
 	
-	self._has_rur = managers.player:has_category_upgrade("player", "revived_up_running")
-	self._data_rur = {
-		_skill = managers.player:upgrade_value("player", "revived_up_running", 0),
-		increment = 0,
-		cd_t = nil
-	}
-	self._has_iryf = managers.player:has_category_upgrade("player", "revived_up_enemy_fall")
 	self.ictb = {
 		_maniac = {
 			_ictb = 1,
@@ -542,62 +497,10 @@ function PlayerDamage:update(unit, t, dt)
 			self._pain_killer_ab_t = nil
 		end
 	end
-
-	if self._data_dmg_resevoir.reset_t then
-		if self._data_dmg_resevoir.reset_t < t or self:incapacitated() or self:is_downed() or self:need_revive() or self:dead() then
-			self._data_dmg_resevoir.count = 0
-			self._data_dmg_resevoir.refill = 0
-			self._data_dmg_resevoir.reset_t = nil
-		end
-	end
-	
-	if self._data_sharing_hurting.delay_t then
-		if self._data_sharing_hurting.delay_t < t or self:incapacitated() or self:is_downed() or self:need_revive() or self:dead() then
-			self._data_sharing_hurting.delay_t = nil
-		end
-	end
-	
-	if self._data_firetrap.delay_t then
-		if self._data_firetrap.delay_t < t or self:incapacitated() or self:is_downed() or self:need_revive() or self:dead() then
-			self._data_firetrap.delay_t = nil
-		end
-	end
 	
 	if self._melee_life_leech_dmg_reset_t then
 		if self._melee_life_leech_dmg_reset_t < t or self:incapacitated() or self:is_downed() or self:need_revive() or self:dead() then
 			self._melee_life_leech_dmg_reset_t = nil
-		end
-	end
-	
-	if self._data_rur.cd_t then
-		if self._data_rur.cd_t < t or self:dead() then
-			self._data_rur.cd_t = nil
-		end
-	end
-	
-	if self._damage_boost then
-		local data = self._damage_boost
-		if data._dmg_boost_active_t then
-			local data_active = data._dmg_boost_active_t
-			if data_active < t then
-				data_active = nil
-			end
-		end
-		if data._dmg_boost_cd_t then
-			local data_cd = data._dmg_boost_cd_t
-			if data_cd < t then
-				data_cd = nil
-			end
-		end
-		if self:incapacitated() or self:is_downed() or self:need_revive() or self:dead() then
-			if data._dmg_boost_active_t then
-				local data_active = data._dmg_boost_active_t
-				data_active = nil
-			end
-			if data._dmg_boost_cd_t then
-				local data_cd = data._dmg_boost_cd_t
-				data_cd = nil
-			end
 		end
 	end
 	
@@ -617,9 +520,6 @@ function PlayerDamage:damage_bullet(attack_data)
 		return
 	end
 
-	local firetrap = self._has_firetrap_arm
-	local fire_data = firetrap and self._data_firetrap or nil
-
 	local damage_info = {
 		result = {
 			variant = "bullet",
@@ -629,10 +529,6 @@ function PlayerDamage:damage_bullet(attack_data)
 	}
 	local pm = managers.player
 	local dmg_mul = pm:damage_reduction_skill_multiplier("bullet")
-
-	if firetrap and not fire_data.delay_t then
-		self:_fire_trap_skill(attack_data, fire_data)
-	end
 
 	attack_data.damage = attack_data.damage * dmg_mul
 	attack_data.damage = managers.mutators:modify_value("PlayerDamage:TakeDamageBullet", attack_data.damage)
@@ -649,8 +545,6 @@ function PlayerDamage:damage_bullet(attack_data)
 	end
 
 	local damage_absorption = pm:damage_absorption()
-	local has_resevoir = self._has_allowed_dmg_dampener
-	local data_resevoir = has_resevoir and self._data_dmg_resevoir
 	
 	if damage_absorption > 0 then
 		--log("Dmg abs = "..tonumber(damage_absorption))
@@ -699,23 +593,6 @@ function PlayerDamage:damage_bullet(attack_data)
 		self:play_whizby(attack_data.col_ray.position)
 
 		return
-	end
-	
-	if has_resevoir and data_resevoir and data_resevoir.reset_t then
-		if data_resevoir._last_received_dmg > 0 then
-			local substracted = 0
-			substracted = substracted + attack_data.damage
-			attack_data.damage = math.max(attack_data.damage - data_resevoir._last_received_dmg, 0)
-			substracted = substracted - attack_data.damage
-			data_resevoir._last_received_dmg = math.max(data_resevoir._last_received_dmg - substracted, 0)
-		else
-			data_resevoir.refill = math.min(data_resevoir.refill + 1, 5)
-			data_resevoir._last_received_dmg = attack_data.damage * (1 - (0.1 * data_resevoir.refill))
-		end
-		if attack_data.damage ~= 0 then	
-			attack_data.damage = attack_data.damage * (data_resevoir.hold_factor - (data_resevoir.hold_icr * data_resevoir.count))
-		end
-		data_resevoir.count = math.min(data_resevoir.count + 1, 4)
 	end
 	
 	self._last_received_dmg = attack_data.damage
@@ -794,10 +671,6 @@ function PlayerDamage:damage_bullet(attack_data)
 	self._data_dodge._dodge_up = self._data_dodge._dodge_up + dodgeup
 	self._data_dodge._dodge_count = 0
 	
-	local en_shareskill = self._has_sharing_ishurt
-	local val_sharing = self._data_sharing_hurting
-	local sih_data = val_sharing._skill
-	
 	if attack_data.attacker_unit:base()._tweak_table == "tank" then
 		managers.achievment:set_script_data("dodge_this_fail", true)
 	end
@@ -856,27 +729,6 @@ function PlayerDamage:damage_bullet(attack_data)
 	
 	if self:get_real_armor() <= 0 and not self._bleed_out and not dmg_nil then
 		self:_deactive_temp_skill()
-	end
-	
-	if self:get_real_armor() <= 0 and not dmg_nil and en_shareskill and not val_sharing.delay_t and (not self._bleed_out or not self:incapacitated() or not self:is_downed()) then
-		local health_dmg_sharing = self:_damage_sharing(attack_data)
-		local self_damage = sih_data.damage_s
-		if health_dmg_sharing > 0 then
-			health_dmg_sharing = math.min(health_dmg_sharing, sih_data.stack)
-			health_dmg_sharing = health_dmg_sharing * sih_data.damage_u
-			health_dmg_sharing = math.clamp(self_damage - health_dmg_sharing, sih_data.damage_a, 1)
-			log("damage shared = "..tostring(health_dmg_sharing))
-		else
-			health_dmg_sharing = self_damage
-			log("[NO ENEMY CLOSE] damage reducted = "..tostring(health_dmg_sharing))
-		end
-		attack_data.damage = attack_data.damage * health_dmg_sharing
-	end
-	
-	if self:get_real_armor() <= 0 and not dmg_nil and has_resevoir and not data_resevoir.reset_t and (not self._bleed_out or not self:incapacitated() or not self:is_downed()) then
-		local now = pm:player_timer():time()
-		data_resevoir._last_received_dmg = attack_data.damage
-		data_resevoir.reset_t = now + data_resevoir.active_t
 	end
 
 	health_subtracted = health_subtracted + self:_calc_health_damage(attack_data)
@@ -1185,71 +1037,6 @@ function PlayerDamage:_deactive_temp_skill()
 	end
 end
 
-function PlayerDamage:_fire_trap_skill(attack_data, skill_data)
-	if not self._has_firetrap_arm then
-		return
-	end
-	local pm = managers.player
-	local player = pm:local_player() or self._unit
-	local t = pm:player_timer():time()
-	local data = skill_data
-	local skill = data._skill
-	local attacker = attack_data.attacker_unit
-	local hit_dir = player:position() - attacker:position()
-	local distance = mvector3.normalize(hit_dir)
-	local dmg_reduc = 1 - (distance/skill.distance)
-	if distance < skill.distance and dmg_reduc > 0 and not data.delay_t then
-		local damage_data = 0
-		damage_data = damage_data + attack_data.damage
-		damage_data = damage_data * skill.dmg_mul
-		damage_data = damage_data * dmg_reduc
-		if alive(attacker) and attacker:character_damage() and not attacker:character_damage():dead() then
-			local atk_dmg = attacker:character_damage()
-			local action_data = {
-				variant = "taser_tased",
-				damage = damage_data,
-				damage_effect = 2,
-				attacker_unit = player,
-				col_ray = { body = attacker:body("body"), position = attacker:position() + math.UP * 100},
-				attack_dir = player:movement():m_head_rot():y()
-			}
-			if atk_dmg then
-				atk_dmg:damage_melee(action_data)
-				managers.fire:add_doted_enemy( attacker , t , player:inventory():equipped_unit() , skill.burn_time , damage_data * 0.2 , player , true )
-			end
-		end
-		local slotmask = managers.slot:get_mask("enemies")
-		local units = World:find_units_quick("sphere", attacker:position(), skill.radius, slotmask)
-		for e_key, unit_key in pairs(units) do
-			if alive(unit_key) and unit_key:character_damage() and not unit_key:character_damage():dead() then
-				local is_converted = unit_key:brain() and unit_key:brain()._logic_data and unit_key:brain()._logic_data.is_converted
-				local is_enggage = unit_key:brain() and unit_key:brain():is_hostile()
-				local unit_dmg = unit_key:character_damage()
-				local unit_mov = unit_key:movement()
-				local unit_enggage = unit_mov and not unit_mov:cool()
-				local unit_hostile = unit_mov and unit_mov:stance_name() == "hos"
-				local unit_cbt = unit_mov and unit_mov:stance_name() == "cbt"
-				if not is_converted and is_enggage and unit_enggage and (unit_hostile or unit_cbt) then
-					local action_data = {
-						variant = "taser_tased",
-						damage = damage_data,
-						damage_effect = 2,
-						attacker_unit = player,
-						col_ray = { body = unit_key:body("body"), position = unit_key:position() + math.UP * 100},
-						attack_dir = player:movement():m_head_rot():y()
-					}
-					if unit_dmg then
-						unit_dmg:damage_melee(action_data)
-						managers.fire:add_doted_enemy( unit_key , t , player:inventory():equipped_unit() , skill.burn_time , damage_data * 0.2 , player , true )
-						--log("given damage to enemies")
-					end
-				end
-			end
-		end
-		data.delay_t = t + skill.delay
-	end
-end
-
 function PlayerDamage:find_and_interact_Drill(user)
 	if self:incapacitated() or self:is_downed() or self:need_revive() or self:dead() then
 		return
@@ -1467,20 +1254,6 @@ function PlayerDamage:_on_damage_event()
 		log("set damage absorp regular")
 	end
 	
-	local dmg_bst = self._damage_boost
-	local dmg_bst_skill = dmg_bst._has_dmg_boost
-	
-	if armor_broken and dmg_bst_skill then
-		local dmg_bst_val = dmg_bst_skill and dmg_bst._upg_val
-		local dmg_bst_active = dmg_bst._dmg_boost_active_t
-		local dmg_bst_cd = dmg_bst._dmg_boost_cd_t
-		local dmg_bst_inactive = dmg_bst._has_inactive_dmg_boost
-		if not dmg_bst_active and not dmg_bst_cd and dmg_bst_inactive then
-			managers.player:activate_temporary_upgrade("temporary", "damage_boost_multiplier")
-			dmg_bst_active = t + dmg_bst_val[2]
-			dmg_bst_cd = dmg_bst_active + 5
-		end
-	end
 end
 
 --[[function PlayerDamage:change_armor(change)
@@ -1553,7 +1326,7 @@ function PlayerDamage:_medic_heal()
 	local chance = self._doctor_kill_heal_chance
 	if math.random() < chance then
 		self:_do_medic_heal()
-		self._doctor_kill_heal_chance = 0.2
+		self._doctor_kill_heal_chance = 0.3
 	else
 		self._doctor_kill_heal_chance = self._doctor_kill_heal_chance + (math.random(10) * 0.01)
 	end
@@ -1623,3 +1396,71 @@ function PlayerDamage:ace_band_aid_health()
 end
 
 end
+
+--[[
+function PlayerDamage:_fire_trap_skill(attack_data, skill_data)
+	if not self._has_firetrap_arm then
+		return
+	end
+	local pm = managers.player
+	local player = pm:local_player() or self._unit
+	local t = pm:player_timer():time()
+	local data = skill_data
+	local skill = data._skill
+	local attacker = attack_data.attacker_unit
+	local hit_dir = player:position() - attacker:position()
+	local distance = mvector3.normalize(hit_dir)
+	local dmg_reduc = 1 - (distance/skill.distance)
+	if distance < skill.distance and dmg_reduc > 0 and not data.delay_t then
+		local damage_data = 0
+		damage_data = damage_data + attack_data.damage
+		damage_data = damage_data * skill.dmg_mul
+		damage_data = damage_data * dmg_reduc
+		if alive(attacker) and attacker:character_damage() and not attacker:character_damage():dead() then
+			local atk_dmg = attacker:character_damage()
+			local action_data = {
+				variant = "taser_tased",
+				damage = damage_data,
+				damage_effect = 2,
+				attacker_unit = player,
+				col_ray = { body = attacker:body("body"), position = attacker:position() + math.UP * 100},
+				attack_dir = player:movement():m_head_rot():y()
+			}
+			if atk_dmg then
+				atk_dmg:damage_melee(action_data)
+				managers.fire:add_doted_enemy( attacker , t , player:inventory():equipped_unit() , skill.burn_time , damage_data * 0.2 , player , true )
+			end
+		end
+		local slotmask = managers.slot:get_mask("enemies")
+		local units = World:find_units_quick("sphere", attacker:position(), skill.radius, slotmask)
+		for e_key, unit_key in pairs(units) do
+			if alive(unit_key) and unit_key:character_damage() and not unit_key:character_damage():dead() then
+				local is_converted = unit_key:brain() and unit_key:brain()._logic_data and unit_key:brain()._logic_data.is_converted
+				local is_enggage = unit_key:brain() and unit_key:brain():is_hostile()
+				local unit_dmg = unit_key:character_damage()
+				local unit_mov = unit_key:movement()
+				local unit_enggage = unit_mov and not unit_mov:cool()
+				local unit_hostile = unit_mov and unit_mov:stance_name() == "hos"
+				local unit_cbt = unit_mov and unit_mov:stance_name() == "cbt"
+				if not is_converted and is_enggage and unit_enggage and (unit_hostile or unit_cbt) then
+					local action_data = {
+						variant = "taser_tased",
+						damage = damage_data,
+						damage_effect = 2,
+						attacker_unit = player,
+						col_ray = { body = unit_key:body("body"), position = unit_key:position() + math.UP * 100},
+						attack_dir = player:movement():m_head_rot():y()
+					}
+					if unit_dmg then
+						unit_dmg:damage_melee(action_data)
+						managers.fire:add_doted_enemy( unit_key , t , player:inventory():equipped_unit() , skill.burn_time , damage_data * 0.2 , player , true )
+						--log("given damage to enemies")
+					end
+				end
+			end
+		end
+		data.delay_t = t + skill.delay
+	end
+end
+
+]]

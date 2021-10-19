@@ -229,90 +229,6 @@ function InstantBulletBase:on_collision(col_ray, weapon_unit, user_unit, damage,
 	return result
 end
 
-function InstantExplosiveBulletBase:on_collision(col_ray, weapon_unit, user_unit, damage, blank)
-	local hit_unit = col_ray.unit
-
-	if not hit_unit:character_damage() or not hit_unit:character_damage()._no_blood and managers.player:has_category_upgrade("player", "explosive_breacher") then
-		self:play_impact_sound_and_effects(weapon_unit, col_ray)
-		local hit_pos = col_ray.position or nil
-		local slotmask = managers.slot:get_mask("bullet_impact_targets")
-		local dmg = damage or nil
-		if hit_pos and dmg then
-			local units = World:find_units("sphere", hit_pos, 300, slotmask or managers.slot:get_mask("bullet_impact_targets"))
-			if type(units) == "table" and units[1] then
-				for id, hit_unit in pairs(units) do
-					if hit_unit:base() and type(hit_unit:base()._devices) == "table" and type(hit_unit:base()._devices.c4) == "table" and type(hit_unit:base()._devices.c4.amount) == "number" then
-						if not hit_unit:base()._devices.c4.max_health then
-							hit_unit:base()._devices.c4.max_health = 1000
-						end
-						if hit_unit:base()._devices.c4.max_health then
-							hit_unit:base()._devices.c4.max_health = hit_unit:base()._devices.c4.max_health - dmg
-						end
-						if hit_unit:base()._devices.c4.max_health <= 0 then
-							---hit_unit:base():trigger_sequence("door_opened")
-							hit_unit:base():trigger_sequence("c4_completed")
-							local sequence_name = "explode_door"
-							if managers.network:session() then
-								managers.network:session():send_to_peers_synched("run_mission_door_sequence", hit_unit:base(), sequence_name)
-							end
-							hit_unit:base():run_sequence_simple(sequence_name)
-						end
-						break
-					end
-				end
-			end
-		end
-	end
-
-	if not blank then
-		mvec3_set(tmp_vec1, col_ray.position)
-		mvec3_set(tmp_vec2, col_ray.ray)
-		mvec3_norm(tmp_vec2)
-		mvec3_mul(tmp_vec2, 20)
-		mvec3_sub(tmp_vec1, tmp_vec2)
-
-		local network_damage = math.ceil(damage * 163.84)
-		damage = network_damage / 163.84
-
-		if Network:is_server() then
-			self:on_collision_server(tmp_vec1, col_ray.normal, damage, user_unit, weapon_unit, managers.network:session():local_peer():id())
-		else
-			self:on_collision_server(tmp_vec1, col_ray.normal, damage, user_unit, weapon_unit, managers.network:session():local_peer():id())
-		end
-
-		if hit_unit:damage() and col_ray.body:extension() and col_ray.body:extension().damage then
-			local sync_damage = not blank and hit_unit:id() ~= -1
-
-			if sync_damage then
-				local normal_vec_yaw, normal_vec_pitch = self._get_vector_sync_yaw_pitch(col_ray.normal, 128, 64)
-				local dir_vec_yaw, dir_vec_pitch = self._get_vector_sync_yaw_pitch(col_ray.ray, 128, 64)
-
-				managers.network:session():send_to_peers_synched("sync_body_damage_bullet", col_ray.body, user_unit:id() ~= -1 and user_unit or nil, normal_vec_yaw, normal_vec_pitch, col_ray.position, dir_vec_yaw, dir_vec_pitch, math.min(16384, network_damage))
-			end
-
-			local local_damage = not blank or hit_unit:id() == -1
-
-			if local_damage then
-				col_ray.body:extension().damage:damage_bullet(user_unit, col_ray.normal, col_ray.position, col_ray.ray, 1)
-				col_ray.body:extension().damage:damage_damage(user_unit, col_ray.normal, col_ray.position, col_ray.ray, damage)
-
-				if alive(weapon_unit) and weapon_unit:base().categories and weapon_unit:base():categories() then
-					for _, category in ipairs(weapon_unit:base():categories()) do
-						col_ray.body:extension().damage:damage_bullet_type(category, user_unit, col_ray.normal, col_ray.position, col_ray.ray, 1)
-					end
-				end
-			end
-		end
-
-		return {
-			variant = "explosion",
-			col_ray = col_ray
-		}
-	end
-
-	return nil
-end
-
 function RaycastWeaponBase:add_ammo(ratio, add_amount_override)
 	local function _add_ammo(ammo_base, ratio, add_amount_override)
 		if ammo_base:get_ammo_max() == ammo_base:get_ammo_total() then
@@ -497,3 +413,90 @@ function RaycastWeaponBase:fire(from_pos, direction, dmg_mul, shoot_player, spre
 
 	return ray_res
 end
+
+--[[function InstantExplosiveBulletBase:on_collision(col_ray, weapon_unit, user_unit, damage, blank)
+	local hit_unit = col_ray.unit
+
+	if not hit_unit:character_damage() or not hit_unit:character_damage()._no_blood and managers.player:has_category_upgrade("player", "explosive_breacher") then
+		self:play_impact_sound_and_effects(weapon_unit, col_ray)
+		local hit_pos = col_ray.position or nil
+		local slotmask = managers.slot:get_mask("bullet_impact_targets")
+		local dmg = damage or nil
+		if hit_pos and dmg then
+			local units = World:find_units("sphere", hit_pos, 300, slotmask or managers.slot:get_mask("bullet_impact_targets"))
+			if type(units) == "table" and units[1] then
+				for id, hit_unit in pairs(units) do
+					if hit_unit:base() and type(hit_unit:base()._devices) == "table" and type(hit_unit:base()._devices.c4) == "table" and type(hit_unit:base()._devices.c4.amount) == "number" then
+						if not hit_unit:base()._devices.c4.max_health then
+							hit_unit:base()._devices.c4.max_health = 1
+						end
+						if hit_unit:base()._devices.c4.max_health then
+							hit_unit:base()._devices.c4.max_health = hit_unit:base()._devices.c4.max_health - dmg
+						end
+						if hit_unit:base()._devices.c4.max_health <= 0 then
+							---hit_unit:base():trigger_sequence("door_opened")
+							hit_unit:base():trigger_sequence("c4_completed")
+							if managers.network:session() then
+								managers.network:session():send_to_peers_synched("run_mission_door_sequence", hit_unit:base(), "c4_completed")
+							end
+							local sequence_name = "explode_door"
+							if managers.network:session() then
+								managers.network:session():send_to_peers_synched("run_mission_door_sequence", hit_unit:base(), sequence_name)
+							end
+							hit_unit:base():run_sequence_simple(sequence_name)
+						end
+						break
+					end
+				end
+			end
+		end
+	end
+
+	if not blank then
+		mvec3_set(tmp_vec1, col_ray.position)
+		mvec3_set(tmp_vec2, col_ray.ray)
+		mvec3_norm(tmp_vec2)
+		mvec3_mul(tmp_vec2, 20)
+		mvec3_sub(tmp_vec1, tmp_vec2)
+
+		local network_damage = math.ceil(damage * 163.84)
+		damage = network_damage / 163.84
+
+		if Network:is_server() then
+			self:on_collision_server(tmp_vec1, col_ray.normal, damage, user_unit, weapon_unit, managers.network:session():local_peer():id())
+		else
+			self:on_collision_server(tmp_vec1, col_ray.normal, damage, user_unit, weapon_unit, managers.network:session():local_peer():id())
+		end
+
+		if hit_unit:damage() and col_ray.body:extension() and col_ray.body:extension().damage then
+			local sync_damage = not blank and hit_unit:id() ~= -1
+
+			if sync_damage then
+				local normal_vec_yaw, normal_vec_pitch = self._get_vector_sync_yaw_pitch(col_ray.normal, 128, 64)
+				local dir_vec_yaw, dir_vec_pitch = self._get_vector_sync_yaw_pitch(col_ray.ray, 128, 64)
+
+				managers.network:session():send_to_peers_synched("sync_body_damage_bullet", col_ray.body, user_unit:id() ~= -1 and user_unit or nil, normal_vec_yaw, normal_vec_pitch, col_ray.position, dir_vec_yaw, dir_vec_pitch, math.min(16384, network_damage))
+			end
+
+			local local_damage = not blank or hit_unit:id() == -1
+
+			if local_damage then
+				col_ray.body:extension().damage:damage_bullet(user_unit, col_ray.normal, col_ray.position, col_ray.ray, 1)
+				col_ray.body:extension().damage:damage_damage(user_unit, col_ray.normal, col_ray.position, col_ray.ray, damage)
+
+				if alive(weapon_unit) and weapon_unit:base().categories and weapon_unit:base():categories() then
+					for _, category in ipairs(weapon_unit:base():categories()) do
+						col_ray.body:extension().damage:damage_bullet_type(category, user_unit, col_ray.normal, col_ray.position, col_ray.ray, 1)
+					end
+				end
+			end
+		end
+
+		return {
+			variant = "explosion",
+			col_ray = col_ray
+		}
+	end
+
+	return nil
+end]]

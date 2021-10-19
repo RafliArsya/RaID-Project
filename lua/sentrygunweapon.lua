@@ -1,3 +1,16 @@
+--[[Hooks:PostHook(SentryGunWeapon, "setup", "RaID_SentryGunWeapon_setup", function(self, setup_data)
+	if managers.player:has_category_upgrade("sentry_gun", "damage_explosion") then
+		self._damage_explode_t =  self._damage_explode_t or {}
+	else
+		self._damage_explode_t = nil
+	end
+	if self._unit:base():is_owner() and managers.player:has_category_upgrade("sentry_gun", "damage_explosion") and self._damage_explode_t and not self._damage_explode_t[self._unit:key()] then
+		log("setuppp")
+		local data = managers.player:upgrade_value("sentry_gun", "damage_explosion")
+		self._damage_explode_t[self._unit:key()] = TimerManager:game():time() + data.interval
+	end
+end)]]
+
 local orig_fire_raycast = SentryGunWeapon._fire_raycast
 function SentryGunWeapon:_fire_raycast(from_pos, direction, shoot_player, target_unit)
     if managers.player:has_category_upgrade("sentry_gun", "special_mark") and managers.groupai:state():is_enemy_special(target_unit) and self._unit:base():is_owner() then
@@ -43,10 +56,10 @@ function SentryGunWeapon:_fire_raycast(from_pos, direction, shoot_player, target
 	local _t = TimerManager:game():time()
 	local pm = managers.player
 	local player = pm:player_unit()
-	
+
 	if pm:has_category_upgrade("sentry_gun", "damage_explosion") and self._unit:base():is_owner() then
 		local data = pm:upgrade_value("sentry_gun", "damage_explosion")	
-		if not self._damage_explode_t then
+		if self._damage_explode_t and not self._damage_explode_t[self._unit:key()] then
 			local e_pos = target_unit:position()
 			local bodies = World:find_units_quick("sphere", e_pos, data.radius, managers.slot:get_mask(data.slotmask))
 			local col_ray = { }
@@ -54,8 +67,34 @@ function SentryGunWeapon:_fire_raycast(from_pos, direction, shoot_player, target
 			col_ray.position = e_pos
 			local interval = data.interval * math.min((math.floor(math.random()*100)/100)+0.1,1)
 			interval = math.clamp(interval, data.min_interval, data.interval)
-			self._damage_explode_t = _t + interval
+			self._damage_explode_t[self._unit:key()] = _t + interval
 			local action_data = {
+				variant = "bullet" or "light",
+				damage = data.damage,
+				weapon_unit = self._unit,
+				attacker_unit = RaID:get_data("toggle_sentry_skill_is_player") and player or self._unit,
+				col_ray = col_ray,
+				armor_piercing = false,
+				shield_knock = false,
+				origin = self._unit:position(),
+				knock_down = false,
+				stagger = false
+			}
+			log("Sentry Gun Damage Explode = "..tonumber(self._damage_explode_t[self._unit:key()]))
+			for _, hit_unit in pairs(bodies) do
+				local civs, enemies, sentry = unit_stance(hit_unit)
+
+				action_data.col_ray = {
+					body = hit_unit:body("body"),
+					position = hit_unit:position() + math.UP * 100, 
+					ray = hit_unit:body("body") and hit_unit:center_of_mass() or alive(hit_unit) and hit_unit:position()
+				}
+
+				if hit_unit:character_damage() and (enemies or civs or sentry) then
+					hit_unit:character_damage():damage_bullet(action_data)
+				end
+			end
+            --[[local action_data = {
 				variant = "explosion",
 				damage = data.damage,
 				attacker_unit = RaID:get_data("toggle_sentry_skill_is_player") and player or self._unit,
@@ -68,74 +107,24 @@ function SentryGunWeapon:_fire_raycast(from_pos, direction, shoot_player, target
 				if hit_unit:character_damage() and (enemies or civs or sentry) then
 					hit_unit:character_damage():damage_explosion(action_data)
 				end
-			end
+			end]]
 		end
 	end
 	
-	if pm:has_category_upgrade("sentry_gun", "tower_explosion") and self._unit:base():is_owner() then
-		local data = pm:upgrade_value("sentry_gun", "tower_explosion")
-		if not self._tower_explode_t then
-			--log("SENTRY FIRE")
-			local e_pos = self._unit:position()
-			local bodies = World:find_units_quick("sphere", e_pos, data.radius, managers.slot:get_mask(data.slotmask))
-			local col_ray = { }
-			col_ray.ray = Vector3(1, 0, 0)
-			col_ray.position = e_pos
-			local interval = data.interval * math.min((math.floor(math.random()*100)/100)+0.1,1)
-			interval = math.clamp(interval, data.min_interval, data.interval)
-			self._tower_explode_t = _t + interval
-			--[[local action_data = {
-				variant = "explosion",
-				damage = data.damage,
-				attacker_unit = RaID:get_data("toggle_sentry_skill_is_player") and player or self._unit,
-				weapon_unit = self._unit,
-				col_ray = col_ray
-			}]]
-			--log("Sentry Gun Damage Explode = "..self._tower_explode_t)
-			for _, hit_unit in pairs(bodies) do
-				local civs, enemies, sentry = unit_stance(hit_unit)
-				--[[if hit_unit:character_damage() and (enemies or sentry) then
-					hit_unit:character_damage():damage_explosion(action_data)
-				end]]
-				if hit_unit:character_damage() and enemies then
-					local attacker = RaID:get_data("toggle_sentry_skill_is_player") and player or self._unit
-					local weapon = RaID:get_data("toggle_sentry_skill_is_player") and player:inventory():equipped_unit() or self._unit
-					managers.fire:add_doted_enemy( hit_unit , _t , weapon , math.random(2, 7) , data.damage, attacker, false )
-				end
-			end
-		end
-	end
     return orig_fire_raycast(self, from_pos, direction, shoot_player, target_unit)
 end
 
-Hooks:PostHook(SentryGunWeapon, "_set_fire_mode", "RaID_set_fire_mode", function(self, use_armor_piercing)
-    if use_armor_piercing and managers.player:has_category_upgrade("sentry_gun", "ap_buff") and self._unit:base():is_owner() then
-		local data = managers.player:upgrade_value("sentry_gun", "ap_buff")
-        self._fire_rate_reduction = self._use_armor_piercing and self._AP_ROUNDS_FIRE_RATE * data.fire_rate or 1
-	end
-	--log("Sentry Gun fire rate = "..self._fire_rate_reduction)
-end)
-
 Hooks:PostHook(SentryGunWeapon, "init", "RaID_SentryGunWeapon", function(self)
-	self._tower_explode_t = nil
-	self._damage_explode_t = nil
-	--[[if managers.player:has_category_upgrade("sentry_gun", "tower_explosion") then
-		self._tower_explode_t = 0
+	self._damage_explode_t = self._damage_explode_t or {}
+	if not managers.player:has_category_upgrade("sentry_gun", "damage_explosion") then
+		self._damage_explode_t = nil
 	end
-	if managers.player:has_category_upgrade("sentry_gun", "damage_explosion") then
-		self._damage_explode_t = 0
-	end]]
 end)
 
 Hooks:PostHook(SentryGunWeapon, "update", "RaID_SentryGunWeapon", function(self, unit, t, dt)
-	if self._tower_explode_t then
-		if self._tower_explode_t < t then
-			self._tower_explode_t = nil
-		end
-	end
 	if self._damage_explode_t then
-		if self._damage_explode_t < t then
-			self._damage_explode_t = nil
+		if self._damage_explode_t[self._unit:key()] and self._damage_explode_t[self._unit:key()] < t or self._damage_explode_t[self._unit:key()] and (not alive(self._unit) or not self._unit:key()) then
+			self._damage_explode_t[self._unit:key()] = nil
 		end
 	end
 end)

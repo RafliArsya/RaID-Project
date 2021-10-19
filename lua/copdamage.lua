@@ -346,6 +346,165 @@ function CopDamage:damage_bullet(attack_data)
 	return result
 end
 
+function CopDamage:damage_explosion(attack_data)
+	if self._dead or self._invulnerable then
+		return
+	end
+
+	local is_civilian = CopDamage.is_civilian(self._unit:base()._tweak_table)
+	local result = nil
+	local damage = attack_data.damage
+	damage = managers.modifiers:modify_value("CopDamage:DamageExplosion", damage, self._unit:base()._tweak_table)
+
+	if self._unit:base():char_tweak().DAMAGE_CLAMP_EXPLOSION then
+		damage = math.min(damage, self._unit:base():char_tweak().DAMAGE_CLAMP_EXPLOSION)
+	end
+
+	damage = damage * (self._char_tweak.damage.explosion_damage_mul or 1)
+	damage = damage * (self._marked_dmg_mul or 1)
+
+	if attack_data.attacker_unit == managers.player:player_unit() then
+		local critical_hit, crit_damage = self:roll_critical_hit(attack_data)
+		damage = crit_damage
+
+		if attack_data.weapon_unit and attack_data.variant ~= "stun" then
+			if critical_hit then
+				managers.hud:on_crit_confirmed()
+			else
+				managers.hud:on_hit_confirmed()
+			end
+		end
+	end
+
+	if attack_data.attacker_unit and attack_data.attacker_unit:base() and attack_data.attacker_unit:base().thrower_unit then
+		if attack_data.owner == managers.player:player_unit() or attack_data.attacker_unit:base():get_owner() == managers.player:player_unit() then
+			log("damage before ="..tonumber(damage))
+			damage = managers.player:has_category_upgrade("player", "explosion_dmg_mul") and damage * 1.5 or damage
+			log("damage after ="..tonumber(damage))
+		end
+	end
+
+	damage = self:_apply_damage_reduction(damage)
+	damage = math.clamp(damage, 0, self._HEALTH_INIT)
+	local damage_percent = math.ceil(damage / self._HEALTH_INIT_PRECENT)
+	damage = damage_percent * self._HEALTH_INIT_PRECENT
+	damage, damage_percent = self:_apply_min_health_limit(damage, damage_percent)
+
+	if self._immortal then
+		damage = math.min(damage, self._health - 1)
+	end
+
+	if self._health <= damage then
+		if self:check_medic_heal() then
+			attack_data.variant = "healed"
+			result = {
+				type = "healed",
+				variant = attack_data.variant
+			}
+		else
+			attack_data.damage = self._health
+			result = {
+				type = "death",
+				variant = attack_data.variant
+			}
+
+			self:die(attack_data)
+		end
+	else
+		attack_data.damage = damage
+		local result_type = attack_data.variant == "stun" and "hurt_sick" or self:get_damage_type(damage_percent, "explosion")
+		result = {
+			type = result_type,
+			variant = attack_data.variant
+		}
+
+		self:_apply_damage_to_health(damage)
+	end
+
+	attack_data.result = result
+	attack_data.pos = attack_data.col_ray.position
+	local head = nil
+
+	if self._head_body_name and attack_data.variant ~= "stun" then
+		head = attack_data.col_ray.body and self._head_body_key and attack_data.col_ray.body:key() == self._head_body_key
+		local body = self._unit:body(self._head_body_name)
+
+		self:_spawn_head_gadget({
+			position = body:position(),
+			rotation = body:rotation(),
+			dir = -attack_data.col_ray.ray
+		})
+	end
+
+	local attacker = attack_data.attacker_unit
+
+	if not attacker or attacker:id() == -1 then
+		attacker = self._unit
+	end
+
+	result.ignite_character = attack_data.ignite_character
+
+	if result.type == "death" then
+		local data = {
+			name = self._unit:base()._tweak_table,
+			stats_name = self._unit:base()._stats_name,
+			owner = attack_data.owner,
+			weapon_unit = attack_data.weapon_unit,
+			variant = attack_data.variant,
+			head_shot = head
+		}
+
+		managers.statistics:killed_by_anyone(data)
+
+		local attacker_unit = attack_data.attacker_unit
+
+		if attacker_unit and attacker_unit:base() and attacker_unit:base().thrower_unit then
+			attacker_unit = attacker_unit:base():thrower_unit()
+			data.weapon_unit = attack_data.attacker_unit
+		end
+
+		if not is_civilian and managers.player:has_category_upgrade("temporary", "overkill_damage_multiplier") and attacker_unit == managers.player:player_unit() and attack_data.weapon_unit and attack_data.weapon_unit:base().weapon_tweak_data and not attack_data.weapon_unit:base().thrower_unit and attack_data.weapon_unit:base():is_category("shotgun", "saw") then
+			managers.player:activate_temporary_upgrade("temporary", "overkill_damage_multiplier")
+		end
+
+		self:chk_killshot(attacker_unit, "explosion")
+
+		if attacker_unit == managers.player:player_unit() then
+			if alive(attacker_unit) then
+				self:_comment_death(attacker_unit, self._unit)
+			end
+
+			self:_show_death_hint(self._unit:base()._tweak_table)
+			managers.statistics:killed(data)
+
+			if is_civilian then
+				managers.money:civilian_killed()
+			end
+
+			self:_check_damage_achievements(attack_data, false)
+		end
+	end
+
+	local weapon_unit = attack_data.weapon_unit
+
+	if alive(weapon_unit) and weapon_unit:base() and weapon_unit:base().add_damage_result then
+		weapon_unit:base():add_damage_result(self._unit, result.type == "death", attacker, damage_percent)
+	end
+
+	if not self._no_blood then
+		managers.game_play_central:sync_play_impact_flesh(attack_data.pos, attack_data.col_ray.ray)
+	end
+
+	self:_send_explosion_attack_result(attack_data, attacker, damage_percent, self:_get_attack_variant_index(attack_data.result.variant), attack_data.col_ray.ray)
+	self:_on_damage_received(attack_data)
+
+	if not is_civilian and attack_data.attacker_unit and alive(attack_data.attacker_unit) then
+		managers.player:send_message(Message.OnEnemyShot, nil, self._unit, attack_data)
+	end
+
+	return result
+end
+
 function CopDamage:_on_damage_received(damage_info)
 	self:build_suppression("max", nil)
 	self:_call_listeners(damage_info)
@@ -399,58 +558,61 @@ function CopDamage:_on_damage_received(damage_info)
 
 	
 	if (attacker_unit == managers.player:player_unit() or alive(attacker_unit) and attacker_unit:base() and attacker_unit:base().thrower_unit) and damage_info then
-		if damage_info.variant == "explosion" and managers.player:has_category_upgrade("player", "expanded_n_enhanced") then
-			if damage_info.result.type ~= "death" and not self._dead and 0.5 >= randomFloat(0,1,2) then
-				local fire_dot_data = {
-					dot_damage = 5,
-					dot_trigger_max_distance = 3000,
-					dot_trigger_chance = 100,
-					dot_length = 6,
-					dot_tick_period = 0.5
-				}
-				local action_data = {
-					variant = "fire",
-					damage = 1,
-					attacker_unit = attacker_unit,
-					weapon_unit = attacker_unit == managers.player:player_unit() and managers.player:player_unit():inventory():equipped_unit() or damage_info.weapon_unit or nil,
-					ignite_character = true,
-					col_ray = damage_info.col_ray,
-					is_fire_dot_damage = false,
-					fire_dot_data = fire_dot_data,
-					is_molotov = true
-				}
-				self:damage_fire(action_data)
+		if damage_info.result.type == "death" and self._dead then
+			if damage_info.variant == "fire" then
+				if managers.player:has_category_upgrade("player", "flame_trap") and 0.65 >= randomFloat(0,1,2) or 0.15 >= randomFloat(0,1,2) then
+					local position = self._unit:position()
+					local rotation = self._unit:rotation()
+					local attacker = self._unit or nil
+					local params = {
+						sound_event = nil,
+						range = 75,
+						curve_pow = 3,
+						damage = 1,
+						fire_alert_radius = 100,
+						hexes = 6,
+						sound_event_burning = "burn_loop_gen",
+						is_molotov = true,
+						player_damage = 2,
+						sound_event_impact_duration = 4,
+						burn_tick_period = 0.4,
+						burn_duration = 4, --16,
+						alert_radius = 50,
+						effect_name = "effects/payday2/particles/explosions/molotov_grenade",
+						fire_dot_data = {
+							dot_trigger_chance = 30,
+							dot_damage = 15,
+							dot_length = 7,
+							dot_trigger_max_distance = 3000,
+							dot_tick_period = 0.5
+						}
+					}
+					EnvironmentFire.spawn(position, rotation, params, math.UP, attacker, 0, 1)
+				end
 			end
-		end
-		if damage_info.variant == "fire" and managers.player:has_category_upgrade("player", "flame_trap") then
-			if damage_info.result.type == "death" and 0.7 >= randomFloat(0,1,2) then
-				local position = self._unit:position()
-				local rotation = self._unit:rotation()
-				local attacker = self._unit or nil
-				local params = {
-					sound_event = "molotov_impact",
-					range = 75,
-					curve_pow = 3,
-					damage = 1,
-					fire_alert_radius = 100,
-					hexes = 6,
-					sound_event_burning = "burn_loop_gen",
-					is_molotov = true,
-					player_damage = 2,
-					sound_event_impact_duration = 4,
-					burn_tick_period = 0.4,
-					burn_duration = 4, --16,
-					alert_radius = 50,
-					effect_name = "effects/payday2/particles/explosions/molotov_grenade",
-					fire_dot_data = {
-						dot_trigger_chance = 30,
-						dot_damage = 15,
-						dot_length = 7,
+		elseif damage_info.result.type ~= "death" and not self._dead then
+			if damage_info.variant == "explosion" then
+				if managers.player:has_category_upgrade("player", "expanded_n_enhanced") and 0.6 >= randomFloat(0,1,2) or 0.15 >= randomFloat(0,1,2) then
+					local fire_dot_data = {
+						dot_damage = 5,
 						dot_trigger_max_distance = 3000,
+						dot_trigger_chance = 100,
+						dot_length = 6,
 						dot_tick_period = 0.5
 					}
-				}
-				EnvironmentFire.spawn(position, rotation, params, math.UP, attacker, 0, 1)
+					local action_data = {
+						variant = "fire",
+						damage = 1,
+						attacker_unit = attacker_unit,
+						weapon_unit = attacker_unit == managers.player:player_unit() and managers.player:player_unit():inventory():equipped_unit() or damage_info.weapon_unit or nil,
+						ignite_character = true,
+						col_ray = damage_info.col_ray,
+						is_fire_dot_damage = false,
+						fire_dot_data = fire_dot_data,
+						is_molotov = true
+					}
+					self:damage_fire(action_data)
+				end
 			end
 		end
 	end

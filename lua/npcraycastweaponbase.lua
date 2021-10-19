@@ -78,24 +78,50 @@ function NPCRaycastWeaponBase:_fire_raycast(user_unit, from_pos, direction, dmg_
 		if not alive(player)then
 			return orig_npc_fire_ray(self, user_unit, from_pos, direction, dmg_mul, shoot_player, spread_mul, autohit_mul, suppr_mul, target_unit)
 		end
-		--[[if self._minion_damage_explode_t and not self._minion_damage_explode_t[user_unit:key()] then
+		if self._minion_damage_explode_t and not self._minion_damage_explode_t[user_unit:key()] then
 			self._minion_damage_explode_t[user_unit:key()] = _t + 1
-		end]]
-		if _t >= self._minion_damage_explode_t[user_unit:key()] then
+		end
+		if self._minion_damage_explode_t[user_unit:key()] and _t >= self._minion_damage_explode_t[user_unit:key()] then
 			local e_pos = target_unit:position()
-			local bodies = World:find_units_quick("sphere", e_pos, 325, managers.slot:get_mask("enemies"))
+			local bodies = World:find_units_quick("sphere", e_pos, 300, managers.slot:get_mask("enemies"))
 			local col_ray = { }
 			col_ray.ray = Vector3(1, 0, 0)
 			col_ray.position = e_pos
-			local interval = 10 * math.min((math.floor(math.random()*100)/100)+0.1,1)
-			interval = math.max(interval, 1)
+
+			local function randomFloat(min, max, precision)
+				local range = max - min
+				local offset = range * math.random()
+				local unrounded = min + offset
+			
+				if not precision then
+					return unrounded
+				end
+			
+				local powerOfTen = 10 ^ precision
+				return math.floor(unrounded * powerOfTen + 0.5) / powerOfTen
+			end
+
+			local interval = randomFloat(1,12,1)
+			--interval = math.max(interval, 1)
 			self._minion_damage_explode_t[user_unit:key()] = _t + interval
-			local action_data = {
+			--[[local action_data = {
 				variant = "explosion",
 				damage = 100,
 				attacker_unit = user_unit,
 				--weapon_unit = user_unit:base()._minion_owner:inventory():equipped_unit(),
 				col_ray = col_ray
+			}]]
+			local action_data = {
+				variant = "bullet" or "light",
+				damage = 100,
+				weapon_unit = user_unit:base()._minion_owner:inventory():equipped_unit(),
+				attacker_unit = user_unit,
+				col_ray = col_ray,
+				armor_piercing = false,
+				shield_knock = false,
+				origin = user_unit:position(),
+				knock_down = false,
+				stagger = false
 			}
 			log("Minion Damage Explode"..tostring(user_unit:key()).." = "..self._minion_damage_explode_t[user_unit:key()])
 			for _, hit_unit in ipairs(bodies) do
@@ -114,8 +140,8 @@ function NPCRaycastWeaponBase:_remove_dmg_explode(user_unit)
 	end
 end
 
-function NPCRaycastWeaponBase:_add_dmg_explode(user_unit, owner)
-	if owner == managers.player:player_unit() then
+function NPCRaycastWeaponBase:_add_dmg_explode(user_unit)
+	if user_unit:in_slot(16) and managers.player and managers.player:player_unit() and user_unit:base()._minion_owner and user_unit:base()._minion_owner == managers.player:player_unit() then
 		if self._minion_damage_explode_t and not self._minion_damage_explode_t[user_unit:key()] then
 			self._minion_damage_explode_t[user_unit:key()] = TimerManager:game():time() + 1
 		end

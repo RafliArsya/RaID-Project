@@ -111,7 +111,7 @@ function WeaponTweakData:init(tweak_data)
 	self.model70.AMMO_MAX = self.model70.CLIP_AMMO_MAX * self.model70.NR_CLIPS_MAX
 	self.model70.AMMO_PICKUP =  {0.2, 1.275}
 	self.model70.stats.alert_size = 10
-	self.model70.stats.damage = 83
+	self.model70.stats.damage = 97
 	self.model70.stats_modifiers.damage = 4
 
 	--R93
@@ -120,7 +120,7 @@ function WeaponTweakData:init(tweak_data)
 	self.r93.AMMO_MAX = self.r93.CLIP_AMMO_MAX * self.r93.NR_CLIPS_MAX
 	self.r93.AMMO_PICKUP = { 0.15, 1.25 }
 	self.r93.stats.alert_size = 10
-	self.r93.stats.damage = 86
+	self.r93.stats.damage = 100
 	self.r93.stats_modifiers.damage = 4
 
 	--mosin / Nagant
@@ -129,7 +129,7 @@ function WeaponTweakData:init(tweak_data)
 	self.mosin.AMMO_MAX = self.mosin.CLIP_AMMO_MAX * self.mosin.NR_CLIPS_MAX
 	self.mosin.AMMO_PICKUP = { 0.15, 1.35 }
 	self.mosin.stats.alert_size = 10
-	self.mosin.stats.damage = 84
+	self.mosin.stats.damage = 98
 	self.mosin.stats_modifiers.damage = 4
 
 	--Desertfox
@@ -138,7 +138,7 @@ function WeaponTweakData:init(tweak_data)
 	self.desertfox.AMMO_MAX = self.desertfox.CLIP_AMMO_MAX * self.desertfox.NR_CLIPS_MAX
 	self.desertfox.AMMO_PICKUP = { 0.15, 1.3 }
 	self.desertfox.stats.alert_size = 10
-	self.desertfox.stats.damage = 81
+	self.desertfox.stats.damage = 95
 	self.desertfox.stats_modifiers.damage = 4
 
 	--[[
@@ -156,7 +156,7 @@ function WeaponTweakData:init(tweak_data)
 	self.msr.AMMO_MAX = self.msr.CLIP_AMMO_MAX * self.msr.NR_CLIPS_MAX
 	self.msr.AMMO_PICKUP = { 0.25, 1.4 }
 	self.msr.stats.alert_size = 10
-	self.msr.stats.damage = 145
+	self.msr.stats.damage = 175
 	self.msr.stats_modifiers.damage = 2
 
 	--R700
@@ -165,7 +165,7 @@ function WeaponTweakData:init(tweak_data)
 	self.r700.AMMO_MAX = self.r700.CLIP_AMMO_MAX * self.r700.NR_CLIPS_MAX
 	self.r700.AMMO_PICKUP = {0.25, 1.45}
 	self.r700.stats.alert_size = 10
-	self.r700.stats.damage = 140
+	self.r700.stats.damage = 170
 	self.r700.stats_modifiers.damage = 2
 
 	--SNIPER SEMI AUTO
@@ -175,7 +175,7 @@ function WeaponTweakData:init(tweak_data)
 	self.wa2000.AMMO_MAX = self.wa2000.CLIP_AMMO_MAX * self.wa2000.NR_CLIPS_MAX
 	self.wa2000.AMMO_PICKUP = { 0.25, 2.55 }
 	self.wa2000.stats.alert_size = 10
-	self.wa2000.stats.damage = 110
+	self.wa2000.stats.damage = 150
 	self.wa2000.stats_modifiers.damage = 2
 
 	--tti / Contractor
@@ -184,7 +184,7 @@ function WeaponTweakData:init(tweak_data)
 	self.tti.AMMO_MAX = self.tti.CLIP_AMMO_MAX * self.tti.NR_CLIPS_MAX
 	self.tti.AMMO_PICKUP = { 0.25, 2.65 } 
 	self.tti.stats.alert_size = 10
-	self.tti.stats.damage = 107
+	self.tti.stats.damage = 147
 	self.tti.stats_modifiers.damage = 2
 
 	--siltstone _grv / Grom
@@ -193,7 +193,7 @@ function WeaponTweakData:init(tweak_data)
 	self.siltstone.AMMO_MAX = self.siltstone.CLIP_AMMO_MAX * self.siltstone.NR_CLIPS_MAX
 	self.siltstone.AMMO_PICKUP = { 0.27, 2.6 }
 	self.siltstone.stats.alert_size = 10
-	self.siltstone.stats.damage = 110
+	self.siltstone.stats.damage = 150
 	self.siltstone.stats_modifiers.damage = 2
 
 	--REPEATER
@@ -209,7 +209,7 @@ function WeaponTweakData:init(tweak_data)
 	self.winchester1874.AMMO_MAX = self.winchester1874.CLIP_AMMO_MAX * self.winchester1874.NR_CLIPS_MAX
 	self.winchester1874.AMMO_PICKUP = { 0.25, 3 } --self:_pickup_chance(self.winchester1874.AMMO_MAX, PICKUP.SNIPER_LOW_DAMAGE)
 	self.winchester1874.stats.alert_size = 10
-	self.winchester1874.stats.damage = 130
+	self.winchester1874.stats.damage = 145
 	self.winchester1874.stats_modifiers.damage = 2
 
 	--sbl / Bernetti Rangehitter
@@ -223,7 +223,7 @@ function WeaponTweakData:init(tweak_data)
 	self.sbl.NR_CLIPS_MAX = 5
 	self.sbl.AMMO_MAX = self.sbl.CLIP_AMMO_MAX * self.sbl.NR_CLIPS_MAX
 	self.sbl.AMMO_PICKUP = { 0.25, 3.2 } --self:_pickup_chance(self.sbl.AMMO_MAX, PICKUP.SNIPER_LOW_DAMAGE)
-	self.sbl.stats.damage = 120
+	self.sbl.stats.damage = 135
 	self.sbl.stats.alert_size = 7
 	self.sbl.stats_modifiers.damage = 2
 

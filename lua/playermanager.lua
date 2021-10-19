@@ -68,6 +68,7 @@ Hooks:PreHook(PlayerManager, "init", "RaID_PlayerManager_Init", function(self, .
 		_kill_chance = 0,
 		_kill_chance_cd = nil
 	}
+	self._interact_bypass = false
 end)
 
 function PlayerManager:_ace_add_equipment(params)
@@ -679,7 +680,7 @@ end
 
 function PlayerManager:update_cocaine_hud()
 	if managers.hud then
-		managers.hud:set_absorb_active(HUDManager.PLAYER_PANEL, self:damage_absorption() * (self:local_player():character_damage() and self:local_player():character_damage():_max_health() or 1))
+		managers.hud:set_absorb_active(HUDManager.PLAYER_PANEL, self:damage_absorption() * (type(self:local_player():character_damage():_max_health())=="number" and self:local_player():character_damage():_max_health() or 1))
 	end
 end
 
@@ -690,7 +691,7 @@ end
 
 function PlayerManager:_pause_hostage_time()
 	local now = TimerManager:game():time()
-	self._super_syndrome_time.remaining = self._super_syndrome_time.next_t - t
+	self._super_syndrome_time.remaining = self._super_syndrome_time.next_t - now
 	self._super_syndrome_time.next_t = nil
 end
 
@@ -1708,3 +1709,22 @@ function PlayerManager:_s_kill_restore_chance_is_cd()
 	end
 	return false
 end
+
+function PlayerManager:interact_bp(value)
+	if value and type(value)=="number" then
+		self._interact_bypass = value > 0 and true or false
+	else
+		return self._interact_bypass
+	end
+end
+
+local orig_pm_remove_equipment = PlayerManager.remove_equipment
+
+function PlayerManager:remove_equipment(equipment_id, slot)
+	if self._interact_bypass then
+		return
+	else
+		return orig_pm_remove_equipment(self, equipment_id, slot)
+	end
+end
+

@@ -2,7 +2,12 @@ _init_UpgradesTweakData = UpgradesTweakData.init
 
 function UpgradesTweakData:init(...)
 	_init_UpgradesTweakData(self, ...)
-	
+
+	self.values.grenade_launcher = {}
+	self.values.bow = {}
+	self.values.crossbow = {}
+	self.values.flamethrower = {}
+
 	-- Start up Ammo --
 	self.values.player.extra_ammo_multiplier = {
 		1.25,
@@ -1162,8 +1167,8 @@ function UpgradesTweakData:init(...)
 
 	--Saw Massacre
 	self.values.saw.enemy_slicer = {
-		7,
-		3
+		9,
+		5
 	}
 	self.definitions.saw_enemy_slicer_2 = {
 		name_id = "menu_saw_enemy_slicer",
@@ -2043,18 +2048,6 @@ function UpgradesTweakData:init(...)
 		}
 	}
 	
-	--Allowed damage dampener
-	self.values.player.allowed_dmg_dam = {true}
-	self.definitions.player_allowed_dmg_dam = {
-		category = "feature",
-		name_id = "menu_player_allowed_dmg_dam",
-		upgrade = {
-			value = 1,
-			upgrade = "allowed_dmg_dam",
-			category = "player"
-		}
-	}
-	
 	--Sentry Auto Picked Up
 	self.values.sentry_gun.destroy_auto_pickup = {6}
 	self.values.sentry_gun.destroy_auto_pickup_2 = {4}
@@ -2105,6 +2098,78 @@ function UpgradesTweakData:init(...)
 		upgrade = {
 			value = 2,
 			upgrade = "destroy_explosion",
+			category = "sentry_gun"
+		}
+	}
+
+	--Sentry Damage Multiplier
+	self.values.sentry_gun.damage_explosion = {
+		{
+			radius = 200,
+			interval = 10,
+			min_interval = 0.5,
+			damage = 40,
+			slotmask = "bullet_impact_targets"
+		},
+		{
+			radius = 300,
+			interval = 6,
+			min_interval = 0.5,
+			damage = 80,
+			slotmask = "bullet_impact_targets"
+		}
+	}
+	self.definitions.sentry_gun_damage_explosion_1 = {
+		name_id = "menu_sentry_gun_damage_explosion",
+		category = "feature",
+		upgrade = {
+			value = 1,
+			upgrade = "damage_explosion",
+			category = "sentry_gun"
+		}
+	}
+	self.definitions.sentry_gun_damage_explosion_2 = {
+		name_id = "menu_sentry_gun_damage_explosion",
+		category = "feature",
+		upgrade = {
+			value = 2,
+			upgrade = "damage_explosion",
+			category = "sentry_gun"
+		}
+	}
+	
+	--Tower Explosion
+	self.values.sentry_gun.tower_explosion = {
+		{
+			damage = 30,
+			min_interval = 0.3,
+			interval = 3,
+			radius = 200,
+			slotmask = "bullet_impact_targets"
+		},
+		{
+			damage = 65,
+			min_interval = 0.3,
+			interval = 3,
+			radius = 400,
+			slotmask = "bullet_impact_targets"
+		}
+	}
+	self.definitions.sentry_gun_tower_explosion_1 = {
+		name_id = "menu_sentry_gun_tower_explosion",
+		category = "feature",
+		upgrade = {
+			value = 1,
+			upgrade = "tower_explosion",
+			category = "sentry_gun"
+		}
+	}
+	self.definitions.sentry_gun_tower_explosion_2 = {
+		name_id = "menu_sentry_gun_tower_explosion",
+		category = "feature",
+		upgrade = {
+			value = 2,
+			upgrade = "tower_explosion",
 			category = "sentry_gun"
 		}
 	}
@@ -2173,78 +2238,6 @@ function UpgradesTweakData:init(...)
 		upgrade = {
 			value = 1,
 			upgrade = "ap_buff",
-			category = "sentry_gun"
-		}
-	}
-	
-	--Sentry Damage Multiplier
-	self.values.sentry_gun.damage_explosion = {
-		{
-			radius = 150,
-			interval = 10,
-			min_interval = 0.5,
-			damage = 40,
-			slotmask = "bullet_impact_targets"
-		},
-		{
-			radius = 200,
-			interval = 6,
-			min_interval = 0.5,
-			damage = 80,
-			slotmask = "bullet_impact_targets"
-		}
-	}
-	self.definitions.sentry_gun_damage_explosion_1 = {
-		name_id = "menu_sentry_gun_damage_explosion",
-		category = "feature",
-		upgrade = {
-			value = 1,
-			upgrade = "damage_explosion",
-			category = "sentry_gun"
-		}
-	}
-	self.definitions.sentry_gun_damage_explosion_2 = {
-		name_id = "menu_sentry_gun_damage_explosion",
-		category = "feature",
-		upgrade = {
-			value = 2,
-			upgrade = "damage_explosion",
-			category = "sentry_gun"
-		}
-	}
-	
-	--Tower Explosion
-	self.values.sentry_gun.tower_explosion = {
-		{
-			damage = 25,
-			min_interval = 0.3,
-			interval = 3,
-			radius = 200,
-			slotmask = "bullet_impact_targets"
-		},
-		{
-			damage = 50,
-			min_interval = 0.3,
-			interval = 3,
-			radius = 400,
-			slotmask = "bullet_impact_targets"
-		}
-	}
-	self.definitions.sentry_gun_tower_explosion_1 = {
-		name_id = "menu_sentry_gun_tower_explosion",
-		category = "feature",
-		upgrade = {
-			value = 1,
-			upgrade = "tower_explosion",
-			category = "sentry_gun"
-		}
-	}
-	self.definitions.sentry_gun_tower_explosion_2 = {
-		name_id = "menu_sentry_gun_tower_explosion",
-		category = "feature",
-		upgrade = {
-			value = 2,
-			upgrade = "tower_explosion",
 			category = "sentry_gun"
 		}
 	}
@@ -2745,7 +2738,7 @@ function UpgradesTweakData:init(...)
 		1.2
 	}
 	self.definitions.grenade_launcher_reload_speed_multiplier = {
-		name_id = "menu_saw_reload_speed_multiplier",
+		name_id = "menu_grenade_launcher_reload_speed_multiplier",
 		category = "feature",
 		upgrade = {
 			value = 1,
@@ -2757,7 +2750,7 @@ function UpgradesTweakData:init(...)
 		1.25
 	}
 	self.definitions.minigun_reload_speed_multiplier = {
-		name_id = "menu_saw_reload_speed_multiplier",
+		name_id = "menu_minigun_reload_speed_multiplier",
 		category = "feature",
 		upgrade = {
 			value = 1,
@@ -2769,7 +2762,7 @@ function UpgradesTweakData:init(...)
 		1.25
 	}
 	self.definitions.bow_reload_speed_multiplier = {
-		name_id = "menu_saw_reload_speed_multiplier",
+		name_id = "menu_bow_reload_speed_multiplier",
 		category = "feature",
 		upgrade = {
 			value = 1,
@@ -2802,6 +2795,47 @@ function UpgradesTweakData:init(...)
 		}
 	}
 
+	--non bullet Explosion damage multiplier
+	self.values.player.explosion_dmg_mul = {true}
+	self.definitions.player_explosion_dmg_mul = {
+		category = "feature",
+		name_id = "menu_player_explosion_dmg_mul",
+		upgrade = {
+			value = 1,
+			upgrade = "explosion_dmg_mul",
+			category = "player"
+		}
+	}
+
+	-- Sawing saw fix saw
+	self.values.saw.sawing_saw = {true}
+	self.definitions.saw_saw_saw = {
+		category = "feature",
+		name_id = "menu_player_explosion_dmg_mul",
+		upgrade = {
+			value = 1,
+			upgrade = "sawing_saw",
+			category = "saw"
+		}
+	}
+
+	-- Chill Interaction
+	self.values.player.luck_interact = {
+		{
+			base = 0.2,
+			inc = 0.02,
+			tick = 3
+		}
+	}
+	self.definitions.player_luck_interact_1 = {
+		category = "feature",
+		name_id = "menu_player_luck_interact",
+		upgrade = {
+			value = 1,
+			upgrade = "luck_interact",
+			category = "player"
+		}
+	}
 
 	--[[TEST SKILL START HERE
 	--Close Hostage Increase Confident
@@ -3015,6 +3049,19 @@ function UpgradesTweakData:init(...)
 		}
 	}
 
+	--Allowed damage dampener
+	self.values.player.allowed_dmg_dam = {true}
+	self.definitions.player_allowed_dmg_dam = {
+		category = "feature",
+		name_id = "menu_player_allowed_dmg_dam",
+		upgrade = {
+			value = 1,
+			upgrade = "allowed_dmg_dam",
+			category = "player"
+		}
+	}
+
+	
 	--HOST ONLY SKILL
 	--ECM (HOST ONLY)
 	self.ecm_jammer_base_range = 3000

@@ -65,6 +65,8 @@
 	"menu_jack_of_all_trades_beta_desc" : "BASIC: ##$basic##\nYou deploy and interact with all deployables ##2## times faster.\n\nACE: ##$pro##\nYour can now bring ##full## amount of secondary deployable.",
 	"menu_defense_up_beta_desc" : "BASIC: ##$basic##\nThe cost of deploying a sentry gun is reduced by ##5%##. Sentry guns is now dealing ##more## damage to enemies.\n\nACE: ##$pro##\nYour sentry guns gain a protective shield. Your sentry guns gain ##8## times increased health.",
 	
+	"menu_fire_trap_beta" : "TRAP MASTER",
+
 	"menu_jail_workout_beta_desc" : "BASIC: ##$basic##\nIncrease the time before you start getting detected by ##25%## while in casing mode. You can also ##mark## enemies while in casing mode. You can now ##jump## and ##crouch## while ##mask off##.\n\nACE: ##$pro##\nYou can pick up items while in casing mode. You also gain ##30%## more value to items and cashes that you pick up.",
 	"menu_second_chances_beta_desc" : "BASIC: ##$basic##\nYour ##ECM## can now also be used to ##hack## certain electronic doors. \n\nACE: ##$pro##\nYou lockpick ##2## times faster. You also gain the ability to lockpick ##regular## safes.",
 	"menu_ecm_2x_beta_desc" : "BASIC: ##$basic##\nYou can now place ##2## ECM jammers instead of just one. \n\nACE: ##$pro##\nYour ECM jammer and feedback duration is increased by ##25%##.Pagers are ##delayed## by the ECM jammer.",
