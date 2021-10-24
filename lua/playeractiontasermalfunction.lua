@@ -22,7 +22,7 @@ PlayerAction.TaserMalfunction.Function = function (player_manager, interval, cha
 					local chance_inc = math.random(1, 5) * 0.01
 					player_manager:_taser_mal_incr(chance_inc)
 					player_manager:_taser_mal_incr_cd(Application:time() + math.random(3))
-					log("Malfunction = "..chance_to_incr)
+					--log("Malfunction = "..chance_to_incr)
 				end
 			end
 

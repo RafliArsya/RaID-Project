@@ -97,7 +97,7 @@ function GroupAIStateBase:sync_hostage_headcount(nr_hostages)
 
 	if managers.player:has_team_category_upgrade("damage", "hostage_absorption") then
 		local hostages_c = self:hostage_count() + self:get_amount_enemies_converted_to_criminals() --buff hostage include civ police and joker?
-		log("Hostage = "..tostring(self:hostage_count()).."\nPolice hostage = "..tostring(self:police_hostage_count()).."\nJoker = "..tostring(self:get_amount_enemies_converted_to_criminals()))
+		--log("Hostage = "..tostring(self:hostage_count()).."\nPolice hostage = "..tostring(self:police_hostage_count()).."\nJoker = "..tostring(self:get_amount_enemies_converted_to_criminals()))
 		local hostage_count = math.min(hostages_c, tweak_data.upgrades.values.team.damage.hostage_absorption_limit) --self._hostage_headcount only count civ?
 		local absorption = managers.player:team_upgrade_value("damage", "hostage_absorption", 0) * hostage_count
     	if hostage_count >= 7 then

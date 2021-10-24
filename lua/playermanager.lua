@@ -63,7 +63,6 @@ Hooks:PreHook(PlayerManager, "init", "RaID_PlayerManager_Init", function(self, .
 		cd_time = nil
 	}
 	self._sentry_data = {
-		_repair = 6,
 		_lives = 0,
 		_kill_chance = 0,
 		_kill_chance_cd = nil
@@ -492,10 +491,10 @@ function PlayerManager:check_skills()
 	end
 
 	if self:has_category_upgrade("sentry_gun", "destroy_auto_pickup") then
-		self._sentry_data._lives = self:upgrade_value("sentry", "destroy_auto_pickup", 1)
-		if self:has_category_upgrade("sentry_gun", "destroy_auto_pickup_2") then
+		self._sentry_data._lives = self:upgrade_value("sentry_gun", "destroy_auto_pickup", 1)
+		--[[if self:has_category_upgrade("sentry_gun", "destroy_auto_pickup_2") then
 			self._sentry_data._lives = math.min(self._sentry_data._lives + self:upgrade_value("sentry", "destroy_auto_pickup_2", 1), 12)
-		end
+		end]]
 	end
 end
 
@@ -598,7 +597,7 @@ function PlayerManager:update(t, dt)
 			self:_pocket_ecm_jammer_speed_up_on_stealth()
 		end
 	end
-	if self._crowd_control then
+	--[[if self._crowd_control then
 		if self._crowd_control.active_t then
 			if self._crowd_control.active_t < t then
 				self._crowd_control.trigger = 0
@@ -621,15 +620,21 @@ function PlayerManager:update(t, dt)
 				self._crowd_control.delay_t = nil
 			end
 		end
-	end
+	end]]
 	if self._taser_mk2 then
 		if self._taser_mk2.cd_time then
-			self._taser_mk2.cd_time = self._taser_mk2.cd_time < t and nil or self._taser_mk2.cd_time
+			if self._taser_mk2.cd_time < t then
+				self._taser_mk2.cd_time = nil
+			end
+			--self._taser_mk2.cd_time = self._taser_mk2.cd_time < t and nil or self._taser_mk2.cd_time
 		end
 	end
 	if self._sentry_data then
 		if self._sentry_data._kill_chance_cd then
-			self._sentry_data._kill_chance_cd = self._sentry_data._kill_chance_cd < t and nil or self._sentry_data._kill_chance_cd
+			if self._sentry_data._kill_chance_cd < t then
+				self._sentry_data._kill_chance_cd = nil
+			end
+			--self._sentry_data._kill_chance_cd = self._sentry_data._kill_chance_cd < t and nil or self._sentry_data._kill_chance_cd
 		end
 	end
 	
@@ -675,12 +680,14 @@ end
 function PlayerManager:set_damage_absorption(key, value)
 	self._damage_absorption[key] = value and Application:digest_value(value, true) or nil
 
-	managers.hud:set_absorb_active(HUDManager.PLAYER_PANEL, self:damage_absorption() * (self:local_player():character_damage() and self:local_player():character_damage():_max_health() or 1))
+	managers.hud:set_absorb_active(HUDManager.PLAYER_PANEL, self:damage_absorption() * (type(self:local_player():character_damage():_max_health())=="number" and self:local_player():character_damage():_max_health() or 1))
 end
 
 function PlayerManager:update_cocaine_hud()
 	if managers.hud then
-		managers.hud:set_absorb_active(HUDManager.PLAYER_PANEL, self:damage_absorption() * (type(self:local_player():character_damage():_max_health())=="number" and self:local_player():character_damage():_max_health() or 1))
+		if self:player_unit() and self:player_unit():character_damage() and Utils:IsInGameState() then
+			managers.hud:set_absorb_active(HUDManager.PLAYER_PANEL, self:damage_absorption() * (type(self:player_unit():character_damage():_max_health())=="number" and self:player_unit():character_damage():_max_health() or 1))
+		end
 	end
 end
 
@@ -1653,17 +1660,16 @@ function PlayerManager:_sentry_lives(set)
 	if set and type(set) == "number" then
 		self._sentry_data._lives = set == 0 and set or math.max(self._sentry_data._lives - set, 0)
 	else
+		--log(tostring(self._sentry_data._lives))
 		return self._sentry_data._lives
 	end
 end
 
 function PlayerManager:_has_sentry_lives()
-	local count = self:_sentry_lives()
-	local result = count > 0 and true or false
-	return result
+	return self:_sentry_lives() > 0 and true or false
 end
 
-function PlayerManager:_sentry_repair(set)
+--[[function PlayerManager:_sentry_repair(set)
 	if set and type(set) == "number" then
 		self._sentry_data._repair = set == 0 and set or math.max(self._sentry_data._repair - set, 0)
 	else
@@ -1675,39 +1681,37 @@ function PlayerManager:_has_sentry_lives()
 	local count = self:_sentry_repair()
 	local result = count > 0 and true or false
 	return result
-end
+end]]
 
 function PlayerManager:_s_roll_restore_chance()
-	local data = self._sentry_data
-	local chance = data._kill_chance
+	local chance = self._sentry_data._kill_chance
 	local skill = self:upgrade_value("sentry_gun", "kill_restore_ammo_chance")
 	local base = skill.chance
-	local value = 0
-	value = value + base + chance
-	local random = math.random()
-	if random < value then
-		chance = 0
-		return true
+	local value = base + chance --+ 100
+	local result = false
+	if math.random() < value then
+		self._sentry_data._kill_chance = 0
+		result = true
+	else
+		self._sentry_data._kill_chance = self._sentry_data._kill_chance + (math.random(skill.inc) * 0.01)
 	end
-	chance = chance + (math.random(skill.inc) * 0.01)
-	return false
+	return result
 end
 
 function PlayerManager:_s_kill_restore_chance_cd()
 	local t = TimerManager:game():time()
-	local cd = self._sentry_data._kill_chance_cd
 	local skill = self:upgrade_value("sentry_gun", "kill_restore_ammo_chance")
-	if not cd then
-		cd = t + skill.interval
-	end
+	self._sentry_data._kill_chance_cd = t + skill.interval
 end
 
 function PlayerManager:_s_kill_restore_chance_is_cd()
-	local cd = self._sentry_data._kill_chance_cd
-	if type(cd) == "number" and cd then
-		return true
-	end
-	return false
+	return self._sentry_data._kill_chance_cd 
+end
+
+function PlayerManager:send_log(log)
+	local log = log
+	log = type(log)=="number" and tonumber(log) or tostring(log)
+	log("Log = "..tonumber(log))
 end
 
 function PlayerManager:interact_bp(value)

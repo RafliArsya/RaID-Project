@@ -12,7 +12,6 @@ function PlayerMaskOff:_check_action_duck(t, input, ...)
 	return old__check_action_duck(self, t, input, ...)
 end
 
-
 function PlayerMaskOff:_check_action_jump(t, input, ...)
 	local pass = managers.player:has_category_upgrade("player", "suspicious_movement")
 	if pass then
@@ -78,3 +77,7 @@ function PlayerMaskOff:_update_check_actions(t, dt, ...)
 end
 
 end
+
+Hooks:PostHook(PlayerMaskOff, "enter", "RaID_PlayerMaskOff_enter", function(self, state_data, enter_data)
+	self:_upd_attention()
+end)

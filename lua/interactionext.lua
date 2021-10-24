@@ -95,3 +95,59 @@ function MissionDoorDeviceInteractionExt:result_place_mission_door_device(placed
 		end
 	end
 end
+
+function BaseInteractionExt:selected(player, locator, hand_id)
+	if not self:can_select(player) then
+		return
+	end
+
+	self._hand_id = hand_id
+	self._is_selected = true
+	local string_macros = {}
+
+	self:_add_string_macros(string_macros)
+
+	local text_id = self._tweak_data.text_id or alive(self._unit) and self._unit:base().interaction_text_id and self._unit:base():interaction_text_id()
+	local text = managers.localization:text(text_id, string_macros)
+	local icon = self._tweak_data.icon
+
+	if not text_id then
+		local string_macros = {}
+
+		self:_add_string_macros(string_macros)
+	end
+
+	if self._tweak_data.special_equipment and not managers.player:has_special_equipment(self._tweak_data.special_equipment) then
+		local has_special_equipment = false
+
+		if self._tweak_data.possible_special_equipment then
+			for i, special_equipment in ipairs(self._tweak_data.possible_special_equipment) do
+				if managers.player:has_special_equipment(special_equipment) then
+					has_special_equipment = true
+
+					break
+				end
+			end
+		end
+
+		if not has_special_equipment then
+			text = managers.localization:text(self._tweak_data.equipment_text_id, string_macros)
+			icon = self.no_equipment_icon or self._tweak_data.no_equipment_icon or icon
+		end
+	end
+
+	if self._tweak_data.contour_preset or self._tweak_data.contour_preset_selected then
+		if not self._selected_contour_id and self._tweak_data.contour_preset_selected and self._tweak_data.contour_preset ~= self._tweak_data.contour_preset_selected then
+			self._selected_contour_id = self._unit:contour():add(self._tweak_data.contour_preset_selected)
+		end
+	else
+		self:set_contour("selected_color")
+	end
+
+	managers.hud:show_interact({
+		text = text,
+		icon = icon
+	})
+
+	return true
+end

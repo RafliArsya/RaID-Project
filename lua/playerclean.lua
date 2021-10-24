@@ -43,12 +43,12 @@ function PlayerClean:__check_action_duck(t, input, ...)
 end
 
 function PlayerClean:_update_check_actions(t, dt, ...)
-	self._ext_movement:set_attention_settings({
+	--[[self._ext_movement:set_attention_settings({
 		"pl_mask_off_friend_combatant",
 		"pl_mask_off_friend_non_combatant",
 		"pl_mask_off_foe_combatant",
 		"pl_mask_off_foe_non_combatant"
-	})
+	})]]
 	if not managers.player:has_category_upgrade("player", "suspicious_movement") then
 		old__update_check_actions(self, t, dt)
 	else

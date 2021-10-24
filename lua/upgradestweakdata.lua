@@ -837,14 +837,17 @@ function UpgradesTweakData:init(...)
 		30,
 		25
 	}
-	self.cocaine_stacks_tick_t = 2 --4
-	self.max_cocaine_stacks_per_tick = 250 --240 555
+	self.cocaine_stacks_tick_t = 4 --4
+	self.max_cocaine_stacks_per_tick = 240 --240 555
 	self.max_total_cocaine_stacks = 1500 --600 1500
-	self.cocaine_stacks_decay_t = 8 --8
-	self.cocaine_stacks_decay_amount_per_tick = 70 --80
-	self.cocaine_stacks_decay_percentage_per_tick = 0.6 --0.6
+	self.cocaine_stacks_decay_t = 10 --8
+	self.cocaine_stacks_decay_amount_per_tick = 80 --80
+	self.cocaine_stacks_decay_percentage_per_tick = 0.585 --0.6
 	self.values.player.cocaine_stacks_decay_multiplier = {
 		0.5
+	}
+	self.values.player.cocaine_stack_absorption_multiplier = {
+		2
 	}
 	--Cocaine convert per value
 	self.cocaine_stacks_dmg_absorption_value = 0.01
@@ -853,9 +856,6 @@ function UpgradesTweakData:init(...)
 		true
 	}
 	self.values.player.sync_cocaine_upgrade_level = {
-		2
-	}
-	self.values.player.cocaine_stack_absorption_multiplier = {
 		2
 	}
 	
@@ -924,16 +924,16 @@ function UpgradesTweakData:init(...)
 	
 	--Stoic
 	self.values.player.armor_to_health_conversion = {
-		100
+		105
 	}
 	self.values.player.damage_control_passive = {
 		{
-			77,
-			9
+			80,
+			12
 		}
 	}
 	self.values.player.damage_control_auto_shrug = {
-		3.7
+		3.4
 	}
 	self.values.player.damage_control_cooldown_drain = {
 		{
@@ -941,12 +941,12 @@ function UpgradesTweakData:init(...)
 			1
 		},
 		{
-			40,
+			45,
 			2
 		}
 	}
 	self.values.player.damage_control_healing = {
-		60
+		66.6
 	}
 	
 	--Sicario
@@ -1687,12 +1687,12 @@ function UpgradesTweakData:init(...)
 	--Lockdown Trap
 	self.values.trip_mine.lockdown_trap = {
 		{
-			dmg = 50,
-			range = 1000
+			dmg = 65,
+			range = 2000
 		},
 		{
 			dmg = 100,
-			range = 2000
+			range = 4000
 		}
 	}
 	self.definitions.trip_mine_lockdown_trap_1 = {
@@ -2796,12 +2796,21 @@ function UpgradesTweakData:init(...)
 	}
 
 	--non bullet Explosion damage multiplier
-	self.values.player.explosion_dmg_mul = {true}
-	self.definitions.player_explosion_dmg_mul = {
+	self.values.player.explosion_dmg_mul = {1, 2}
+	self.definitions.player_explosion_dmg_mul_1 = {
 		category = "feature",
 		name_id = "menu_player_explosion_dmg_mul",
 		upgrade = {
 			value = 1,
+			upgrade = "explosion_dmg_mul",
+			category = "player"
+		}
+	}
+	self.definitions.player_explosion_dmg_mul_2 = {
+		category = "feature",
+		name_id = "menu_player_explosion_dmg_mul",
+		upgrade = {
+			value = 2,
 			upgrade = "explosion_dmg_mul",
 			category = "player"
 		}

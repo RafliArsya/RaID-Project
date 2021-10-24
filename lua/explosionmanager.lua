@@ -1,7 +1,3 @@
-if RequiredScript == "lib/managers/explosionmanager" then
-	
-end
-
 Hooks:PostHook(ExplosionManager, "init", "RaID_ExplosionManager_init", function(self)
 	self._door_health_mul_diff = {
 		easy = 1,
@@ -137,33 +133,7 @@ function ExplosionManager:_damage_characters(detect_results, params, variant, da
 	return results
 end
 
---[[
-function ExplosionManager:_damage_bodies2(detect_results, params)
-	local user_unit = params.user
-	local hit_pos = params.hit_pos
-	local damage = params.damage
-	local range = params.range
-	local curve_pow = params.curve_pow
-
-	local fire_dot_data = {
-		dot_damage = 5,
-		dot_trigger_max_distance = 9000,
-		dot_trigger_chance = 100,
-		dot_length = 6.1,
-		dot_tick_period = 0.5
-	}
-	local action_data = {}
-	action_data.variant = "fire" -- fire taser_tased
-	action_data.damage = 1
-	action_data.attacker_unit = nil -- managers.player:player_unit() -- or nil
-	action_data.col_ray = col_ray
-	action_data.fire_dot_data = fire_dot_data
-	--[[for _, bodies in pairs(detect_results.bodies_hit) do
-		bodies:character_damage():damage_fire(action_data)
-	end
-end
-
-Hooks:PostHook(ExplosionManager, "detect_and_give_dmg", "RaID_ExplosionManager_detect_and_give_dmg", function(self, params, detect_results)
+--[[Hooks:PostHook(ExplosionManager, "detect_and_give_dmg", "RaID_ExplosionManager_detect_and_give_dmg", function(self, params, detect_results)
 	log("Executed")
 	local user_unit = params.user
 	local owner = params.owner
@@ -224,7 +194,34 @@ Hooks:PostHook(ExplosionManager, "detect_and_give_dmg", "RaID_ExplosionManager_d
 		}
 	}
 	EnvironmentFire.spawn(position, rotation, params2, math.UP, unit, 0, 1)
-end)
+end)]]
+--[[
+function ExplosionManager:_damage_bodies2(detect_results, params)
+	local user_unit = params.user
+	local hit_pos = params.hit_pos
+	local damage = params.damage
+	local range = params.range
+	local curve_pow = params.curve_pow
+
+	local fire_dot_data = {
+		dot_damage = 5,
+		dot_trigger_max_distance = 9000,
+		dot_trigger_chance = 100,
+		dot_length = 6.1,
+		dot_tick_period = 0.5
+	}
+	local action_data = {}
+	action_data.variant = "fire" -- fire taser_tased
+	action_data.damage = 1
+	action_data.attacker_unit = nil -- managers.player:player_unit() -- or nil
+	action_data.col_ray = col_ray
+	action_data.fire_dot_data = fire_dot_data
+	--[[for _, bodies in pairs(detect_results.bodies_hit) do
+		bodies:character_damage():damage_fire(action_data)
+	end
+end
+
+
 
 Hooks:PostHook(ExplosionManager, "client_damage_and_push", "RaID_ExplosionManager_client_damage_and_push", function(self, position, normal, user_unit, dmg, range, curve_pow)
 	local hit_pos = position or nil

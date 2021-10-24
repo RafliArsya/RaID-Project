@@ -99,11 +99,43 @@ function TripMineBase:_explode(col_ray)
 						variant = "light",
 						damage = trap_data.dmg,
 						attacker_unit = player,
-						col_ray = { body = unit_key:body("body"), position = unit_key:position() + math.UP * 100, ray = unit_key:body("body") and unit_key:center_of_mass() or alive(unit_key) and unit_key:position()},
+						col_ray = { 
+							body = unit_key:body("body"), 
+							position = unit_key:position() + math.UP * 100, 
+							ray = unit_key:body("body") and unit_key:center_of_mass() or alive(unit_key) and unit_key:position()
+						},
+					}
+					local fire_dot_data = {
+						dot_damage = trap_data.dmg * 0.7,
+						dot_trigger_max_distance = 3000,
+						dot_trigger_chance = 100,
+						dot_length = 12,
+						dot_tick_period = 0.5
+					}
+					local mycol_ray = { 
+						body = self._unit:body("body"), 
+						position = self._unit:position() + math.UP * 100, 
+						ray = self._unit:body("body") and self._unit:center_of_mass() or alive(self._unit) and self._unit:position()
+					}
+					local action_data2 = {
+						variant = "fire",
+						damage = trap_data.dmg,
+						attacker_unit = self._unit,
+						weapon_unit = self._unit,
+						ignite_character = true,
+						col_ray = { 
+							body = unit_key:body("body"), 
+							position = unit_key:position() + math.UP * 100, 
+							ray = unit_key:body("body") and unit_key:center_of_mass() or alive(unit_key) and unit_key:position()
+						},
+						is_fire_dot_damage = false,
+						fire_dot_data = fire_dot_data,
+						is_molotov = false
 					}
 					if unit_dmg then
 						unit_dmg:damage_tase(action_data)
-						managers.fire:add_doted_enemy( unit_key , t , self._unit , 6 , 5 , player , true )
+						unit_dmg:damage_fire(action_data2)
+						--managers.fire:add_doted_enemy( unit_key , t , self._unit , 3 , 12 , player , false )
 					end
 				end
 			end

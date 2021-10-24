@@ -523,31 +523,41 @@ function PlayerStandard:_check_action_primary_attack(t, input)
 					local autohit_mul = math.lerp(1, tweak_data.player.suppression.autohit_chance_mul, suppression_ratio)
 					local suppression_mul = managers.blackmarket:threat_multiplier()
 					local dmg_mul = 1
-					dmg_mul = dmg_mul * managers.player:temporary_upgrade_value("temporary", "dmg_multiplier_outnumbered", 1)
 
-					if managers.player:has_category_upgrade("player", "overkill_all_weapons") or weap_base:is_category("shotgun", "saw") then
-						dmg_mul = dmg_mul * managers.player:temporary_upgrade_value("temporary", "overkill_damage_multiplier", 1)
+					local weapon_tweak_data = weap_base:weapon_tweak_data()
+					local primary_category = weapon_tweak_data.categories[1]
+
+					if not weapon_tweak_data.ignore_damage_multipliers then
+						dmg_mul = dmg_mul * managers.player:temporary_upgrade_value("temporary", "dmg_multiplier_outnumbered", 1)
+
+						if managers.player:has_category_upgrade("player", "overkill_all_weapons") or weap_base:is_category("shotgun", "saw") then
+							dmg_mul = dmg_mul * managers.player:temporary_upgrade_value("temporary", "overkill_damage_multiplier", 1)
+						end
+
+						dmg_mul = dmg_mul * managers.player:temporary_upgrade_value("temporary", "damage_boost_revenge", 1)
+						local health_ratio = self._ext_damage:health_ratio()
+
+						local damage_health_ratio = managers.player:get_damage_health_ratio(health_ratio, primary_category)
+
+						if damage_health_ratio > 0 then
+							local upgrade_name = weap_base:is_category("saw") and "melee_damage_health_ratio_multiplier" or "damage_health_ratio_multiplier"
+							local damage_ratio = damage_health_ratio
+							dmg_mul = dmg_mul * (1 + managers.player:upgrade_value("player", upgrade_name, 0) * damage_ratio)
+						end
+
+						dmg_mul = dmg_mul * managers.player:temporary_upgrade_value("temporary", "berserker_damage_multiplier", 1)
+						dmg_mul = dmg_mul * managers.player:get_property("trigger_happy", 1)
+
+						if managers.player:has_category_upgrade("player", "cocaine_stacking") then
+							local cocaine = managers.player:get_best_cocaine_damage_absorption(managers.network:session():local_peer():id())
+							if cocaine > 0 then
+								dmg_mul = dmg_mul * (1 + (cocaine * 10))
+							end
+						end
+
 					end
 
-					if managers.player:has_category_upgrade("temporary", "damage_boost_multiplier") then
-						dmg_mul = dmg_mul * managers.player:temporary_upgrade_value("temporary", "damage_boost_multiplier", 1)
-						log("damage_boost_second_wind activated")
-					end
-
-					dmg_mul = dmg_mul * managers.player:temporary_upgrade_value("temporary", "damage_boost_revenge", 1)
-
-					local health_ratio = self._ext_damage:health_ratio()
-					local primary_category = weap_base:weapon_tweak_data().categories[1]
-					local damage_health_ratio = managers.player:get_damage_health_ratio(health_ratio, primary_category)
-
-					if damage_health_ratio > 0 then
-						local upgrade_name = weap_base:is_category("saw") and "melee_damage_health_ratio_multiplier" or "damage_health_ratio_multiplier"
-						local damage_ratio = damage_health_ratio
-						dmg_mul = dmg_mul * (1 + managers.player:upgrade_value("player", upgrade_name, 0) * damage_ratio)
-					end
-
-					dmg_mul = dmg_mul * managers.player:temporary_upgrade_value("temporary", "berserker_damage_multiplier", 1)
-					dmg_mul = dmg_mul * managers.player:get_property("trigger_happy", 1)
+					dmg_mul = dmg_mul * managers.player:get_temporary_property("birthday_multiplier", 1)
 					local fired = nil
 
 					if fire_mode == "single" then
@@ -796,6 +806,13 @@ function PlayerStandard:_do_melee_damage(t, bayonet_melee, melee_hit_ray, melee_
 				dmg_multiplier = dmg_multiplier * (1 + managers.player:upgrade_value("player", "melee_damage_health_ratio_multiplier", 0) * damage_ratio)
 			end
 
+			if managers.player:has_category_upgrade("player", "cocaine_stacking") then
+				local cocaine = managers.player:get_best_cocaine_damage_absorption(managers.network:session():local_peer():id())
+				if cocaine > 0 then
+					dmg_multiplier = dmg_multiplier * (1 + (cocaine * 20))
+				end
+			end
+			
 			dmg_multiplier = dmg_multiplier * managers.player:temporary_upgrade_value("temporary", "berserker_damage_multiplier", 1)
 			local target_dead = character_unit:character_damage().dead and not character_unit:character_damage():dead()
 			local target_hostile = managers.enemy:is_enemy(character_unit) and not tweak_data.character[character_unit:base()._tweak_table].is_escort and character_unit:brain():is_hostile()

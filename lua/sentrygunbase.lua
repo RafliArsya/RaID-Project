@@ -54,7 +54,8 @@ function SentryGunBase:on_death()
         	local action_data = {
         	    variant = "explosion",
        			damage = data.damage,
-         		attacker_unit = RaID:get_data("toggle_sentry_skill_is_player") and managers.player:player_unit() or self._unit,
+         		--attacker_unit = RaID:get_data("toggle_sentry_skill_is_player") and managers.player:player_unit() or self._unit,
+				attacker_unit = self._unit,
 				weapon_unit = self._unit,
          		col_ray = col_ray
         	}
@@ -71,6 +72,8 @@ function SentryGunBase:on_death()
 			if self._unit:interaction() then
 				self._unit:interaction():interact()
 				managers.player:_sentry_lives(1)
+				local msg = "your sentry lives = "..tostring(managers.player:_sentry_lives())
+				managers.chat:_receive_message(1, "SENTRY", msg, Color.blue)
 			end
         end
     end

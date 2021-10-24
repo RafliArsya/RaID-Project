@@ -123,7 +123,7 @@ function NPCRaycastWeaponBase:_fire_raycast(user_unit, from_pos, direction, dmg_
 				knock_down = false,
 				stagger = false
 			}
-			log("Minion Damage Explode"..tostring(user_unit:key()).." = "..self._minion_damage_explode_t[user_unit:key()])
+			--log("Minion Damage Explode"..tostring(user_unit:key()).." = "..self._minion_damage_explode_t[user_unit:key()])
 			for _, hit_unit in ipairs(bodies) do
 				if hit_unit:character_damage() then
 					hit_unit:character_damage():damage_explosion(action_data)
@@ -149,5 +149,5 @@ function NPCRaycastWeaponBase:_add_dmg_explode(user_unit)
 end
 
 Hooks:PostHook(NPCRaycastWeaponBase, "init", "RaID_NPCRaycastWeaponBase_init", function(self)
-	self._minion_damage_explode_t = {}
+	self._minion_damage_explode_t = self._minion_damage_explode_t or {}
 end)

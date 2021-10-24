@@ -49,6 +49,7 @@ function PlayerDamage:init(unit)
 
 	local player_manager = managers.player
 	self._bleed_out_health = Application:digest_value(tweak_data.player.damage.BLEED_OUT_HEALTH_INIT * player_manager:upgrade_value("player", "bleed_out_health_multiplier", 1), true)
+	Global.god_mode = false
 	self._god_mode = Global.god_mode
 	self._invulnerable = false
 	self._mission_damage_blockers = {}
@@ -233,6 +234,15 @@ function PlayerDamage:init(unit)
 			"on_revive_interaction_success"
 		}, on_revive_interaction_success)
 	end
+
+	self._interact_jammed = {
+		"drill_jammed",
+		"lance_jammed",
+		"gen_int_saw_jammed",
+		"apartment_saw_jammed",
+		"hospital_saw_jammed",
+		"secret_stash_saw_jammed"
+	}
 
 	self._down_restore_inc = 0
 	self._recharge_messiah_inc = 0
@@ -487,7 +497,7 @@ function PlayerDamage:update(unit, t, dt)
 		if self._has_damage_speed_ab_t and (self._has_damage_speed_ab_t < t or self:incapacitated() or self:is_downed() or self:need_revive() or self:dead() or not self._has_damage_speed_ab_act) then
 			managers.player:set_damage_absorption(self._has_damage_speed_ab_key, nil)
 			self._has_damage_speed_ab_t = nil
-			log("Delete Damage Absorp")
+			--log("Delete Damage Absorp")
 		end
 	end
 
@@ -548,8 +558,10 @@ function PlayerDamage:damage_bullet(attack_data)
 	
 	if damage_absorption > 0 then
 		--log("Dmg abs = "..tonumber(damage_absorption))
-		local dmg_absorp_val = damage_absorption
+		local dmg_absorp_val = math.min(damage_absorption, 1.25)
+		--local dmg_absorp_over = damage_absorption > 1 and damage_absorption - 1 or 0
 		local absorp_dmg = self:_max_health() * dmg_absorp_val
+		--local absorp_dmg_a = math.clamp(self:_max_armor() * dmg_absorp_over, 0, 1)
 		--log("atk damage = "..tonumber(attack_data.damage))
 		--log("player max hp = "..tonumber(self:_max_health()))
 		--log("Dmg abs val = "..tonumber(absorp_dmg))
@@ -597,14 +609,14 @@ function PlayerDamage:damage_bullet(attack_data)
 	
 	self._last_received_dmg = attack_data.damage
 	self._next_allowed_dmg_t = Application:digest_value(pm:player_timer():time() + self._dmg_interval, true)
-	local dodge_roll = math.random()
+	--local dodge_roll = math.random()
 	local dodge_value = tweak_data.player.damage.DODGE_INIT or 0
 	local armor_dodge_chance = pm:body_armor_value("dodge")
 	local skill_dodge_chance = pm:skill_dodge_chance(self._unit:movement():running(), self._unit:movement():crouching(), self._unit:movement():zipline_unit())
 	dodge_value = dodge_value + armor_dodge_chance + skill_dodge_chance
 	
 	local dodge_value_orig = 0 + dodge_value
-	local dodge_value_2 = 0
+	--local dodge_value_2 = 0
 
 	local in_smoke = false
 	
@@ -630,15 +642,15 @@ function PlayerDamage:damage_bullet(attack_data)
 	
 	local high_dodge = not in_smoke and dodge_value > 0.55 or dodge_value_orig > 0.55
 
-	if self._data_dodge._dodge_count > 3 and high_dodge then
+	--[[if self._data_dodge._dodge_count > 3 and high_dodge then
 		dodge_value = dodge_value - 0.01
 		self._data_dodge._dodge_count = 0
 	end
-	dodge_value = math.clamp(dodge_value, 0, 1)
+	dodge_value = math.clamp(dodge_value, 0, 1)]]
 	
 	dodge_value = dodge_value + self._data_dodge._dodge_up
 	
-	if dodge_roll <= dodge_value then
+	if math.random() <= dodge_value then
 		if attack_data.damage > 0 then
 			self:_send_damage_drama(attack_data, 0)
 		end
@@ -648,11 +660,11 @@ function PlayerDamage:damage_bullet(attack_data)
 		self:_hit_direction(attack_data.attacker_unit:position())
 		
 		local interval = 0
-		interval = interval + math.random(self._data_dodge._dmg_interval_max)
+		interval = interval + math.floor(math.random()*1000)*0.001
 		
-		if dodge_roll <= self._data_dodge._dodge_up then
+		--[[if dodge_roll <= self._data_dodge._dodge_up then
 			interval = math.min(interval + math.random(self._data_dodge._dmg_interval_max), self._data_dodge._dmg_interval_mul)
-		end
+		end]]
 		
 		interval = interval + self._dmg_interval
 		
@@ -660,16 +672,16 @@ function PlayerDamage:damage_bullet(attack_data)
 		self._last_received_dmg = attack_data.damage
 		
 		self._data_dodge._dodge_up = 0
-		self._data_dodge._dodge_count = self._data_dodge._dodge_count + 1
+		--self._data_dodge._dodge_count = self._data_dodge._dodge_count + 1
 		
 		managers.player:send_message(Message.OnPlayerDodge)
 		return
 	end
 	
-	local dodgeup = dodge_value > 0.6 and 0.01 or (math.random(4) * 0.01)
+	local dodgeup = armor_dodge_chance > 0 and 0.01 or 0
 	
 	self._data_dodge._dodge_up = self._data_dodge._dodge_up + dodgeup
-	self._data_dodge._dodge_count = 0
+	--self._data_dodge._dodge_count = 0
 	
 	if attack_data.attacker_unit:base()._tweak_table == "tank" then
 		managers.achievment:set_script_data("dodge_this_fail", true)
@@ -724,7 +736,7 @@ function PlayerDamage:damage_bullet(attack_data)
 		attack_data.damage = attack_data.damage * armor_reduction_multiplier
 	end
 	
-	local health_dmg_sharing = 0
+	--local health_dmg_sharing = 0
 	local dmg_nil = attack_data.damage <= 0
 	
 	if self:get_real_armor() <= 0 and not self._bleed_out and not dmg_nil then
@@ -767,7 +779,7 @@ function PlayerDamage:_calc_health_damage(attack_data)
 		if managers.player:has_category_upgrade("player", "maniac_ictb") then
 			lives = self:_get_ictb("_maniac")
 			local cocaine = managers.player:_get_local_cocaine_stack()
-			log("cocaine local count ="..cocaine)
+			--log("cocaine local count ="..cocaine)
 			if lives > 0 and cocaine ~= 0 then
 				self:change_health(math.min(cocaine, full_hp))
 				self:activate_revived_skill()
@@ -799,6 +811,47 @@ function PlayerDamage:_calc_health_damage(attack_data)
 	self:_send_set_health()
 	self:_set_health_effect()
 	managers.statistics:health_subtracted(health_subtracted)
+
+	return health_subtracted
+end
+
+function PlayerDamage:_calc_armor_damage(attack_data)
+	local health_subtracted = 0
+
+	local armor_dodge_chance = managers.player:body_armor_value("dodge")
+	if self:get_real_armor() > 0 then
+		health_subtracted = self:get_real_armor()
+
+		attack_data.damage = armor_dodge_chance <= 0 and attack_data.damage * 0.85 or attack_data.damage
+
+		self:change_armor(-attack_data.damage)
+
+		health_subtracted = health_subtracted - self:get_real_armor()
+
+		self:_damage_screen()
+		SoundDevice:set_rtpc("shield_status", self:armor_ratio() * 100)
+		self:_send_set_armor()
+
+		if self:get_real_armor() <= 0 then
+			self._unit:sound():play("player_armor_gone_stinger")
+
+			if attack_data.armor_piercing then
+				self._unit:sound():play("player_sniper_hit_armor_gone")
+			end
+
+			local pm = managers.player
+
+			self:_start_regen_on_the_side(pm:upgrade_value("player", "passive_always_regen_armor", 0))
+
+			if pm:has_inactivate_temporary_upgrade("temporary", "armor_break_invulnerable") then
+				pm:activate_temporary_upgrade("temporary", "armor_break_invulnerable")
+
+				self._can_take_dmg_timer = pm:temporary_upgrade_value("temporary", "armor_break_invulnerable", 0)
+			end
+		end
+	end
+
+	managers.hud:damage_taken()
 
 	return health_subtracted
 end
@@ -901,9 +954,10 @@ function PlayerDamage:damage_fall(data)
 		}
 	}
 
-	if self._god_mode or self._invulnerable or self._mission_damage_blockers.invulnerable then
-		self:_call_listeners(damage_info)
+	local is_free_falling = self._unit:movement():current_state_name() == "jerry1"
 
+	if self._god_mode and not is_free_falling or self._invulnerable or self._mission_damage_blockers.invulnerable then
+		self:_call_listeners(damage_info)
 		return
 	elseif self:incapacitated() then
 		return
@@ -931,7 +985,7 @@ function PlayerDamage:damage_fall(data)
 	managers.environment_controller:hit_feedback_down()
 	managers.hud:on_hit_direction(Vector3(0, 0, 0), die and HUDHitDirection.DAMAGE_TYPES.HEALTH or HUDHitDirection.DAMAGE_TYPES.ARMOUR, 0)
 
-	if self._bleed_out and self._unit:movement():current_state_name() ~= "jerry1" then
+	if self._bleed_out and not is_free_falling then
 		return
 	end
 
@@ -944,7 +998,7 @@ function PlayerDamage:damage_fall(data)
 
 		self:set_health(0)
 
-		if self._unit:movement():current_state_name() == "jerry1" then
+		if is_free_falling then
 			self._revives = Application:digest_value(1, true)
 		end
 	elseif drop_damage then

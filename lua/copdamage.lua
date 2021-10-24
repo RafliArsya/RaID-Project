@@ -1,3 +1,16 @@
+function CopDamage:WriteFile(Contents)
+	local file, err = io.open(RaID._path.."/printcopdamage.txt", "r")
+	if not file then
+		file = io.open(RaID._path.."/printcopdamage.txt", "w")
+		file:close()
+	else
+		file:close()
+		file = io.open(RaID._path.."/printcopdamage.txt", "a")
+		file:write(Contents.."\n")
+		file:close()
+	end
+end
+
 function CopDamage:damage_bullet(attack_data)
 	if self._dead or self._invulnerable then
 		return
@@ -204,8 +217,13 @@ function CopDamage:damage_bullet(attack_data)
 
 			local attacker_state = managers.player:current_state()
 			data.attacker_state = attacker_state
-
-			managers.statistics:killed(data)
+			
+			--data.weapon_unit = data.weapon_unit ~= nil and data.weapon_unit or attacker_unit and attacker_unit:inventory() and attacker_unit:inventory():equipped_unit()
+			if not data.weapon_unit or data.weapon_unit == nil then
+				self:WriteFile("[data weapon_unit][attack weapon_unit][attack attacker_unit] :"..tostring(data.weapon_unit)..", "..tostring(attack_data.weapon_unit)..", "..tostring(attack_data.attacker_unit))
+			else
+				managers.statistics:killed(data)
+			end
 			self:_check_damage_achievements(attack_data, head)
 
 			if not is_civilian and managers.player:has_category_upgrade("temporary", "overkill_damage_multiplier") and not attack_data.weapon_unit:base().thrower_unit and attack_data.weapon_unit:base():is_category("shotgun", "saw") then
@@ -312,7 +330,7 @@ function CopDamage:damage_bullet(attack_data)
 				if unit_dmg then	
 					local damage_class = CoreSerialize.string_to_classtable(action_data.damage_class)
 					action_data.dot_damage = dot_data.custom_data.dot_damage
-					log(tostring(damage_class))
+					--log(tostring(damage_class))
 					damage_class:start_dot_damage({unit = self._unit}, nil, action_data, attack_data.weapon_unit)
 					--unit_dmg:damage_tase(action_data)
 					--managers.fire:add_doted_enemy( self._unit , t , attack_data.weapon_unit , 7 , 5 , player , true )
@@ -373,14 +391,6 @@ function CopDamage:damage_explosion(attack_data)
 			else
 				managers.hud:on_hit_confirmed()
 			end
-		end
-	end
-
-	if attack_data.attacker_unit and attack_data.attacker_unit:base() and attack_data.attacker_unit:base().thrower_unit then
-		if attack_data.owner == managers.player:player_unit() or attack_data.attacker_unit:base():get_owner() == managers.player:player_unit() then
-			log("damage before ="..tonumber(damage))
-			damage = managers.player:has_category_upgrade("player", "explosion_dmg_mul") and damage * 1.5 or damage
-			log("damage after ="..tonumber(damage))
 		end
 	end
 
@@ -495,6 +505,51 @@ function CopDamage:damage_explosion(attack_data)
 		managers.game_play_central:sync_play_impact_flesh(attack_data.pos, attack_data.col_ray.ray)
 	end
 
+	if attacker == managers.player:player_unit() then
+		if result.type ~= "death" and not self._dead and managers.player:has_category_upgrade("player", "explosion_dmg_mul") then
+			if attack_data.variant == "explosion" then
+				if (table.contains({
+					"frag",
+					"dada_com",
+					"frag_com",
+					"dynamite"
+				}, weapon_unit:base():get_name_id()) or weapon_unit:base():is_category("bow", "crossbow", "grenade_launcher", "projectile")) then
+					local action_data = {}
+					local mycol_ray = { 
+						body = self._unit:body("body"), 
+						position = self._unit:position() + math.UP * 100, 
+						ray = self._unit:body("body") and self._unit:center_of_mass() or alive(self._unit) and self._unit:position()
+					}
+					local level = managers.player:upgrade_value_by_level("player", "explosion_dmg_mul", 1)
+					action_data = {
+						variant = "explosion" or "projectile",
+						damage = level > 1 and 900 or 2000,
+						weapon_unit = nil,
+						--weapon_unit = attacker == managers.player:player_unit() and weapon_unit~=nil and weapon_unit or managers.player:player_unit() and managers.player:player_unit():inventory() and managers.player:player_unit():inventory():equipped_unit(),
+						attacker_unit = attacker == managers.player:local_player() and managers.player:local_player() or managers.player:player_unit(),
+						col_ray = mycol_ray,
+						armor_piercing = false,
+						shield_knock = false,
+						origin = attacker:position(),
+						knock_down = false,
+						stagger = false
+					}
+					if attacker == managers.player:local_player() and weapon_unit~=nil and weapon_unit then
+						action_data.weapon_unit = weapon_unit
+						self:WriteFile(tostring(weapon_unit:base():get_name_id()))
+					elseif managers.player:player_unit() and managers.player:player_unit():inventory() and managers.player:player_unit():inventory():equipped_unit() then
+						action_data.weapon_unit = managers.player:player_unit():inventory():equipped_unit()
+						self:WriteFile("WEAPON UNIT NOT FOUND RETURNING PLAYER INVENTORY"..tostring(managers.player:player_unit():inventory():equipped_unit():base():get_name_id()))
+					else
+						self:WriteFile("WEAPON UNIT AND PLAYER INVENTORY NOT FOUND!")
+					end
+
+					self:damage_bullet(action_data)
+				end
+			end
+		end
+	end
+
 	self:_send_explosion_attack_result(attack_data, attacker, damage_percent, self:_get_attack_variant_index(attack_data.result.variant), attack_data.col_ray.ray)
 	self:_on_damage_received(attack_data)
 
@@ -505,13 +560,188 @@ function CopDamage:damage_explosion(attack_data)
 	return result
 end
 
+function CopDamage:sync_damage_explosion(attacker_unit, damage_percent, i_attack_variant, death, direction, weapon_unit)
+	if self._dead then
+		return
+	end
+
+	local variant = CopDamage._ATTACK_VARIANTS[i_attack_variant]
+	local damage = damage_percent * self._HEALTH_INIT_PRECENT
+	local attack_data = {
+		variant = variant,
+		attacker_unit = attacker_unit
+	}
+	local result = nil
+
+	if death then
+		result = {
+			type = "death",
+			variant = variant
+		}
+
+		self:die(attack_data)
+
+		local data = {
+			variant = "explosion",
+			head_shot = false,
+			name = self._unit:base()._tweak_table,
+			stats_name = self._unit:base()._stats_name,
+			weapon_unit = weapon_unit or attacker_unit and attacker_unit:inventory() and attacker_unit:inventory():equipped_unit()
+		}
+
+		managers.statistics:killed_by_anyone(data)
+	else
+		local result_type = variant == "stun" and "hurt_sick" or self:get_damage_type(damage_percent, "explosion")
+		result = {
+			type = result_type,
+			variant = variant
+		}
+
+		self:_apply_damage_to_health(damage)
+	end
+
+	attack_data.result = result
+	attack_data.damage = damage
+	attack_data.is_synced = true
+	local attack_dir = nil
+
+	if direction then
+		attack_dir = direction
+	elseif attacker_unit then
+		attack_dir = self._unit:position() - attacker_unit:position()
+
+		mvector3.normalize(attack_dir)
+	else
+		attack_dir = self._unit:rotation():y()
+	end
+
+	attack_data.attack_dir = attack_dir
+
+	if self._head_body_name then
+		local body = self._unit:body(self._head_body_name)
+
+		self:_spawn_head_gadget({
+			skip_push = true,
+			position = body:position(),
+			rotation = body:rotation(),
+			dir = Vector3()
+		})
+	end
+	
+	if attack_data.attacker_unit and attack_data.attacker_unit == managers.player:player_unit() then
+		managers.hud:on_hit_confirmed()
+		managers.statistics:shot_fired({
+			hit = true,
+			weapon_unit = attacker_unit and attacker_unit:inventory() and attacker_unit:inventory():equipped_unit()
+		})
+	end
+
+	if result.type == "death" then
+		local data = {
+			variant = "explosion",
+			head_shot = false,
+			name = self._unit:base()._tweak_table,
+			stats_name = self._unit:base()._stats_name,
+			weapon_unit = attacker_unit and attacker_unit:inventory() and attacker_unit:inventory():equipped_unit()
+		}
+		local attacker_unit = attack_data.attacker_unit
+
+		if attacker_unit and attacker_unit:base() and attacker_unit:base().thrower_unit then
+			attacker_unit = attacker_unit:base():thrower_unit()
+			data.weapon_unit = attack_data.attacker_unit
+		end
+
+		self:chk_killshot(attacker_unit, "explosion")
+
+		if attacker_unit == managers.player:player_unit() then
+			if alive(attacker_unit) then
+				self:_comment_death(attacker_unit, self._unit)
+			end
+
+			self:_show_death_hint(self._unit:base()._tweak_table)
+			managers.statistics:killed(data)
+
+			if CopDamage.is_civilian(self._unit:base()._tweak_table) then
+				managers.money:civilian_killed()
+			end
+		end
+	end
+
+	if alive(weapon_unit) and weapon_unit:base() and weapon_unit:base().add_damage_result then
+		weapon_unit:base():add_damage_result(self._unit, result.type == "death", damage_percent)
+	end
+
+	if not self._no_blood then
+		local hit_pos = mvector3.copy(self._unit:movement():m_pos())
+
+		mvector3.set_z(hit_pos, hit_pos.z + 100)
+		managers.game_play_central:sync_play_impact_flesh(hit_pos, attack_dir)
+	end
+
+	attack_data.pos = self._unit:position()
+
+	if attack_data.attacker_unit and attack_data.attacker_unit == managers.player:player_unit() then
+		local attacker = attack_data.attacker_unit
+		--log("ATTACKER")
+		if result.type ~= "death" and not self._dead and managers.player:has_category_upgrade("player", "explosion_dmg_mul") then
+			--log("NOT DEAD")
+			if result.variant == "explosion" then
+				--log("VARIANT")
+				if (table.contains({
+					"frag",
+					"dada_com",
+					"frag_com",
+					"dynamite"
+				}, weapon_unit:base():get_name_id()) or weapon_unit:base():is_category("bow", "crossbow", "grenade_launcher", "projectile")) then
+					--log("succeedd")
+					local action_data = {}
+					local mycol_ray = { 
+						body = self._unit:body("body"), 
+						position = self._unit:position() + math.UP * 100, 
+						ray = self._unit:body("body") and self._unit:center_of_mass() or alive(self._unit) and self._unit:position()
+					}
+					local level = managers.player:upgrade_value_by_level("player", "explosion_dmg_mul", 1)
+					action_data = {
+						variant = "explosion" or "projectile",
+						damage = level > 1 and 900 or 2000,
+						weapon_unit = nil,
+						--weapon_unit = attacker == managers.player:player_unit() and weapon_unit~=nil and weapon_unit or managers.player:player_unit() and managers.player:player_unit():inventory() and managers.player:player_unit():inventory():equipped_unit(),
+						attacker_unit = attacker == managers.player:local_player() and managers.player:local_player() or managers.player:player_unit(),
+						col_ray = mycol_ray,
+						armor_piercing = false,
+						shield_knock = false,
+						origin = attacker:position(),
+						knock_down = false,
+						stagger = false
+					}
+					if attacker == managers.player:local_player() and weapon_unit~=nil and weapon_unit then
+						action_data.weapon_unit = weapon_unit
+						self:WriteFile(tostring(weapon_unit:base():get_name_id()))
+					elseif managers.player:player_unit() and managers.player:player_unit():inventory() and managers.player:player_unit():inventory():equipped_unit() then
+						action_data.weapon_unit = managers.player:player_unit():inventory():equipped_unit()
+						self:WriteFile("WEAPON UNIT NOT FOUND RETURNING PLAYER INVENTORY"..tostring(managers.player:player_unit():inventory():equipped_unit():base():get_name_id()))
+					else
+						self:WriteFile("WEAPON UNIT AND PLAYER INVENTORY NOT FOUND!")
+					end
+
+					self:damage_bullet(action_data)
+				end
+			end
+		end
+	end
+
+	mvector3.set_z(attack_data.pos, attack_data.pos.z + math.random() * 180)
+	self:_send_sync_explosion_attack_result(attack_data)
+	self:_on_damage_received(attack_data)
+end
+
 function CopDamage:_on_damage_received(damage_info)
 	self:build_suppression("max", nil)
 	self:_call_listeners(damage_info)
 	CopDamage._notify_listeners("on_damage", damage_info, self._unit)
 	
 	local pm = managers.player
-	local sentry_kill = pm:has_category_upgrade("sentry_gun", "kill_restore_ammo")
+	--local sentry_kill = pm:has_category_upgrade("sentry_gun", "kill_restore_ammo")
 	local sentry_kill_chance = pm:has_category_upgrade("sentry_gun", "kill_restore_ammo_chance")
 	
 	if damage_info.result.type == "death" then
@@ -594,22 +824,27 @@ function CopDamage:_on_damage_received(damage_info)
 			if damage_info.variant == "explosion" then
 				if managers.player:has_category_upgrade("player", "expanded_n_enhanced") and 0.6 >= randomFloat(0,1,2) or 0.15 >= randomFloat(0,1,2) then
 					local fire_dot_data = {
-						dot_damage = 5,
+						dot_damage = 12,
 						dot_trigger_max_distance = 3000,
 						dot_trigger_chance = 100,
-						dot_length = 6,
+						dot_length = 3,
 						dot_tick_period = 0.5
+					}
+					local mycol_ray = { 
+						body = self._unit:body("body"), 
+						position = self._unit:position() + math.UP * 100, 
+						ray = self._unit:body("body") and self._unit:center_of_mass() or alive(self._unit) and self._unit:position()
 					}
 					local action_data = {
 						variant = "fire",
-						damage = 1,
+						damage = damage_info.damage and damage_info.damage > 50 and damage_info.damage or 50,
 						attacker_unit = attacker_unit,
 						weapon_unit = attacker_unit == managers.player:player_unit() and managers.player:player_unit():inventory():equipped_unit() or damage_info.weapon_unit or nil,
 						ignite_character = true,
-						col_ray = damage_info.col_ray,
+						col_ray = damage_info.col_ray and damage_info.col_ray or mycol_ray,
 						is_fire_dot_damage = false,
 						fire_dot_data = fire_dot_data,
-						is_molotov = true
+						is_molotov = false
 					}
 					self:damage_fire(action_data)
 				end
@@ -618,23 +853,114 @@ function CopDamage:_on_damage_received(damage_info)
 	end
 	--endmodd
 
+
+	--modd
+	--[[if attacker_unit == managers.player:player_unit() and damage_info then
+		if damage_info.result.type ~= "death" and not self._dead then
+			if damage_info.variant == "explosion" then
+				log("attacker "..tostring(damage_info.attacker_unit:inventory():equipped_unit():base():get_name_id()))
+				--log("attacker2 "..tostring(attacker_unit:base():thrower_unit()))
+				local weap_check = nil
+				if damage_info.weapon_unit then
+					weap_check = damage_info.weapon_unit
+				else
+					weap_check = damage_info.attacker_unit:equipped_unit()
+				end
+				--(table.contains({
+				--	"frag",
+				--	"dada_com",
+				--	"frag_com",
+				--	"dynamite"
+				--}, weap_check:base():get_name_id()) or weap_check:base():is_category("bow", "crossbow", "grenade_launcher", "projectile")) or
+				if true then
+					
+				local mycol_ray = { 
+					body = self._unit:body("body"), 
+					position = self._unit:position() + math.UP * 100, 
+					ray = self._unit:body("body") and self._unit:center_of_mass() or alive(self._unit) and self._unit:position()
+				}
+				local action_data = {
+					variant = "bullet" or "heavy_hurt",
+					damage = math.ceil(damage_info.damage) + math.ceil(damage_info.damage)*randomFloat(1,6,0),
+					weapon_unit = attacker_unit == managers.player:player_unit() and managers.player:player_unit():inventory():equipped_unit() or damage_info.weapon_unit or nil,
+					attacker_unit = attacker_unit == managers.player:player_unit() and managers.player:player_unit() or damage_info.attacker_unit or nil,
+					col_ray = mycol_ray,
+					armor_piercing = false,
+					shield_knock = false,
+					origin = attacker_unit:position(),
+					knock_down = false,
+					stagger = false
+				}
+				
+				self:damage_bullet(action_data)
+				end
+			end
+		end
+	end]]
+	--endamodd
+
 	if damage_info.variant == "melee" then
 		managers.statistics:register_melee_hit()
 	end
 	--modd
-	local cd = sentry_kill and sentry_kill_chance and pm:_s_kill_restore_chance_is_cd() or true
+	--local cd = sentry_kill and sentry_kill_chance and pm:_s_kill_restore_chance_is_cd() or true
+	--log(tostring(pm:_s_kill_restore_chance_is_cd()))
 
-	if damage_info.result.type == "death" and sentry_kill and sentry_kill_chance and not cd then
+	if damage_info.result.type == "death" and sentry_kill_chance and not pm:_s_kill_restore_chance_is_cd() then
+		--log(tostring(damage_info.attacker_unit))
 		local player = pm:player_unit()
 		local attacker = damage_info and damage_info.attacker_unit
 		local is_sentry = alive(attacker) and attacker:base() and attacker:base().sentry_gun
-		local is_sentry_mine = is_sentry and attacker:base():get_owner() == player or is_sentry and attacker:base():is_owner()
+		local sentry_owner = is_sentry and attacker:base():get_owner() == player
+		if sentry_owner then
+			if pm:_s_roll_restore_chance() then
+				--log("SENTRY KILL RESTORE AMMO!!!")
+				for id, weapon in pairs(player:inventory():available_selections()) do
+					if alive(weapon.unit) then
+						local ammo = weapon.unit:base():get_ammo_max_per_clip()
+						--log(tostring(ammo))
+						local not_full = not weapon.unit:base():ammo_full()
+						local special = weapon.unit:base()._ammo_pickup[2] == 0
+						local saw = table.contains(tweak_data.weapon[weapon.unit:base()._name_id].categories, "saw")
+						if not_full and (not saw or not special) then
+							local add = ammo * randomFloat(0,0.5,2)--((math.random(20)*100)*0.0001)
+							add = add - math.floor(add) >= 0.5 and math.floor(add) > 0 and math.ceil(add) or math.floor(add) > 0 and math.floor(add) or 1
+							weapon.unit:base():add_ammo_to_pool(add, id)
+							--managers.hud:set_ammo_amount(id, weapon.unit:base():ammo_info())
+						end
+					end
+				end
+				pm:_s_kill_restore_chance_cd()
+			end
+		end
+
+		--[[local is_sentry_mine = is_sentry and attacker:base():get_owner() == player or is_sentry and attacker:base():is_owner()
 		local is_player = alive(attacker) and attacker == managers.player:player_unit()
 		local is_player_sentry = is_player and damage_info.weapon_unit
 		local is_player_sentry2 = is_player_sentry and is_player_sentry:base().sentry_gun
 		local has_condition = is_sentry_mine or is_player_sentry2
 		--log("is sentry "..tostring(is_sentry_mine).."\n is player sentry "..tostring(is_player_sentry))
 		if has_condition then
+			if pm:_s_roll_restore_chance() then
+				log("SENTRY KILL RESTORE AMMO!!!")
+				for id, weapon in pairs(player:inventory():available_selections()) do
+					if alive(weapon.unit) then
+						local ammo = weapon.unit:base():get_ammo_max_per_clip()
+						log(tostring(ammo))
+						local not_full = not weapon.unit:base():ammo_full()
+						local special = weapon.unit:base()._ammo_pickup[2] == 0
+						local saw = table.contains(tweak_data.weapon[weapon.unit:base()._name_id].categories, "saw")
+						if not_full and (not saw or not special) then
+							local add = ammo * randomFloat(0,0.5,2)--((math.random(20)*100)*0.0001)
+							add = add - math.floor(add) >= 0.5 and math.floor(add) > 0 and math.ceil(add) or math.floor(add) > 0 and math.floor(add) or 1
+							weapon.unit:base():add_ammo_to_pool(add, id)
+							--managers.hud:set_ammo_amount(id, weapon.unit:base():ammo_info())
+						end
+					end
+				end
+				pm:_s_kill_restore_chance_cd()
+			end
+			
 			local equipped_unit = pm:get_current_state()._equipped_unit:base()
 			local ammo = equipped_unit:get_ammo_max_per_clip()
 			local not_full = equipped_unit and not equipped_unit:ammo_full()
@@ -649,7 +975,7 @@ function CopDamage:_on_damage_received(damage_info)
 					pm:_s_kill_restore_chance_cd()
 				end
 			end
-		end
+		end]]
 	end
 	--endmodd
 	

@@ -35,10 +35,10 @@ function SentryGunWeapon:_fire_raycast(from_pos, direction, shoot_player, target
 			local unit_cbt = unit_mov and not is_sentry and is_human and unit_mov:stance_name() == "cbt"
 			local unit_sentry_enemy = is_sentry and unit_mov and unit_mov:team().foes[tweak_data.levels:get_default_team_ID("player")]
 			local unit_dmg = unit_key:character_damage()
-			if is_civ and (unit_enggage or unit_hostile) then
-				return true, false, false
-			end
-			if is_civ and (unit_enggage or unit_hostile) then
+			local result_civs = is_civ and (unit_enggage or unit_hostile)
+			local result_enemy = not is_civ and not is_converted and is_enggage and unit_enggage and (unit_hostile or unit_cbt)
+			local result_sentry = unit_sentry_enemy and unit_dmg
+			--[[if is_civ and (unit_enggage or unit_hostile) then
 				return true, false, false
 			end
 			if not is_civ and not is_converted and is_enggage and unit_enggage and (unit_hostile or unit_cbt) then
@@ -48,9 +48,9 @@ function SentryGunWeapon:_fire_raycast(from_pos, direction, shoot_player, target
 				if unit_dmg then
 					return false, false, true
 				end
-			end
+			end]]
 		end
-		return false, false, false
+		return result_civs, result_enemy, result_sentry
 	end	
 	
 	local _t = TimerManager:game():time()
@@ -68,21 +68,23 @@ function SentryGunWeapon:_fire_raycast(from_pos, direction, shoot_player, target
 			local interval = data.interval * math.min((math.floor(math.random()*100)/100)+0.1,1)
 			interval = math.clamp(interval, data.min_interval, data.interval)
 			self._damage_explode_t[self._unit:key()] = _t + interval
-			local action_data = {
-				variant = "bullet" or "light",
-				damage = data.damage,
-				weapon_unit = self._unit,
-				attacker_unit = RaID:get_data("toggle_sentry_skill_is_player") and player or self._unit,
-				col_ray = col_ray,
-				armor_piercing = false,
-				shield_knock = false,
-				origin = self._unit:position(),
-				knock_down = false,
-				stagger = false
-			}
-			log("Sentry Gun Damage Explode = "..tonumber(self._damage_explode_t[self._unit:key()]))
+			
+			--log("Sentry Gun Damage Explode = "..tonumber(self._damage_explode_t[self._unit:key()]))
 			for _, hit_unit in pairs(bodies) do
 				local civs, enemies, sentry = unit_stance(hit_unit)
+
+				local action_data = {
+					variant = "bullet" or "light",
+					damage = data.damage,
+					weapon_unit = self._unit,
+					attacker_unit = self._unit, --RaID:get_data("toggle_sentry_skill_is_player") and player or self._unit,
+					col_ray = col_ray,
+					armor_piercing = false,
+					shield_knock = false,
+					origin = self._unit:position(),
+					knock_down = false,
+					stagger = false
+				}
 
 				action_data.col_ray = {
 					body = hit_unit:body("body"),
@@ -129,7 +131,36 @@ Hooks:PostHook(SentryGunWeapon, "update", "RaID_SentryGunWeapon", function(self,
 	end
 end)
 
---[[Hooks:PostHook(SentryGunWeapon, "_fire_raycast", "RaID_fire_raycast", function(self, from_pos, direction, target_unit, ...)
+--[[function SentryGunWeapon:stop_autofire()
+	if self._unit:damage() and self._unit:damage():has_sequence("anim_fire_stop_seq") then
+		self._unit:damage():run_sequence_simple("anim_fire_stop_seq")
+	end
+
+	if not self._shooting then
+		return
+	end
+
+	if self:out_of_ammo() then
+		self:remove_fire_mode_interaction()
+		self:_sound_autofire_end_empty()
+		self._unit:event_listener():call("on_out_of_ammo")
+		if self._unit:base():is_owner() then
+			if managers.player:_has_sentry_lives() then
+				if self._unit:interaction() and self._unit:interaction().tweak_data == "sentry_gun" then
+					self._unit:interaction():interact()
+				end
+			end
+		end
+	elseif self._timer:time() - self._fire_start_t > 3 then
+		self:_sound_autofire_end_cooldown()
+	else
+		self:_sound_autofire_end()
+	end
+
+	self._shooting = nil
+end
+
+Hooks:PostHook(SentryGunWeapon, "_fire_raycast", "RaID_fire_raycast", function(self, from_pos, direction, target_unit, ...)
 	if managers.player:has_category_upgrade("sentry_gun", "tower_explosion") and self._unit:base():is_owner() then
 		local data = managers.player:upgrade_value("sentry_gun", "tower_explosion")
 		local player = managers.player:player_unit()

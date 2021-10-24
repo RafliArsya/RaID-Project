@@ -12,7 +12,6 @@ function PlayerCivilian:_check_action_duck(t, input, ...)
 	return old__check_action_duck(self, t, input, ...)
 end
 
-
 function PlayerCivilian:_check_action_jump(t, input, ...)
 	local pass = managers.player:has_category_upgrade("player", "suspicious_movement")
 	if pass then
@@ -43,9 +42,9 @@ function PlayerCivilian:__check_action_duck(t, input, ...)
 end
 
 function PlayerCivilian:_update_check_actions(t, dt)
-	self._ext_movement:set_attention_settings({
+	--[[self._ext_movement:set_attention_settings({
 		"pl_civilian"
-	})
+	})]]
 	if not managers.player:has_category_upgrade("player", "suspicious_movement") then
 		return old__update_check_actions(self, t, dt)
 	end
@@ -83,5 +82,9 @@ function PlayerCivilian:_update_check_actions(t, dt)
 	self:_check_action_duck(t, input)
 	self:_check_action_run(t, input)
 	self:_check_action_use_item(t, input)
-	end
 end
+end
+
+--[[Hooks:PostHook(PlayerCivilian, "enter", "RaID_PlayerCivilian_enter", function(self, state_data, enter_data)
+	self:_upd_attention()
+end)]]

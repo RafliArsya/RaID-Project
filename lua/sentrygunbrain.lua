@@ -34,10 +34,10 @@ Hooks:PostHook(SentryGunBrain, "_upd_fire", "RaID_SentryGunBrain__upd_fire", fun
 			local unit_cbt = unit_mov and not is_sentry and is_human and unit_mov:stance_name() == "cbt"
 			local unit_sentry_enemy = is_sentry and unit_mov and unit_mov:team().foes[tweak_data.levels:get_default_team_ID("player")]
 			local unit_dmg = unit_key:character_damage()
-			if is_civ and (unit_enggage or unit_hostile) then
-				return true, false, false
-			end
-			if is_civ and (unit_enggage or unit_hostile) then
+			local result_civs = is_civ and (unit_enggage or unit_hostile)
+			local result_enemy = not is_civ and not is_converted and is_enggage and unit_enggage and (unit_hostile or unit_cbt)
+			local result_sentry = unit_sentry_enemy and unit_dmg
+			--[[if is_civ and (unit_enggage or unit_hostile) then
 				return true, false, false
 			end
 			if not is_civ and not is_converted and is_enggage and unit_enggage and (unit_hostile or unit_cbt) then
@@ -47,9 +47,9 @@ Hooks:PostHook(SentryGunBrain, "_upd_fire", "RaID_SentryGunBrain__upd_fire", fun
 				if unit_dmg then
 					return false, false, true
 				end
-			end
+			end]]
 		end
-		return false, false, false
+		return result_civs, result_enemy, result_sentry
 	end	
 	
 	if pm:has_category_upgrade("sentry_gun", "tower_explosion") and self._unit:base():is_owner() then
@@ -68,7 +68,7 @@ Hooks:PostHook(SentryGunBrain, "_upd_fire", "RaID_SentryGunBrain__upd_fire", fun
 				variant = "bullet" or "light",
 				damage = data.damage,
 				weapon_unit = self._unit,
-				attacker_unit = RaID:get_data("toggle_sentry_skill_is_player") and player or self._unit,
+				attacker_unit = self._unit,--RaID:get_data("toggle_sentry_skill_is_player") and player or self._unit,
 				col_ray = col_ray,
 				armor_piercing = false,
 				shield_knock = false,
@@ -84,8 +84,8 @@ Hooks:PostHook(SentryGunBrain, "_upd_fire", "RaID_SentryGunBrain__upd_fire", fun
 					ray = hit_unit:body("body") and hit_unit:center_of_mass() or alive(hit_unit) and hit_unit:position()
 				}
 				if hit_unit:character_damage() and enemies then
-					local attacker = RaID:get_data("toggle_sentry_skill_is_player") and player or self._unit
-					local weapon = RaID:get_data("toggle_sentry_skill_is_player") and player:inventory():equipped_unit() or self._unit
+					--local attacker = RaID:get_data("toggle_sentry_skill_is_player") and player or self._unit
+					--local weapon = RaID:get_data("toggle_sentry_skill_is_player") and player:inventory():equipped_unit() or self._unit
 					hit_unit:character_damage():damage_bullet(action_data)
 					--managers.fire:add_doted_enemy( hit_unit , _t , weapon , math.random(2, 7) , data.damage, attacker, true )
 				end
@@ -93,3 +93,42 @@ Hooks:PostHook(SentryGunBrain, "_upd_fire", "RaID_SentryGunBrain__upd_fire", fun
 		end
 	end
 end)
+
+function SentryGunBrain:switch_off()
+	local is_server = Network:is_server()
+
+	if is_server then
+		self._ext_movement:set_attention()
+	end
+
+	self:set_active(false)
+	self._ext_movement:switch_off()
+	self._unit:set_slot(26)
+
+	if managers.groupai:state():all_criminals()[self._unit:key()] then
+		managers.groupai:state():on_criminal_neutralized(self._unit)
+	end
+
+	if Network:is_server() then
+		PlayerMovement.set_attention_settings(self, nil)
+	end
+
+	if self._unit:base():is_owner() then
+		if managers.player:_has_sentry_lives() then
+			if self._unit:interaction() then
+				self._unit:interaction():interact()
+				managers.player:_sentry_lives(1)
+				local msg = "your sentry lives = "..tostring(managers.player:_sentry_lives())
+				managers.chat:_receive_message(1, "SENTRY", msg, Color.blue)
+				self._unit:set_extension_update_enabled(Idstring("base"), false)
+				--local string_macros = {}
+
+				--BaseInteractionExt:_add_string_macros(string_macros)
+			end
+        end
+	end
+
+	self._unit:base():unregister()
+
+	self._attention_obj = nil
+end

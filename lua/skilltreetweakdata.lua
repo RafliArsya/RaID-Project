@@ -589,7 +589,8 @@ function SkillTreeTweakData:init(...)
 			upgrades = {
 				"deploy_interact_faster_1",
 				--addon
-				"sentry_gun_kill_restore_ammo"
+				"sentry_gun_kill_restore_ammo_chance_1"
+				--"sentry_gun_kill_restore_ammo"
 				--"sentry_gun_kill_restore_ammo_chance_1"
 				--"player_second_deployable_mul_2", canceled moved to aced
 			},
@@ -663,14 +664,15 @@ function SkillTreeTweakData:init(...)
 		{
 			upgrades = {
 				"trip_mine_explosion_size_multiplier_1",
-				"player_trip_mine_deploy_time_multiplier_2" --addon
+				"player_trip_mine_deploy_time_multiplier_2",
+				"player_explosion_dmg_mul_1" --addon
 			},
 			cost = self.costs.hightier
 		},
 		{
 			upgrades = {
 				"trip_mine_damage_multiplier_1",
-				"player_explosion_dmg_mul"
+				"player_explosion_dmg_mul_2"
 				--"player_explosive_breacher_1" --addon
 			},
 			cost = self.costs.hightierpro
