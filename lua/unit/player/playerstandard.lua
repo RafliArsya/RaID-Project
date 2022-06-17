@@ -441,6 +441,11 @@ function PlayerStandard:_check_action_primary_attack(t, input)
 							start = start or fire_on_release and input.btn_primary_attack_release
 
 							if start then
+								if managers.player:get_bulletstorm() or type(managers.player:get_bulletstorm())=="number" and managers.player:get_bulletstorm() > 0 then
+									managers.player:add_to_temporary_property("bullet_storm", managers.player:get_bulletstorm(), 1)
+									managers.player:set_bulletstorm(0)
+								end
+								
 								weap_base:start_shooting()
 								self._camera_unit:base():start_shooting()
 
@@ -631,6 +636,40 @@ function PlayerStandard:_check_action_primary_attack(t, input)
 	end
 
 	return new_action
+end
+
+function PlayerStandard:_start_action_reload_enter(t)
+	local weapon = self._equipped_unit:base()
+
+	if weapon and weapon:can_reload() then
+		if managers.player:get_bulletstorm() or type(managers.player:get_bulletstorm())=="number" and managers.player:get_bulletstorm() > 0 then
+			managers.player:add_to_temporary_property("bullet_storm", managers.player:get_bulletstorm(), 1)
+			managers.player:set_bulletstorm(0)
+		end
+		managers.player:send_message_now(Message.OnPlayerReload, nil, self._equipped_unit)
+		self:_interupt_action_steelsight(t)
+
+		if not self.RUN_AND_RELOAD then
+			self:_interupt_action_running(t)
+		end
+
+		local is_reload_not_empty = weapon:clip_not_empty()
+		local base_reload_enter_expire_t = weapon:reload_enter_expire_t(is_reload_not_empty)
+
+		if base_reload_enter_expire_t and base_reload_enter_expire_t > 0 then
+			local speed_multiplier = weapon:reload_speed_multiplier()
+
+			self._ext_camera:play_redirect(Idstring("reload_enter_" .. weapon.name_id), speed_multiplier)
+
+			self._state_data.reload_enter_expire_t = t + base_reload_enter_expire_t / speed_multiplier
+
+			weapon:tweak_data_anim_play("reload_enter", speed_multiplier)
+
+			return
+		end
+
+		self:_start_action_reload(t)
+	end
 end
 
 --post

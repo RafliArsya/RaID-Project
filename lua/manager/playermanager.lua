@@ -1,3 +1,99 @@
+Hooks:PreHook(PlayerManager, "init", "RaID_PlayerManager_Init", function(self, ...)
+	self._has_bulletstorm = 0
+	self._has_set_active_bs = nil
+end)
+
+Hooks:PreHook(PlayerManager, "_add_equipment", "RaID_PlayerManager__add_equipment", function(self, params)
+	if params and type(params.slot) == "number" and params.slot == 2 then
+		if self:has_category_upgrade("player", "second_deployable_mul") then
+			self:_ace_add_equipment(params)
+		end
+	end
+end)
+
+Hooks:PostHook(PlayerManager, "update", "RaID_PlayerManager_Update", function(self, t, dt)
+
+	if self._unseen_strike and not self._coroutine_mgr:is_running(PlayerAction.UnseenStrike) and managers.platform:presence() == "Playing" then
+		local data = self:upgrade_value("player", "unseen_increased_crit_chance", 0)
+
+		if data ~= 0 then
+			self._coroutine_mgr:add_coroutine(PlayerAction.UnseenStrike, PlayerAction.UnseenStrike, self, data.min_time, data.max_duration, data.crit_chance)
+		end
+	end
+	
+	--[[if self._has_bulletstorm or type(self._has_bulletstorm)=="number" and self._has_bulletstorm > 0 then
+		if not self._has_set_active_bs then
+			self._message_system:register(Message.OnPlayerReload, "bullet_storm", callback(self, self, "_on_reload_trigger_bullet_storm_event"))
+			self._has_set_active_bs = true
+		end
+	else
+		if self._has_set_active_bs then
+			self._has_set_active_bs = nil
+			self._message_system:unregister(Message.OnPlayerReload, "bullet_storm")
+		end
+	end]]
+end)
+
+function PlayerManager:_ace_add_equipment(params)
+	if self:has_equipment(params.equipment) then
+		return
+	end
+
+	local equipment = params.equipment
+	local tweak_data = tweak_data.equipments[equipment]
+	local amount = {}
+	local amount_digest = {}
+	local quantity = tweak_data.quantity
+
+	for i = 1, #quantity, 1 do
+		local equipment_name = equipment
+
+		if tweak_data.upgrade_name then
+			equipment_name = tweak_data.upgrade_name[i]
+		end
+
+		local amt = (quantity[i] or 0) + self:equiptment_upgrade_value(equipment_name, "quantity")
+		amt = math.ceil(amt * self:upgrade_value("player", "second_deployable_mul", 1))
+		
+		amt = managers.modifiers:modify_value("PlayerManager:GetEquipmentMaxAmount", amt, params)
+
+		table.insert(amount, amt)
+		table.insert(amount_digest, Application:digest_value(0, true))
+	end
+
+	local icon = params.icon or tweak_data and tweak_data.icon
+	local use_function_name = params.use_function_name or tweak_data and tweak_data.use_function_name
+	local use_function = use_function_name or nil
+
+	table.insert(self._equipment.selections, {
+		equipment = equipment,
+		amount = amount_digest,
+		use_function = use_function,
+		action_timer = tweak_data.action_timer,
+		icon = icon,
+		unit = tweak_data.unit,
+		on_use_callback = tweak_data.on_use_callback
+	})
+
+	self._equipment.selected_index = self._equipment.selected_index or 1
+
+	if #amount > 1 then
+		managers.hud:add_item_from_string({
+			amount_str = string.format("%01d|%01d", amount[1], amount[2]),
+			amount = amount,
+			icon = icon
+		})
+	else
+		managers.hud:add_item({
+			amount = amount[1],
+			icon = icon
+		})
+	end
+
+	for i = 1, #amount, 1 do
+		self:add_equipment_amount(equipment, amount[i], i)
+	end
+end
 
 function PlayerManager:check_skills()
 	self:send_message_now("check_skills")
@@ -144,6 +240,49 @@ function PlayerManager:check_skills()
 		self:register_message(Message.OnWeaponFired, "graze_damage", callback(SniperGrazeDamage, SniperGrazeDamage, "on_weapon_fired"))
 	else
 		self:unregister_message(Message.OnWeaponFired, "graze_damage")
+	end
+
+	if self:has_category_upgrade("player", "close_hostage_fear") then
+		self._hostage_close_f = false
+
+		local function on_player_damage(attack_data)
+			local close_fear_act = self:close_hostage_fear_val() and self:close_hostage_fear_val() == true
+			if not close_fear_act then
+				return
+			end
+
+			local t = TimerManager:game():time()
+
+			local attacker = attack_data.attacker_unit
+			local is_alive = alive(attacker) and attacker:character_damage() and not attacker:character_damage():dead()
+			local is_sentry = is_alive and attacker:base() and attacker:base().sentry_gun
+
+			if attacker and is_alive and not is_sentry and t > last_dmg_t then
+				last_dmg_t = t + 1
+				local targets = World:find_units_quick( "sphere", attacker:position(), 1000, managers.slot:get_mask( "explosion_targets" ) )
+			
+				self:on_close_hostage_feared(targets)
+			end
+		end
+
+		self:register_message(Message.OnWeaponFired, "close_hostage_fear", callback(self, self, "on_close_hostage_fear_fired"))
+		self:register_message(Message.OnPlayerDamage, "close_hostage_fear_damage", on_player_damage)
+	else
+		self._hostage_close_f = nil
+		self:unregister_message(Message.OnWeaponFired, "close_hostage_fear")
+		self:unregister_message(Message.OnPlayerDamage, "close_hostage_fear_damage", on_player_damage)
+	end
+
+	if self:has_category_upgrade("cooldown", "long_dis_revive") and self:has_category_upgrade("player", "long_dis_reduce") then
+		self._inspire_reduce = {
+			delay_t = 0
+		}
+		self:register_message(Message.OnEnemyKilled, "long_dis_reduce", callback(self, self, "_on_enemy_killed_reduce_long_dis_cd"))
+	else
+		self._inspire_reduce = {
+			delay_t = nil
+		}
+		self:unregister_message(Message.OnEnemyKilled, "long_dis_reduce")
 	end
 end
 
@@ -528,3 +667,77 @@ function PlayerManager:damage_absorption()
 	--log(total)
 	return total
 end
+
+function PlayerManager:close_hostage_fear_val(set)
+	if not set then
+		return self._hostage_close_f
+	end
+	self._hostage_close_f = set
+end
+
+function PlayerManager:on_close_hostage_fear_fired()
+	local close_fear_act = self:close_hostage_fear_val() and self:close_hostage_fear_val() == true
+	if not close_fear_act then
+		return
+	end
+	local targets = World:find_units_quick( "sphere" , self._unit:movement():m_pos() , 1000 , managers.slot:get_mask( "explosion_targets" ) )
+	self:on_close_hostage_feared(targets)
+end
+
+function PlayerManager:on_close_hostage_feared(target)
+	if not target then
+		return
+	end
+	local chance = math.random(5, 10)
+	chance = chance * 0.1
+	for key, unit in pairs(target) do
+		if alive(unit) and unit:character_damage() and not unit:character_damage():dead() then
+			local is_civ = CopDamage.is_civilian(unit:base()._tweak_table)
+			local is_converted = unit:brain() and unit:brain()._logic_data and unit:brain()._logic_data.is_converted
+			local is_enggage = unit:brain() and unit:brain():is_hostile() 
+			local is_sentry = unit:base() and unit:base().sentry_gun
+			local unit_mov = unit:movement()
+			local unit_enggage = unit_mov and not unit_mov:cool()
+			local unit_hostile = unit_mov and unit_mov:stance_name() == "hos"
+			local unit_cbt = unit_mov and unit_mov:stance_name() == "cbt"
+			if not is_civ and not is_sentry and not is_converted and is_enggage and unit_enggage and (unit_hostile or unit_cbt) then
+				unit:character_damage():build_suppression(200, chance)
+			end
+		end
+	end
+end
+
+function PlayerManager:set_bulletstorm(val)
+	self._has_bulletstorm = val > 0 and val or nil
+end
+
+function PlayerManager:get_bulletstorm()
+	return self._has_bulletstorm
+end
+
+function PlayerManager:_on_enemy_killed_reduce_long_dis_cd()
+	local player = self:local_player()
+	if not alive(player) then
+		return
+	end
+	local cd = managers.player:has_disabled_cooldown_upgrade("cooldown", "long_dis_revive")
+	if not cd then
+		return
+	end
+	local data = self._inspire_reduce
+	local can_reduce = false
+	local t = TimerManager:game():time()
+	if data.delay_t then
+		can_reduce = math.max(0, data.delay_t - t) <= 0 and true or false
+	end
+	if not can_reduce then
+		return
+	end
+	self:enable_cooldown_upgrade_time("cooldown", "long_dis_revive", 1)
+	self._inspire_reduce.delay_t = self._inspire_reduce.delay_t + 1
+end
+
+--[[function PlayerManager:_on_reload_trigger_bullet_storm_event()
+	self:add_to_temporary_property("bullet_storm", self._has_bulletstorm, 1)
+	self:set_bulletstorm(0)
+end]]

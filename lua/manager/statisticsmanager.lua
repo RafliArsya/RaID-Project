@@ -54,6 +54,8 @@ function StatisticsManager:killed(data)
 		end
 	elseif by_melee then
 		local name_id = data.name or data.name_id
+
+		log("killed by_melee(data): name_id = "..tostring(name_id))
 		self._global.session.killed_by_melee[name_id] = (self._global.session.killed_by_melee[name_id] or 0) + 1
 		self._global.killed_by_melee[name_id] = (self._global.killed_by_melee[name_id] or 0) + 1
 	elseif by_explosion then
@@ -70,7 +72,7 @@ function StatisticsManager:killed(data)
 	elseif by_other_variant then
 		local name_id, throwable_id = self:_get_name_id_and_throwable_id(data.weapon_unit)
 
-		log("killed(data): name, throw = "..tostring(name_id)..", "..tostring(throwable_id))
+		log("killed by_other(data): name, throw = "..tostring(name_id)..", "..tostring(throwable_id))
 
 		if throwable_id then
 			self._global.session.killed_by_grenade[throwable_id] = (self._global.session.killed_by_grenade[throwable_id] or 0) + 1
@@ -83,6 +85,7 @@ end
 
 function StatisticsManager:killed_by_anyone(data)
 	local name_id = alive(data.weapon_unit) and data.weapon_unit:base():get_name_id()
+	log("killed_by_anyone(data): name_id = "..tostring(name_id))
 
 	managers.achievment:set_script_data("pacifist_fail", true)
 
@@ -103,7 +106,7 @@ function StatisticsManager:killed_by_anyone(data)
 
 	if not by_melee then
 		local name_id1, throwable_id1 = self:_get_name_id_and_throwable_id(data.weapon_unit)
-		log("killed_by_anyone(data) not melee: name, throw = "..tostring(name_id1)..", "..tostring(throwable_id1))
+		log("killed_by_anyone not by_melee(data) not melee: name, throw = "..tostring(name_id1)..", "..tostring(throwable_id1))
 	end
 	
 	if by_bullet then
@@ -116,6 +119,8 @@ function StatisticsManager:killed_by_anyone(data)
 		end
 	elseif by_melee then
 		local name_id = data.name_id or data.name or "unknown"
+
+		log("killed_by_anyone by_melee(data): name_id = "..tostring(name_id))
 
 		if name_id then
 			kills_table.killed_by_melee[name_id] = (kills_table.killed_by_melee[name_id] or 0) + 1
@@ -132,7 +137,7 @@ function StatisticsManager:killed_by_anyone(data)
 		end
 	elseif by_other_variant then
 		local name_id, throwable_id = self:_get_name_id_and_throwable_id(data.weapon_unit)
-		log("killed_by_anyone(data): name, throw = "..tostring(name_id)..", "..tostring(throwable_id))
+		log("killed_by_anyone by_other(data): name, throw = "..tostring(name_id)..", "..tostring(throwable_id))
 
 		if throwable_id then
 			kills_table.killed_by_grenade[throwable_id] = (kills_table.killed_by_grenade[throwable_id] or 0) + 1

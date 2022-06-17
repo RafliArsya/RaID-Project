@@ -38,7 +38,7 @@ function SkillTreeTweakData:init(...)
 		{
 			upgrades = {
 				"first_aid_kit_damage_reduction_upgrade",
-				--down to quick fix (from uppers)
+				--moved from tea_cookies (uppers)
 				"first_aid_kit_auto_recovery_1"
 			},
 			cost = self.costs.pro
@@ -133,7 +133,7 @@ function SkillTreeTweakData:init(...)
 			upgrades = {
                 --"player_revive_interaction_speed_multiplier",
                 "player_morale_boost",
-                --down to basic
+                --moved from aced
                 "cooldown_long_dis_revive"
 			},
 			cost = self.costs.hightier
@@ -154,7 +154,7 @@ function SkillTreeTweakData:init(...)
 		}
 	}
 
-	--confident --not implemented?
+	--confident
 	self.skills.cable_guy = {
 		{
 			upgrades = {
@@ -210,7 +210,7 @@ function SkillTreeTweakData:init(...)
 		{
 			upgrades = {
 				"player_civ_calming_alerts",
-				--down to basic (from aced)
+				--moved from aced
 				"player_super_syndrome_1"
 			},
 			cost = self.costs.hightier
@@ -262,7 +262,8 @@ function SkillTreeTweakData:init(...)
     self.skills.scavenging = {
 		{
 			upgrades = {
-                --down to scavenger (from bandoliers)
+                --moved from bandoliers (fully loaded)
+				"player_pick_up_ammo_multiplier",
                 "player_regain_throwable_from_ammo_1"
 			},
 			cost = self.costs.hightier
@@ -293,7 +294,6 @@ function SkillTreeTweakData:init(...)
 		},
 		{
 			upgrades = {
-				"player_pick_up_ammo_multiplier",
 				"player_pick_up_ammo_multiplier_2",
                 --add
 				"player_regain_throwable_from_ammo_2"
@@ -305,6 +305,78 @@ function SkillTreeTweakData:init(...)
 		icon_xy = {
 			3,
 			0
+		}
+	}
+
+	--jack of all trades
+	self.skills.jack_of_all_trades = {
+		{
+			upgrades = {
+				"deploy_interact_faster_1"
+			},
+			cost = self.costs.hightier
+		},
+		{
+			upgrades = {
+				"player_second_deployable_mul_2"
+			},
+			cost = self.costs.hightierpro
+		},
+		name_id = "menu_jack_of_all_trades_beta",
+		desc_id = "menu_jack_of_all_trades_beta_desc",
+		icon_xy = {
+			9,
+			4
+		}
+	}
+
+	--more fire power
+	self.skills.more_fire_power = {
+		{
+			upgrades = {
+				"shape_charge_quantity_increase_1",
+				"trip_mine_quantity_increase_1",
+				--moved from fire_trap (fire trap)
+				"trip_mine_fire_trap_1"
+			},
+			cost = self.costs.hightier
+		},
+		{
+			upgrades = {
+				"shape_charge_quantity_increase_2",
+				"trip_mine_quantity_increase_2",
+				--moved from fire_trap (fire trap)
+				"trip_mine_fire_trap_2"
+			},
+			cost = self.costs.hightierpro
+		},
+		name_id = "menu_more_fire_power",
+		desc_id = "menu_more_fire_power_desc",
+		icon_xy = {
+			9,
+			7
+		}
+	}
+
+	--fire trap
+	self.skills.fire_trap = {
+		{
+			upgrades = {
+				"player_demo_expert_1"
+			},
+			cost = self.costs.hightier
+		},
+		{
+			upgrades = {
+				"player_demo_expert_2"
+			},
+			cost = self.costs.hightierpro
+		},
+		name_id = "menu_fire_trap_beta",
+		desc_id = "menu_fire_trap_beta_desc",
+		icon_xy = {
+			4, --9
+			11 --9
 		}
 	}
 
@@ -356,7 +428,7 @@ function SkillTreeTweakData:init(...)
 		}
 	}
 
-    --heavy impact
+    --heavy impact (modded)
     self.skills.heavy_impact = {
 		{
 			upgrades = {
@@ -390,7 +462,7 @@ function SkillTreeTweakData:init(...)
 		{
 			upgrades = {
 				"player_team_damage_speed_multiplier_send",
-				--add
+				--moved from dire_need (dire need)
 				"player_armor_depleted_stagger_shot_1"
 			},
 			cost = self.costs.pro
@@ -408,7 +480,7 @@ function SkillTreeTweakData:init(...)
 		{
 			upgrades = {
 				"player_detection_risk_add_crit_chance_1",
-                --add
+                --moved from optic_illusions (optic illusions)
                 "player_camouflage_bonus_1",
 				"player_camouflage_bonus_2"
 			},
@@ -597,6 +669,8 @@ function SkillTreeTweakData:init(...)
 		"x_m45",
 		"x_mp7",
 		"x_ppk",
+		--moved from jack_of_all_trades (jack of all trades)
+		"second_deployable_1",
 		--moved from heavy_impact (heavy impact)
 		"weapon_knock_down_1"
 	}

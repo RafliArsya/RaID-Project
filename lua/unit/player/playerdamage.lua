@@ -497,7 +497,7 @@ function PlayerDamage:_upd_health_regen(t, dt)
 
 				local is_low = self:get_real_health() <= self:_max_health() * 0.35
 
-				self:restore_health(is_low and regen_rate * 0.25 or regen_rate, not is_low)
+				self:restore_health(is_low and regen_rate * 0.125 or regen_rate, not is_low)
 
 				next_doh.ticks_left = next_doh.ticks_left - 1
 

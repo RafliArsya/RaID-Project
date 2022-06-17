@@ -464,15 +464,15 @@ function UpgradesTweakData:init(...)
         1.5
 	}
 
-    --Fully Loaded + Buff + Fixes
+    --fully Loaded + Buff + Fixes
 	self.values.player.regain_throwable_from_ammo = {
 		{
-			chance = 0.1,
-			chance_inc = 0.02
+			chance = 0.05,
+			chance_inc = 0.0125
 		},
 		{
-			chance = 0.16,
-			chance_inc = 0.04
+			chance = 0.1,
+			chance_inc = 0.025
 		}
 	}
 	self.definitions.player_regain_throwable_from_ammo_1 = {
@@ -490,6 +490,30 @@ function UpgradesTweakData:init(...)
 		upgrade = {
 			value = 2,
 			upgrade = "regain_throwable_from_ammo",
+			category = "player"
+		}
+	}
+
+	--jack of all trades
+	self.values.player.second_deployable_mul = {
+		0.5,
+		1
+	}
+	self.definitions.player_second_deployable_mul_1 = {
+		name_id = "menu_player_second_deployable_mul",
+		category = "feature",
+		upgrade = {
+			value = 1,
+			upgrade = "second_deployable_mul",
+			category = "player"
+		}
+	}
+	self.definitions.player_second_deployable_mul_2 = {
+		name_id = "menu_player_second_deployable_mul",
+		category = "feature",
+		upgrade = {
+			value = 2,
+			upgrade = "second_deployable_mul",
 			category = "player"
 		}
 	}
@@ -711,6 +735,78 @@ function UpgradesTweakData:init(...)
 			category = "player",
 			upgrade = "reviving_relief",
 			value = 1
+		}
+	}
+
+	--igniter
+	self.values.player.igniter = {
+		0.35,
+		0.7
+	}
+	self.definitions.player_igniter_1 = {
+		category = "feature",
+		name_id = "menu_player_igniter",
+		upgrade = {
+			category = "player",
+			upgrade = "igniter",
+			value = 1
+		}
+	}
+	self.definitions.player_igniter_2 = {
+		category = "feature",
+		name_id = "menu_player_igniter",
+		upgrade = {
+			category = "player",
+			upgrade = "igniter",
+			value = 2
+		}
+	}
+
+	--ring of fire
+	self.values.player.ring_of_fire = {
+		0.3,
+		0.7
+	}
+	self.definitions.player_ring_of_fire_1 = {
+		category = "feature",
+		name_id = "menu_player_ring_of_fire",
+		upgrade = {
+			category = "player",
+			upgrade = "ring_of_fire",
+			value = 1
+		}
+	}
+	self.definitions.player_ring_of_fire_2 = {
+		category = "feature",
+		name_id = "menu_player_ring_of_fire",
+		upgrade = {
+			category = "player",
+			upgrade = "ring_of_fire",
+			value = 2
+		}
+	}
+
+	--demo_expert
+	self.values.player.demo_expert = {
+		2,
+		5
+	}
+	self.definitions.player_demo_expert_1 = {
+		category = "feature",
+		name_id = "menu_player_demo_expert",
+		upgrade = {
+			category = "player",
+			upgrade = "demo_expert",
+			value = 1
+		}
+	}
+	self.definitions.player_demo_expert_2 = {
+		category = "feature",
+		name_id = "menu_player_demo_expert",
+		upgrade = {
+			category = "player",
+			upgrade = "demo_expert",
+			value = 2
 		}
 	}
 end

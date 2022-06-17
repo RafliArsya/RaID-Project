@@ -1,4 +1,6 @@
-local orig_npcrwb__fire_ray = NPCRaycastWeaponBase._fire_raycast
+local mvec_to = Vector3()
+local mvec_spread = Vector3()
+
 Hooks:PostHook(NPCRaycastWeaponBase, "init", "RaID_NPCRaycastWeaponBase_init", function(self)
 	self._minion_damage_explode_t = self._minion_damage_explode_t or {}
 end)
@@ -58,7 +60,7 @@ function NPCRaycastWeaponBase:_fire_raycast(user_unit, from_pos, direction, dmg_
 	if not col_ray or col_ray.distance > 600 or result.guaranteed_miss then
 		local num_rays = (tweak_data.weapon[self._name_id] or {}).rays or 1
 
-		for i = 1, math.min(num_rays, 4) do
+		for i = 1, math.min(num_rays, 3) do
 			mvector3.set(mvec_spread, direction)
 
 			if i > 1 then
@@ -82,6 +84,8 @@ function NPCRaycastWeaponBase:_fire_raycast(user_unit, from_pos, direction, dmg_
 	return result
 end
 
+local orig_npcrwb__fire_ray = NPCRaycastWeaponBase._fire_raycast
+
 function NPCRaycastWeaponBase:_fire_raycast(user_unit, from_pos, direction, dmg_mul, shoot_player, spread_mul, autohit_mul, suppr_mul, target_unit)
 	if user_unit:in_slot(16) and managers.player and managers.player:player_unit() and target_unit and user_unit:base()._minion_owner and user_unit:base()._minion_owner == managers.player:player_unit() then
 		local player = managers.player:player_unit() or managers.player:local_player()
@@ -95,14 +99,14 @@ function NPCRaycastWeaponBase:_fire_raycast(user_unit, from_pos, direction, dmg_
 		if self._minion_damage_explode_t[user_unit:key()] and _t >= self._minion_damage_explode_t[user_unit:key()] then
 			local e_pos = target_unit:position()
 			local bodies = World:find_units_quick("sphere", e_pos, 300, managers.slot:get_mask("enemies"))
+			
 			local col_ray = { }
 			col_ray.ray = Vector3(1, 0, 0)
 			col_ray.position = e_pos
 
 			local interval = math.randomFloat(1,12,1)
-
 			self._minion_damage_explode_t[user_unit:key()] = _t + interval
-
+			
 			local action_data = {
 				variant = "bullet" or "light",
 				damage = 100,
@@ -115,7 +119,20 @@ function NPCRaycastWeaponBase:_fire_raycast(user_unit, from_pos, direction, dmg_
 				knock_down = false,
 				stagger = false
 			}
+			log("Minion Damage Explode"..tostring(user_unit:key()).." = "..self._minion_damage_explode_t[user_unit:key()])
 			for _, hit_unit in ipairs(bodies) do
+
+				--[[local action_data = {
+					variant = "counter_spooc",
+					damage = hit_unit:character_damage()._health - 1,
+					damage_effect = 1,
+					attacker_unit = user_unit,
+					col_ray = { body = hit_unit:body( "body" ), position = hit_unit:position() + math.UP * 100 },
+					attack_dir 	= user_unit:movement():m_head_rot():y()
+				}
+				hit_unit:character_damage():damage_melee( action_data )
+				--crash for other]]
+
 				if hit_unit:character_damage() then
 					hit_unit:character_damage():damage_explosion(action_data)
 				end
