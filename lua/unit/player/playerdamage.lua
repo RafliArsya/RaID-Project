@@ -43,6 +43,8 @@ function PlayerDamage:init(unit)
 	self._pain_killer_ab_key = {}
 	self._pain_killer_ab_t = nil
 
+	self._dodge_inc = 0
+
 	self._doh_data = tweak_data.upgrades.damage_to_hot_data or {}
 	self._damage_to_hot_stack = {}
 	self._armor_stored_health = 0
@@ -606,8 +608,8 @@ function PlayerDamage:damage_bullet(attack_data)
 
 	if damage_absorption > 0 then
 		local hp = self:_max_health() * self._max_health_reduction
-		local ap = self:_max_armor() * 0.5
-		local absorp_dmg = (hp + ap) * damage_absorption
+		local ap = self:_max_armor() 
+		local absorp_dmg = math.truncate(((hp + ap) * 0.5) * damage_absorption, 3)
 		attack_data.damage = math.max(0, attack_data.damage - absorp_dmg)
 	end
 
@@ -643,7 +645,7 @@ function PlayerDamage:damage_bullet(attack_data)
 	self._next_allowed_dmg_t = Application:digest_value(pm:player_timer():time() + self._dmg_interval, true)
 	local dodge_roll = math.random()
 	local dodge_value = tweak_data.player.damage.DODGE_INIT or 0
-	local armor_dodge_chance = pm:body_armor_value("dodge")
+	local armor_dodge_chance = math.max(pm:body_armor_value("dodge"), 0)
 	local skill_dodge_chance = pm:skill_dodge_chance(self._unit:movement():running(), self._unit:movement():crouching(), self._unit:movement():zipline_unit())
 	dodge_value = dodge_value + armor_dodge_chance + skill_dodge_chance
 
@@ -662,8 +664,11 @@ function PlayerDamage:damage_bullet(attack_data)
 	end
 
 	dodge_value = 1 - (1 - dodge_value) * (1 - smoke_dodge)
+	
+	dodge_value = math.truncate(dodge_value, 2)
+	dodge_roll = math.truncate(dodge_roll, 2)
 
-	if dodge_roll < dodge_value then
+	if dodge_roll <= dodge_value + self._dodge_inc then
 		if attack_data.damage > 0 then
 			self:_send_damage_drama(attack_data, 0)
 		end
@@ -672,13 +677,19 @@ function PlayerDamage:damage_bullet(attack_data)
 		self:play_whizby(attack_data.col_ray.position)
 		self:_hit_direction(attack_data.attacker_unit:position())
 
-		self._next_allowed_dmg_t = Application:digest_value(pm:player_timer():time() + self._dmg_interval, true)
+		self._next_allowed_dmg_t = Application:digest_value(pm:player_timer():time() + 1, true)
 		self._last_received_dmg = attack_data.damage
+
+		self._dodge_inc = 0
 
 		managers.player:send_message(Message.OnPlayerDodge)
 
 		return
 	end
+
+	local increase = dodge_value >= 0.6 and 0.02 or 10
+	local add_inc = increase > 1 and math.random(10) * 0.01 or increase
+	self._dodge_inc = self._dodge_inc + add_inc
 
 	if attack_data.attacker_unit:base()._tweak_table == "tank" then
 		managers.achievment:set_script_data("dodge_this_fail", true)
@@ -809,6 +820,48 @@ function PlayerDamage:damage_fire_hit(attack_data)
 	self._last_received_dmg = attack_data.damage
 	self._next_allowed_dmg_t = Application:digest_value(pm:player_timer():time() + self._dmg_interval, true)
 
+	local dodge_roll = math.random()
+	local dodge_value = tweak_data.player.damage.DODGE_INIT or 0
+	local armor_dodge_chance = math.max(pm:body_armor_value("dodge"), 0)
+	local skill_dodge_chance = pm:skill_dodge_chance(self._unit:movement():running(), self._unit:movement():crouching(), self._unit:movement():zipline_unit())
+	dodge_value = dodge_value + armor_dodge_chance + skill_dodge_chance
+
+	if self._temporary_dodge_t and TimerManager:game():time() < self._temporary_dodge_t then
+		dodge_value = dodge_value + self._temporary_dodge
+	end
+
+	local smoke_dodge = 0
+
+	for _, smoke_screen in ipairs(managers.player._smoke_screen_effects or {}) do
+		if smoke_screen:is_in_smoke(self._unit) then
+			smoke_dodge = tweak_data.projectiles.smoke_screen_grenade.dodge_chance
+
+			break
+		end
+	end
+
+	dodge_value = 1 - (1 - dodge_value) * (1 - smoke_dodge)
+	
+	dodge_value = math.truncate(dodge_value, 2)
+	dodge_roll = math.truncate(dodge_roll, 2)
+
+	if dodge_roll <= dodge_value then
+		if attack_data.damage > 0 then
+			self:_send_damage_drama(attack_data, 0)
+		end
+
+		self:_call_listeners(damage_info)
+		self:play_whizby(attack_data.col_ray.position)
+		self:_hit_direction(attack_data.attacker_unit:position())
+
+		self._next_allowed_dmg_t = Application:digest_value(pm:player_timer():time() + 1, true)
+		self._last_received_dmg = attack_data.damage
+
+		managers.player:send_message(Message.OnPlayerDodge)
+
+		return
+	end
+
 	if self:get_real_armor() > 0 then
 		self._unit:sound():play("player_hit")
 	else
@@ -852,6 +905,170 @@ function PlayerDamage:damage_fire_hit(attack_data)
 
 	pm:send_message(Message.OnPlayerDamage, nil, attack_data)
 	self:_call_listeners(damage_info)
+end
+
+function PlayerDamage:_calc_armor_damage(attack_data)
+	local health_subtracted = 0
+
+	if self:get_real_armor() > 0 then
+		health_subtracted = self:get_real_armor()
+
+		local mul = 1
+		mul = mul * 0.84
+		mul = mul * managers.player:upgrade_value("player", "armor_damage_taken", 1)
+
+		local damage = attack_data.damage
+		damage = damage * mul
+
+		attack_data.damage = attack_data.damage * mul
+
+		self:change_armor(-damage)
+
+		health_subtracted = health_subtracted - self:get_real_armor()
+
+		self:_damage_screen()
+		SoundDevice:set_rtpc("shield_status", self:armor_ratio() * 100)
+		self:_send_set_armor()
+
+		if self:get_real_armor() <= 0 then
+			self._unit:sound():play("player_armor_gone_stinger")
+
+			if attack_data.armor_piercing then
+				self._unit:sound():play("player_sniper_hit_armor_gone")
+			end
+
+			local pm = managers.player
+
+			self:_start_regen_on_the_side(pm:upgrade_value("player", "passive_always_regen_armor", 0))
+
+			if pm:has_inactivate_temporary_upgrade("temporary", "armor_break_invulnerable") then
+				pm:activate_temporary_upgrade("temporary", "armor_break_invulnerable")
+
+				self._can_take_dmg_timer = pm:temporary_upgrade_value("temporary", "armor_break_invulnerable", 0)
+			end
+
+			pm:_on_armor_break_headshot_dealt_cd_remove()
+		end
+	end
+
+	managers.hud:damage_taken()
+
+	return health_subtracted
+end
+
+function PlayerDamage:_calc_health_damage(attack_data)
+	local health_subtracted = 0
+	health_subtracted = self:get_real_health()
+
+	local mul = 1
+	mul = mul * managers.player:upgrade_value("player", "hp_damage_taken", 1)
+
+	local damage = attack_data.damage
+	damage = damage * mul
+
+	self:change_health(-damage)
+
+	health_subtracted = health_subtracted - self:get_real_health()
+
+	if managers.player:has_activate_temporary_upgrade("temporary", "copr_ability") and health_subtracted > 0 then
+		local teammate_heal_level = managers.player:upgrade_level_nil("player", "copr_teammate_heal")
+
+		if teammate_heal_level and self:get_real_health() > 0 then
+			self._unit:network():send("copr_teammate_heal", teammate_heal_level)
+		end
+	end
+
+	if managers.player:has_activate_temporary_upgrade("temporary", "armor_break_invulnerable") then
+		managers.player:deactivate_temporary_upgrade("temporary", "armor_break_invulnerable")
+	end
+
+	local trigger_skills = table.contains({
+		"bullet",
+		"explosion",
+		"melee",
+		"delayed_tick"
+	}, attack_data.variant)
+
+	if self:get_real_health() == 0 and trigger_skills then
+		self:_chk_cheat_death()
+	end
+
+	self:_damage_screen()
+	self:_check_bleed_out(trigger_skills)
+	managers.hud:set_player_health({
+		current = self:get_real_health(),
+		total = self:_max_health(),
+		revives = Application:digest_value(self._revives, false)
+	})
+	self:_send_set_health()
+	self:_set_health_effect()
+	managers.statistics:health_subtracted(health_subtracted)
+
+	return health_subtracted
+end
+
+function PlayerDamage:revive(silent)
+	if Application:digest_value(self._revives, false) == 0 then
+		self._revive_health_multiplier = nil
+
+		return
+	end
+
+	local arrested = self:arrested()
+
+	managers.player:set_player_state("standard")
+	managers.player:remove_copr_risen_cooldown()
+
+	if not silent then
+		PlayerStandard.say_line(self, "s05x_sin")
+	end
+
+	self._bleed_out = false
+	self._incapacitated = nil
+	self._downed_timer = nil
+	self._downed_start_time = nil
+
+	if not arrested then
+		self:set_health(self:_max_health() * tweak_data.player.damage.REVIVE_HEALTH_STEPS[self._revive_health_i] * (self._revive_health_multiplier or 1) * managers.player:upgrade_value("player", "revived_health_regain", 1))
+		self:set_armor(self:_max_armor())
+
+		self._revive_health_i = math.min(#tweak_data.player.damage.REVIVE_HEALTH_STEPS, self._revive_health_i + 1)
+		self._revive_miss = 2
+	end
+
+	self:_regenerate_armor()
+	managers.hud:set_player_health({
+		current = self:get_real_health(),
+		total = self:_max_health(),
+		revives = Application:digest_value(self._revives, false)
+	})
+	self:_send_set_health()
+	self:_set_health_effect()
+	managers.hud:pd_stop_progress()
+
+	self._revive_health_multiplier = nil
+
+	self._listener_holder:call("on_revive")
+
+	if managers.player:has_inactivate_temporary_upgrade("temporary", "revived_damage_resist") then
+		managers.player:activate_temporary_upgrade("temporary", "revived_damage_resist")
+	end
+
+	if managers.player:has_inactivate_temporary_upgrade("temporary", "increased_movement_speed") then
+		managers.player:activate_temporary_upgrade("temporary", "increased_movement_speed")
+	end
+
+	if managers.player:has_inactivate_temporary_upgrade("temporary", "swap_weapon_faster") then
+		managers.player:activate_temporary_upgrade("temporary", "swap_weapon_faster")
+	end
+
+	if managers.player:has_inactivate_temporary_upgrade("temporary", "reload_weapon_faster") then
+		managers.player:activate_temporary_upgrade("temporary", "reload_weapon_faster")
+	end
+
+	if managers.player:has_activate_temporary_upgrade("temporary", "armor_break_invulnerable") then
+		managers.player:deactivate_temporary_upgrade("temporary", "armor_break_invulnerable")
+	end
 end
 
 function PlayerDamage:_on_relief_act()

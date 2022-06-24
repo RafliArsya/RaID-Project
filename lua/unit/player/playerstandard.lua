@@ -40,6 +40,10 @@ function PlayerStandard:_get_intimidation_action(prime_target, char_table, amoun
 	local unit_type_turret = 4
 	local is_whisper_mode = managers.groupai:state():whisper_mode()
 
+	if self._ext_movement:ninja_escape_hud() == true then
+		return voice_type, plural, prime_target
+	end
+
 	if prime_target then
 		if prime_target.unit_type == unit_type_teammate then
 			local is_human_player, record = nil
@@ -672,6 +676,48 @@ function PlayerStandard:_start_action_reload_enter(t)
 	end
 end
 
+function PlayerStandard:_start_action_ducking(t)
+	if self:_interacting() or self:_on_zipline() then
+		return
+	end
+
+	self:_interupt_action_running(t)
+
+	self._state_data.ducking = true
+
+	self:_stance_entered()
+	self:_update_crosshair_offset()
+
+	local velocity = self._unit:mover():velocity()
+
+	self._unit:kill_mover()
+	self:_activate_mover(PlayerStandard.MOVER_DUCK, velocity)
+	self._ext_network:send("action_change_pose", 2, self._unit:position())
+	if not self._ext_movement:ninja_escape_t() then
+		self:_upd_attention()
+	end
+end
+
+function PlayerStandard:_end_action_ducking(t, skip_can_stand_check)
+	if not skip_can_stand_check and not self:_can_stand() then
+		return
+	end
+
+	self._state_data.ducking = false
+
+	self:_stance_entered()
+	self:_update_crosshair_offset()
+
+	local velocity = self._unit:mover():velocity()
+
+	self._unit:kill_mover()
+	self:_activate_mover(PlayerStandard.MOVER_STAND, velocity)
+	self._ext_network:send("action_change_pose", 1, self._unit:position())
+	if not self._ext_movement:ninja_escape_t() then
+		self:_upd_attention()
+	end
+end
+
 --post
 Hooks:PostHook(PlayerStandard, "_check_stop_shooting", "RaIDPost_PlayerStandard__check_stop_shooting", function(self)
 	if not self._shooting_t then
@@ -680,3 +726,8 @@ Hooks:PostHook(PlayerStandard, "_check_stop_shooting", "RaIDPost_PlayerStandard_
         end
 	end
 end)
+
+function PlayerStandard:_do_mover()
+	self._unit:mover():set_velocity(self._last_velocity_xy + (self._last_velocity_xy * 0.8))
+	self._unit:mover():set_gravity(Vector3(0, 0, 0))
+end

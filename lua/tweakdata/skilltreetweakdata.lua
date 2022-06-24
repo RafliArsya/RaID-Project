@@ -166,6 +166,8 @@ function SkillTreeTweakData:init(...)
 		},
 		{
 			upgrades = {
+				--add
+				"player_hostage_damage_reduction_multiplier_1",
 				"player_close_hostage_fear"
 			},
 			cost = self.costs.pro
@@ -254,6 +256,31 @@ function SkillTreeTweakData:init(...)
 		desc_id = "menu_control_freak_beta_desc",
 		icon_xy = {
 			1,
+			10
+		}
+	}
+
+	--shock and awe
+	self.skills.iron_man = {
+		{
+			upgrades = {
+				"team_armor_regen_time_multiplier",
+				--add
+				"player_damage_taken_1"
+			},
+			cost = self.costs.hightier
+		},
+		{
+			upgrades = {
+				--add
+				"player_damage_taken_2"
+			},
+			cost = self.costs.hightierpro
+		},
+		name_id = "menu_iron_man_beta",
+		desc_id = "menu_iron_man_beta_desc",
+		icon_xy = {
+			8,
 			10
 		}
 	}
@@ -451,6 +478,87 @@ function SkillTreeTweakData:init(...)
 		}
 	}
 
+	--Nimble (modded)
+	self.skills.second_chances = {
+		{
+			upgrades = {
+				"player_tape_loop_duration_1",
+				"player_tape_loop_duration_2"
+			},
+			cost = self.costs.hightier
+		},
+		{
+			upgrades = {
+				"player_pick_lock_hard",
+				"player_pick_lock_easy_speed_multiplier",
+				--moved from ecm overdrive
+				"ecm_jammer_can_open_sec_doors"
+			},
+			cost = self.costs.hightierpro
+		},
+		name_id = "menu_second_chances_beta",
+		desc_id = "menu_second_chances_beta_desc",
+		icon_xy = {
+			10,
+			4
+		}
+	}
+
+	--ecm specialist (modded)
+	self.skills.ecm_2x = {
+		{
+			upgrades = {
+				"ecm_jammer_quantity_increase_1"
+			},
+			cost = self.costs.hightier
+		},
+		{
+			upgrades = {
+				"ecm_jammer_affects_pagers",
+				--moved from ecm overdrive
+				"ecm_jammer_duration_multiplier",
+				"ecm_jammer_feedback_duration_boost"
+			},
+			cost = self.costs.hightierpro
+		},
+		name_id = "menu_ecm_2x_beta",
+		desc_id = "menu_ecm_2x_beta_desc",
+		icon_xy = {
+			3,
+			4
+		}
+	}
+
+	--ecm overdrive (modded)
+	self.skills.ecm_booster = {
+		{
+			upgrades = {
+				--moved from ecm specialist
+				"ecm_jammer_duration_multiplier_2",
+				"ecm_jammer_feedback_duration_boost_2",
+			},
+			cost = self.costs.hightier
+		},
+		{
+			upgrades = {
+				--add
+				"player_ninja_escape_move",
+				"player_suspicious_movement"
+			},
+			cost = self.costs.hightierpro
+		},
+		name_id = "menu_ecm_booster_beta",
+		desc_id = "menu_ecm_booster_beta_desc",
+		icon_xy = {
+			0,
+			4
+		}
+		--[[icon_xy = {
+			0,
+			3
+		}]]
+	}
+
     --second wind
     self.skills.scavenger = {
 		{
@@ -599,6 +707,22 @@ function SkillTreeTweakData:init(...)
             "body_expertise"
         }
     }
+	self.trees[10].tiers = {
+		{
+			"jail_workout"
+		},
+		{
+			"second_chances",
+			"chameleon"
+		},
+		{
+			"ecm_2x",
+			"cleaner"
+		},
+		{
+			"ecm_booster"
+		}
+	}
     self.trees[12].tiers = {
         {
             "scavenger"

@@ -1,6 +1,13 @@
 Hooks:PreHook(PlayerManager, "init", "RaID_PlayerManager_Init", function(self, ...)
 	self._has_bulletstorm = 0
 	self._has_set_active_bs = nil
+	--[[
+	self._ninja_gone = {
+		uncovered = false,
+		active_t = nil,
+		cooldown = nil
+	}
+	]]
 end)
 
 Hooks:PreHook(PlayerManager, "_add_equipment", "RaID_PlayerManager__add_equipment", function(self, params)
@@ -21,6 +28,21 @@ Hooks:PostHook(PlayerManager, "update", "RaID_PlayerManager_Update", function(se
 		end
 	end
 	
+	--[[if self._ninja_gone.uncovered and not self._coroutine_mgr:is_running(PlayerAction.NinjaGone) and managers.platform:presence() == "Playing" then
+		local key_press = self:player_unit():base():controller()
+		--local interact_pressed = key_press:get_input_pressed("interact")
+
+		self._coroutine_mgr:add_coroutine(PlayerAction.NinjaGone, PlayerAction.NinjaGone, self, managers.hud, key_press)
+	end
+
+	if self._ninja_gone.active_t and self._ninja_gone.active_t < t then
+		--do update attention?
+		self._ninja_gone.active_t = nil
+	end
+
+	if self._ninja_gone.cooldown and self._ninja_gone.cooldown < t then
+		self._ninja_gone.cooldown = nil
+	end]]
 	--[[if self._has_bulletstorm or type(self._has_bulletstorm)=="number" and self._has_bulletstorm > 0 then
 		if not self._has_set_active_bs then
 			self._message_system:register(Message.OnPlayerReload, "bullet_storm", callback(self, self, "_on_reload_trigger_bullet_storm_event"))
@@ -247,6 +269,7 @@ function PlayerManager:check_skills()
 
 		local function on_player_damage(attack_data)
 			local close_fear_act = self:close_hostage_fear_val() and self:close_hostage_fear_val() == true
+			local last_dmg_t = 0
 			if not close_fear_act then
 				return
 			end
@@ -257,8 +280,8 @@ function PlayerManager:check_skills()
 			local is_alive = alive(attacker) and attacker:character_damage() and not attacker:character_damage():dead()
 			local is_sentry = is_alive and attacker:base() and attacker:base().sentry_gun
 
-			if attacker and is_alive and not is_sentry and t > last_dmg_t then
-				last_dmg_t = t + 1
+			if attacker and is_alive and not is_sentry and t > last_dmg_t + 1 then
+				last_dmg_t = t
 				local targets = World:find_units_quick( "sphere", attacker:position(), 1000, managers.slot:get_mask( "explosion_targets" ) )
 			
 				self:on_close_hostage_feared(targets)
@@ -535,6 +558,7 @@ function PlayerManager:damage_reduction_skill_multiplier(damage_type)
 	multiplier = multiplier * self:temporary_upgrade_value("temporary", "first_aid_damage_reduction", 1)
 	multiplier = multiplier * self:temporary_upgrade_value("temporary", "revive_damage_reduction", 1)
 	multiplier = multiplier * self:get_hostage_bonus_multiplier("damage_dampener")
+	multiplier = multiplier * self:get_hostage_bonus_multiplier("damage_reduction")
 	multiplier = multiplier * self._properties:get_property("revive_damage_reduction", 1)
 	multiplier = multiplier * self._temporary_properties:get_property("revived_damage_reduction", 1)
 	local dmg_red_mul = self:team_upgrade_value("damage_dampener", "team_damage_reduction", 1)
@@ -561,6 +585,12 @@ function PlayerManager:damage_reduction_skill_multiplier(damage_type)
 	end
 
 	return math.truncate(multiplier, 3)
+end
+
+function PlayerManager:get_damage_health_ratio(health_ratio, category)
+	local damage_ratio = 1 - health_ratio / math.max(0.01, self:_get_damage_health_ratio_threshold(category))
+	damage_ratio = math.truncate(damage_ratio, 3)
+	return math.max(damage_ratio, 0)
 end
 
 function PlayerManager:clbk_super_syndrome_respawn(data)
@@ -680,7 +710,7 @@ function PlayerManager:on_close_hostage_fear_fired()
 	if not close_fear_act then
 		return
 	end
-	local targets = World:find_units_quick( "sphere" , self._unit:movement():m_pos() , 1000 , managers.slot:get_mask( "explosion_targets" ) )
+	local targets = World:find_units_quick("sphere", self:player_unit():movement():m_pos() , 1000 , managers.slot:get_mask( "explosion_targets" ) )
 	self:on_close_hostage_feared(targets)
 end
 
@@ -688,8 +718,8 @@ function PlayerManager:on_close_hostage_feared(target)
 	if not target then
 		return
 	end
-	local chance = math.random(5, 10)
-	chance = chance * 0.1
+	local chance = math.random(45, 90)
+	local chance_val = chance * 0.01
 	for key, unit in pairs(target) do
 		if alive(unit) and unit:character_damage() and not unit:character_damage():dead() then
 			local is_civ = CopDamage.is_civilian(unit:base()._tweak_table)
@@ -700,8 +730,8 @@ function PlayerManager:on_close_hostage_feared(target)
 			local unit_enggage = unit_mov and not unit_mov:cool()
 			local unit_hostile = unit_mov and unit_mov:stance_name() == "hos"
 			local unit_cbt = unit_mov and unit_mov:stance_name() == "cbt"
-			if not is_civ and not is_sentry and not is_converted and is_enggage and unit_enggage and (unit_hostile or unit_cbt) then
-				unit:character_damage():build_suppression(200, chance)
+			if not is_civ and not is_sentry and not is_converted and (is_enggage or unit_enggage) and (unit_hostile or unit_cbt) then
+				unit:character_damage():build_suppression(200, chance_val)
 			end
 		end
 	end
@@ -734,7 +764,13 @@ function PlayerManager:_on_enemy_killed_reduce_long_dis_cd()
 		return
 	end
 	self:enable_cooldown_upgrade_time("cooldown", "long_dis_revive", 1)
-	self._inspire_reduce.delay_t = self._inspire_reduce.delay_t + 1
+	self._inspire_reduce.delay_t = self._inspire_reduce.delay_t + 1.5
+end
+
+function PlayerManager:_on_armor_break_headshot_dealt_cd_remove()
+	if self._on_headshot_dealt_t then
+		self._on_headshot_dealt_t = 0 or nil
+	end
 end
 
 --[[function PlayerManager:_on_reload_trigger_bullet_storm_event()

@@ -59,8 +59,25 @@ function UpgradesTweakData:init(...)
 		1.8
 	}
 
+	--hostage handlers
+	self.hostage_max_num = {
+		damage_dampener = 2,
+		health_regen = 1,
+		stamina = 5,
+		health = 5,
+		damage_reduction = 2
+	}
+
 	--Damage multiplier ratio threshold thing (Yakuza etc)
-	self.player_damage_health_ratio_threshold = 0.5
+	self.player_damage_health_ratio_threshold = 0.55
+
+	--Armor break invulnerable
+	self.values.temporary.armor_break_invulnerable = {
+		{
+			2,
+			14
+		}
+	}
 
 	--Grinder
 	self.damage_to_hot_data = {
@@ -395,7 +412,7 @@ function UpgradesTweakData:init(...)
 	--forced friendship
 	self.values.team.damage = {
 		hostage_absorption = {
-			0.025
+			0.05
 		},
 		hostage_absorption_limit = 8
 	}
@@ -459,9 +476,46 @@ function UpgradesTweakData:init(...)
 		}
 	}
 
+	--graze
+	self.values.snp.graze_damage = {
+		{
+			radius = 125,
+			damage_factor = 0.4,
+			damage_factor_headshot = 0.75
+		},
+		{
+			radius = 150,
+			damage_factor = 0.8,
+			damage_factor_headshot = 1
+		}
+	}
+
+	--underdog
+	self.values.temporary.dmg_multiplier_outnumbered = {
+		{
+			1.15,
+			7
+		}
+	}
+	self.values.temporary.dmg_dampener_outnumbered = {
+		{
+			0.825,
+			7
+		}
+	}
+
     --scavenger
     self.values.player.increased_pickup_area = {
         1.5
+	}
+
+	--saw massacre
+	self.values.saw.panic_when_kill = {
+		{
+			chance = 0.75,
+			area = 1000,
+			amount = 200
+		}
 	}
 
     --fully Loaded + Buff + Fixes
@@ -532,10 +586,10 @@ function UpgradesTweakData:init(...)
 
 	--Berserker
 	self.values.player.melee_damage_health_ratio_multiplier = {
-		2.75
+		3
 	}
 	self.values.player.damage_health_ratio_multiplier = {
-		1.2
+		1.25
 	}
 	
 	--Frenzy
@@ -807,6 +861,92 @@ function UpgradesTweakData:init(...)
 			category = "player",
 			upgrade = "demo_expert",
 			value = 2
+		}
+	}
+
+	--Hostage Damage Reduction
+	self.values.player.hostage_damage_reduction_multiplier = {
+		0.92
+	}
+	self.definitions.player_hostage_damage_reduction_multiplier_1 = {
+		name_id = "menu_player_hostage_damage_reduction_multiplier",
+		category = "player",
+		upgrade = {
+			value = 1,
+			upgrade = "hostage_damage_reduction_multiplier",
+			category = "player"
+		}
+	}
+
+	--Armor damage taken
+	self.values.player.armor_damage_taken = {
+		0.92,
+		0.8
+	}
+	self.definitions.player_armor_damage_taken_1 = {
+		name_id = "menu_player_armor_damage_taken_multiplier",
+		category = "player",
+		upgrade = {
+			value = 1,
+			upgrade = "armor_damage_taken",
+			category = "player"
+		}
+	}
+	self.definitions.player_armor_damage_taken_2 = {
+		name_id = "menu_player_armor_damage_taken_multiplier",
+		category = "player",
+		upgrade = {
+			value = 1,
+			upgrade = "armor_damage_taken",
+			category = "player"
+		}
+	}
+
+	--Health damage taken
+	self.values.player.hp_damage_taken = {
+		0.9,
+		0.77
+	}
+	self.definitions.player_hp_damage_taken_1 = {
+		name_id = "menu_player_hp_damage_taken_multiplier",
+		category = "player",
+		upgrade = {
+			value = 1,
+			upgrade = "hp_damage_taken",
+			category = "player"
+		}
+	}
+	self.definitions.player_hp_damage_taken_2 = {
+		name_id = "menu_player_hp_damage_taken_multiplier",
+		category = "player",
+		upgrade = {
+			value = 1,
+			upgrade = "hp_damage_taken",
+			category = "player"
+		}
+	}
+
+	--Stealth Movement
+	self.values.player.suspicious_movement = {true}
+	self.definitions.player_suspicious_movement = {
+		category = "feature",
+		name_id = "menu_player_suspicious_movement",
+		upgrade = {
+			value = 1,
+			upgrade = "suspicious_movement",
+			category = "player"
+		}
+	}
+
+	--Ninja Escape
+	self.values.player.ninja_escape_move = {true}
+	self.definitions.player_ninja_escape_move = {
+		category = "feature",
+		name_id = "menu_player_ninja_escape_move",
+		upgrade = {
+			value = 1,
+			upgrade = "ninja_escape_move",
+			category = "player"
 		}
 	}
 end

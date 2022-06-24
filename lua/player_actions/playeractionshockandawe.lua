@@ -10,9 +10,9 @@ PlayerAction.ShockAndAwe = {
 				local reload_multiplier = max_reload_increase
 				local ammo = weapon_unit:base():get_ammo_remaining_in_clip()
 
-				if player_manager:has_category_upgrade("player", "automatic_mag_increase") and weapon_unit:base():is_category("smg", "assault_rifle", "lmg") then
-					ammo = ammo - player_manager:upgrade_value("player", "automatic_mag_increase", 0)
-				end
+				--[[if player_manager:has_category_upgrade("player", "automatic_mag_increase") and weapon_unit:base():is_category("smg", "assault_rifle", "lmg") then
+					ammo = math.max(ammo - player_manager:upgrade_value("player", "automatic_mag_increase", 0), 0)
+				end]]
 
 				if min_bullets < ammo then
 					local num_bullets = ammo - min_bullets

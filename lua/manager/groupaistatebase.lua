@@ -16,7 +16,7 @@ function GroupAIStateBase:convert_hostage_to_criminal(unit, peer_unit, ...)
 	convert_hostage_to_criminal_original(self, unit, peer_unit, ...)
 
 	if unit:brain()._logic_data.is_converted then
-		--NPCRaycastWeaponBase:_add_dmg_explode(unit)
+		--call smthing
 	end
 
 end
@@ -25,7 +25,7 @@ Hooks:PreHook(GroupAIStateBase, "_set_converted_police", "RaID_GroupAIStateBase_
 
 	local minion_unit = not unit and self._converted_police[u_key]
 	if minion_unit then
-		--Hooks:Call("HopLibOnMinionRemoved", minion_unit)
+		--call smthing
         NPCRaycastWeaponBase:_remove_dmg_explode(minion_unit)
 	end
 

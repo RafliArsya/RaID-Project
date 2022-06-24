@@ -1,5 +1,16 @@
 Hooks:PostHook(PlayerMovement, 'init', 'RaIDPost_PlayerMovement_Init', function(self, unit)
-    if self._rally_skill_data then
+    self._underdog_skill_data = {
+		nr_enemies = 2,
+		chk_t = 6,
+		chk_interval_active = 6,
+		chk_interval_inactive = 1,
+		max_dis_sq = 3240000,
+		max_vert_dis = 1000,
+		has_dmg_dampener = managers.player:has_category_upgrade("temporary", "dmg_dampener_outnumbered") or managers.player:has_category_upgrade("temporary", "dmg_dampener_outnumbered_strong"),
+		has_dmg_dampener_close = managers.player:has_category_upgrade("temporary", "dmg_dampener_close_contact"),
+		has_dmg_mul = managers.player:has_category_upgrade("temporary", "dmg_multiplier_outnumbered")
+	}
+	if self._rally_skill_data then
         local data = managers.player:upgrade_value("cooldown", "long_dis_revive", nil)
         self._rally_skill_data = {
             range_sq = 810000,
@@ -18,6 +29,13 @@ Hooks:PostHook(PlayerMovement, 'init', 'RaIDPost_PlayerMovement_Init', function(
 		max_vert_dis = 1000,
 		has_close_fear = managers.player:has_category_upgrade("player", "close_hostage_fear"),
         is_active = false
+	}
+	self._ninja_gone = {
+		is_hud_on = false,
+		is_pressed = false,
+		enemy_hot = false,
+		active_t = nil,
+		cooldown = nil
 	}
 end)
 
@@ -39,44 +57,123 @@ function PlayerMovement:update(unit, t, dt)
 		self._current_state:update(t, dt)
 	end
 
+	if self._ninja_gone.active_t then
+		if self._ninja_gone.active_t - 1.75 < t then
+			local velocity = managers.player:player_unit():mover():velocity()
+
+			if self:crouching() then
+				self:current_state():_activate_mover(PlayerStandard.MOVER_DUCK, velocity)
+			else
+				self:current_state():_activate_mover(PlayerStandard.MOVER_STAND, velocity)
+			end
+		end
+		if self._ninja_gone.active_t < t then
+			self:current_state():_upd_attention()
+			self._ninja_gone.active_t = nil
+		end
+	end
+
+	if self._ninja_gone.cooldown and self._ninja_gone.cooldown < t then
+		self._ninja_gone.is_pressed = false
+		self._ninja_gone.cooldown = nil
+	end
+
 	self:update_stamina(t, dt)
 	self:update_teleport(t, dt)
 end
 
-function PlayerMovement:_upd_close_fear_skill(t)
-    local data = self._close_fear_skill_data
-    local hostages = managers.groupai:state():all_hostages()
-    local activated = nil
+Hooks:PostHook(PlayerMovement, '_feed_suspicion_to_hud', 'RaIDPost_PlayerMovement__feed_suspicion_to_hud', function(self, ...)
+	local susp_ratio = self._suspicion_ratio
+	--log(tostring(self._suspicion_ratio))
+	if managers.player:has_category_upgrade("player", "ninja_escape_move") then
+		local key_press = managers.player:player_unit():base():controller()
+		local interact_pressed = key_press:get_input_bool("interact")
+		local is_pressed = interact_pressed and true or false
 
-	if not self._attackers or not data.has_close_fear or t < self._close_fear_skill_data.chk_t or hostages <= 0 then
+		self._ninja_gone.is_pressed = is_pressed
+
+		if not self._ninja_gone.cooldown and not self._ninja_gone.active_t then
+			if not self._ninja_gone.is_pressed then
+				managers.player:add_coroutine("ninja_gone", PlayerAction.NinjaGone, managers.player, managers.hud, self)
+			else
+				self._ninja_gone.cooldown = Application:time() + 0.25
+			end
+		end
+	end
+end)
+
+Hooks:PostHook(PlayerMovement, 'clbk_enemy_weapons_hot', 'RaIDPost_PlayerMovement_clbk_enemy_weapons_hot', function(self)
+	self:ninja_escape_hot(true)
+    --self._ninja_gone.enemy_hot = true
+end)
+
+function PlayerMovement:_get_sus_rat()
+	return self._suspicion_ratio
+end
+
+function PlayerMovement:_get_suspicion()
+	return self._synced_suspicion
+end
+
+function PlayerMovement:ninja_escape_cd(val)
+	if not val then
+		return self._ninja_gone.cooldown
+	end
+	self._ninja_gone.cooldown = val
+end
+
+function PlayerMovement:ninja_escape_t(val)
+	if not val then
+		return self._ninja_gone.active_t
+	end
+	self._ninja_gone.active_t = val
+end
+
+function PlayerMovement:ninja_escape_hot(val)
+	if not val then
+		return self._ninja_gone.enemy_hot
+	end
+	self._ninja_gone.enemy_hot = val
+end
+
+function PlayerMovement:ninja_escape_hud(val)
+	if not val and type(val) ~= "boolean" and val ~= false then
+		return self._ninja_gone.is_hud_on
+	end
+	self._ninja_gone.is_hud_on = val
+end
+
+function PlayerMovement:_upd_close_fear_skill(t)
+	local data = self._close_fear_skill_data
+	
+	if not data.has_close_fear or t < self._close_fear_skill_data.chk_t then
 		return
 	end
 
-    if managers.player:close_hostage_fear_val() == true or not activated then
+    if managers.player:close_hostage_fear_val() == true then
         managers.player:close_hostage_fear_val(false)
     end
-   
-	local my_pos = self._m_pos
-	local max_guys_to_check = data.nr_enemies
-	local nr_guys = 0
 	
-    for key, unit in pairs(managers.groupai:state():all_hostages()) do
-        if alive(unit) and unit:character_damage() and not unit:character_damage():dead() then
-            local is_converted = unit:brain() and unit:brain()._logic_data and unit:brain()._logic_data.is_converted
-            
-            local hostage_pos = unit:movement():m_pos()
-            local dis_sq = mvector3.distance_sq(hostage_pos, my_pos)
+	local my_pos = managers.player:player_unit():position()
+	local nr_guys = 0
+	local activated = nil
+	
+	local _hostages = World:find_units_quick("sphere", my_pos, 300, {16, 21, 22})
+	for _, hit_unit in ipairs(_hostages) do
+		if not alive(hit_unit) then
+			return
+		end
+		local hostage_pos = hit_unit:movement():m_pos()
+		if math.abs(hostage_pos.z - my_pos.z) < data.max_vert_dis then
+			nr_guys = nr_guys + 1
+		end
+		if nr_guys > 0 then
+			activated = true
+		end
+	end
+	if activated then
+		managers.player:close_hostage_fear_val(true)
+	end
 
-            if dis_sq <= data.max_dis_sq and math.abs(hostage_pos.z - my_pos.z) <= data.max_vert_dis and not is_converted then
-                activated = true
-                nr_guys = nr_guys + 1
-            end
-        end    
-    end
-
-    if activated then
-        managers.player:close_hostage_fear_val(true)
-    end
-
-	self._close_fear_skill_data.chk_t = t + (activated and data.chk_interval_active or data.chk_interval_inactive)
+	data.chk_t = t + (activated and data.chk_interval_active or data.chk_interval_inactive)
 end

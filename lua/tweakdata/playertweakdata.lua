@@ -20,7 +20,7 @@ end
 function PlayerTweakData:_set_sm_wish(...)
 	set_playertweakdata_smwish_original(self, ...)
 
-	self.damage.MIN_DAMAGE_INTERVAL = 0.35
+	self.damage.MIN_DAMAGE_INTERVAL = 0.4
 	self.damage.REVIVE_HEALTH_STEPS = {0.1}
 end
 
@@ -30,11 +30,11 @@ function PlayerTweakData:init(...)
 	self.put_on_mask_time = 1
 
 	if not is_console then
-		self.damage.ARMOR_INIT = 3.2
+		self.damage.ARMOR_INIT = 4
 	end
 
 	if not is_vr then
-		self.damage.HEALTH_INIT = 24
+		self.damage.HEALTH_INIT = 25.5
 	end
 	
 	self.damage.REVIVE_HEALTH_STEPS = {0.5}

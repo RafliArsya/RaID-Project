@@ -4,5 +4,5 @@
 	"author" : "RedLeo_Inc",
 	"color" : "153 230 26",
 	"blt_version" : 2,
-	"priority" : 1000
+	"priority" : 500
 }
