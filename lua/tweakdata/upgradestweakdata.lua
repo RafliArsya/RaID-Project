@@ -79,6 +79,35 @@ function UpgradesTweakData:init(...)
 		}
 	}
 
+	--Armorer
+	self.values.player.armor_regen_timer_multiplier_passive = {
+		0.875
+	}
+	--Armorer team armor recov
+	self.values.team.armor.passive_regen_time_multiplier = {
+		0.9
+	}
+	--Armorer Armor tier multiplier
+	self.values.player.tier_armor_multiplier = {
+		1.05, 
+		1.1, 
+		1.2, 
+		1.4, 
+		1.6, 
+		1.85,
+		2 --[[1.05, 1.1, 1.2, 1.3, 1.15, 1.35]]
+	}
+	--add tier 7
+	self.definitions.player_tier_armor_multiplier_7 = {
+		name_id = "menu_player_tier_armor_multiplier_7",
+		category = "feature",
+		upgrade = {
+			value = 7,
+			upgrade = "tier_armor_multiplier",
+			category = "player"
+		}
+	}
+
 	--Grinder
 	self.damage_to_hot_data = {
 		tick_time = 0.3,
@@ -114,6 +143,22 @@ function UpgradesTweakData:init(...)
 	self.values.player.armor_piercing_chance = {
 		0.2,
 		0.4
+	}
+
+	--Yakuza
+	self.values.player.armor_regen_damage_health_ratio_multiplier = {
+		0.2,
+		0.5,
+		0.7
+	}
+	self.values.player.movement_speed_damage_health_ratio_multiplier = {
+		0.3
+	}
+	self.values.player.armor_regen_damage_health_ratio_threshold_multiplier = {
+		2
+	}
+	self.values.player.movement_speed_damage_health_ratio_threshold_multiplier = {
+		2
 	}
 
 	--Maniac Activation/Check Deck
@@ -946,6 +991,18 @@ function UpgradesTweakData:init(...)
 		upgrade = {
 			value = 1,
 			upgrade = "ninja_escape_move",
+			category = "player"
+		}
+	}
+
+	--Melee kill regen armor
+	self.values.player.melee_kill_regen_armor = {true}
+	self.definitions.player_melee_kill_regen_armor = {
+		name_id = "menu_player_melee_kill_regen_armor",
+		category = "feature",
+		upgrade = {
+			value = 1,
+			upgrade = "melee_kill_regen_armor",
 			category = "player"
 		}
 	}

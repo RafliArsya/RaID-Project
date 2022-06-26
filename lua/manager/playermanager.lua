@@ -28,6 +28,11 @@ Hooks:PostHook(PlayerManager, "update", "RaID_PlayerManager_Update", function(se
 		end
 	end
 	
+	if self._hostage_fired_t then
+		if self._hostage_fired_t < t then
+			self._hostage_fired_t = 0 or nil
+		end
+	end
 	--[[if self._ninja_gone.uncovered and not self._coroutine_mgr:is_running(PlayerAction.NinjaGone) and managers.platform:presence() == "Playing" then
 		local key_press = self:player_unit():base():controller()
 		--local interact_pressed = key_press:get_input_pressed("interact")
@@ -266,6 +271,7 @@ function PlayerManager:check_skills()
 
 	if self:has_category_upgrade("player", "close_hostage_fear") then
 		self._hostage_close_f = false
+		self._hostage_fired_t = 0
 
 		local function on_player_damage(attack_data)
 			local close_fear_act = self:close_hostage_fear_val() and self:close_hostage_fear_val() == true
@@ -282,7 +288,7 @@ function PlayerManager:check_skills()
 
 			if attacker and is_alive and not is_sentry and t > last_dmg_t + 1 then
 				last_dmg_t = t
-				local targets = World:find_units_quick( "sphere", attacker:position(), 1000, managers.slot:get_mask( "explosion_targets" ) )
+				local targets = World:find_units_quick("sphere", attacker:position(), 1000, managers.slot:get_mask("enemies", "civilians"))
 			
 				self:on_close_hostage_feared(targets)
 			end
@@ -292,6 +298,7 @@ function PlayerManager:check_skills()
 		self:register_message(Message.OnPlayerDamage, "close_hostage_fear_damage", on_player_damage)
 	else
 		self._hostage_close_f = nil
+		self._hostage_fired_t = nil
 		self:unregister_message(Message.OnWeaponFired, "close_hostage_fear")
 		self:unregister_message(Message.OnPlayerDamage, "close_hostage_fear_damage", on_player_damage)
 	end
@@ -589,8 +596,9 @@ end
 
 function PlayerManager:get_damage_health_ratio(health_ratio, category)
 	local damage_ratio = 1 - health_ratio / math.max(0.01, self:_get_damage_health_ratio_threshold(category))
+	damage_ratio = math.round(damage_ratio, 0.001)
 	damage_ratio = math.truncate(damage_ratio, 3)
-	return math.max(damage_ratio, 0)
+	return math.max(math.round(damage_ratio,0.01), 0)
 end
 
 function PlayerManager:clbk_super_syndrome_respawn(data)
@@ -710,8 +718,12 @@ function PlayerManager:on_close_hostage_fear_fired()
 	if not close_fear_act then
 		return
 	end
-	local targets = World:find_units_quick("sphere", self:player_unit():movement():m_pos() , 1000 , managers.slot:get_mask( "explosion_targets" ) )
+	if self._hostage_fired_t or self._hostage_fired_t > 0 then
+		return
+	end
+	local targets = World:find_units_quick("sphere", self:player_unit():movement():m_pos(), 1000, managers.slot:get_mask("enemies", "civilians"))
 	self:on_close_hostage_feared(targets)
+	self._hostage_fired_t = TimerManager:game():time() + 0.5
 end
 
 function PlayerManager:on_close_hostage_feared(target)

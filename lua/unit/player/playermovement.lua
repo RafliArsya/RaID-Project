@@ -33,7 +33,6 @@ Hooks:PostHook(PlayerMovement, 'init', 'RaIDPost_PlayerMovement_Init', function(
 	self._ninja_gone = {
 		is_hud_on = false,
 		is_pressed = false,
-		enemy_hot = false,
 		active_t = nil,
 		cooldown = nil
 	}
@@ -82,31 +81,6 @@ function PlayerMovement:update(unit, t, dt)
 	self:update_teleport(t, dt)
 end
 
-Hooks:PostHook(PlayerMovement, '_feed_suspicion_to_hud', 'RaIDPost_PlayerMovement__feed_suspicion_to_hud', function(self, ...)
-	local susp_ratio = self._suspicion_ratio
-	--log(tostring(self._suspicion_ratio))
-	if managers.player:has_category_upgrade("player", "ninja_escape_move") then
-		local key_press = managers.player:player_unit():base():controller()
-		local interact_pressed = key_press:get_input_bool("interact")
-		local is_pressed = interact_pressed and true or false
-
-		self._ninja_gone.is_pressed = is_pressed
-
-		if not self._ninja_gone.cooldown and not self._ninja_gone.active_t then
-			if not self._ninja_gone.is_pressed then
-				managers.player:add_coroutine("ninja_gone", PlayerAction.NinjaGone, managers.player, managers.hud, self)
-			else
-				self._ninja_gone.cooldown = Application:time() + 0.25
-			end
-		end
-	end
-end)
-
-Hooks:PostHook(PlayerMovement, 'clbk_enemy_weapons_hot', 'RaIDPost_PlayerMovement_clbk_enemy_weapons_hot', function(self)
-	self:ninja_escape_hot(true)
-    --self._ninja_gone.enemy_hot = true
-end)
-
 function PlayerMovement:_get_sus_rat()
 	return self._suspicion_ratio
 end
@@ -129,18 +103,8 @@ function PlayerMovement:ninja_escape_t(val)
 	self._ninja_gone.active_t = val
 end
 
-function PlayerMovement:ninja_escape_hot(val)
-	if not val then
-		return self._ninja_gone.enemy_hot
-	end
-	self._ninja_gone.enemy_hot = val
-end
-
-function PlayerMovement:ninja_escape_hud(val)
-	if not val and type(val) ~= "boolean" and val ~= false then
-		return self._ninja_gone.is_hud_on
-	end
-	self._ninja_gone.is_hud_on = val
+function PlayerMovement:ninja_escape_hud()
+	return self._ninja_gone.is_hud_on
 end
 
 function PlayerMovement:_upd_close_fear_skill(t)
@@ -150,7 +114,7 @@ function PlayerMovement:_upd_close_fear_skill(t)
 		return
 	end
 
-    if managers.player:close_hostage_fear_val() == true then
+    if managers.player:close_hostage_fear_val() and managers.player:close_hostage_fear_val() == true then
         managers.player:close_hostage_fear_val(false)
     end
 	
@@ -177,3 +141,25 @@ function PlayerMovement:_upd_close_fear_skill(t)
 
 	data.chk_t = t + (activated and data.chk_interval_active or data.chk_interval_inactive)
 end
+
+Hooks:PostHook(PlayerMovement, '_feed_suspicion_to_hud', 'RaIDPost_PlayerMovement__feed_suspicion_to_hud', function(self, ...)
+	local susp_ratio = self._suspicion_ratio
+	--log(tostring(self._suspicion_ratio))
+	if managers.player:has_category_upgrade("player", "ninja_escape_move") and susp_ratio then
+		local key_press = managers.player:player_unit():base():controller()
+		local interact_pressed = key_press:get_input_bool("weapon_gadget")
+		local is_pressed = interact_pressed and true or false
+
+		self._ninja_gone.is_pressed = is_pressed
+
+		if not self._ninja_gone.cooldown and not self._ninja_gone.active_t then
+			if not self._ninja_gone.is_pressed then
+				if not managers.player._coroutine_mgr:is_running(PlayerAction.NinjaGone) then
+					managers.player:add_coroutine("ninja_gone", PlayerAction.NinjaGone, managers.player, managers.hud, self)
+				end
+			else
+				self._ninja_gone.cooldown = Application:time() + 0.25
+			end
+		end
+	end
+end)

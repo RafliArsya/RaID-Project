@@ -40,10 +40,6 @@ function PlayerStandard:_get_intimidation_action(prime_target, char_table, amoun
 	local unit_type_turret = 4
 	local is_whisper_mode = managers.groupai:state():whisper_mode()
 
-	if self._ext_movement:ninja_escape_hud() == true then
-		return voice_type, plural, prime_target
-	end
-
 	if prime_target then
 		if prime_target.unit_type == unit_type_teammate then
 			local is_human_player, record = nil
@@ -715,6 +711,12 @@ function PlayerStandard:_end_action_ducking(t, skip_can_stand_check)
 	self._ext_network:send("action_change_pose", 1, self._unit:position())
 	if not self._ext_movement:ninja_escape_t() then
 		self:_upd_attention()
+	end
+end
+
+function PlayerStandard:_check_action_weapon_gadget(t, input)
+	if input.btn_weapon_gadget_press and not self._ext_movement:ninja_escape_hud() then
+		self:_toggle_gadget(self._equipped_unit:base())
 	end
 end
 

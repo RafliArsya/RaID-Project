@@ -499,14 +499,15 @@ function PlayerDamage:_upd_health_regen(t, dt)
 
 				local is_low = self:get_real_health() <= self:_max_health() * 0.35
 
-				self:restore_health(is_low and regen_rate * 0.125 or regen_rate, not is_low)
+				self:restore_health(is_low and regen_rate * 0.25 or regen_rate, not is_low)
 
 				next_doh.ticks_left = next_doh.ticks_left - 1
 
 				if next_doh.ticks_left == 0 then
 					table.remove(self._damage_to_hot_stack, 1)
 				else
-					next_doh.next_tick = next_doh.next_tick + (is_low and 0.2 or self._doh_data.tick_time and self._doh_data.tick_time or 1)
+					--next_doh.next_tick = next_doh.next_tick + (is_low and 0.2 or self._doh_data.tick_time and self._doh_data.tick_time or 1)
+					next_doh.next_tick = next_doh.next_tick + (self._doh_data.tick_time or 1)
 				end
 
 				table.sort(self._damage_to_hot_stack, function (x, y)

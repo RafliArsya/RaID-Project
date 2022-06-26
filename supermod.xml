@@ -14,9 +14,12 @@
 					<post :script_path="poisongaseffect.lua" :hook_id="managers/player/poisongaseffect"/>
 					<post :script_path="snipergrazedamage.lua" :hook_id="managers/player/snipergrazedamage"/>
 				</group>
+				<post :script_path="experiencemanager.lua" :hook_id="managers/experiencemanager"/>
 				<post :script_path="explosionmanager.lua" :hook_id="managers/explosionmanager"/>
 				<post :script_path="groupaistatebase.lua" :hook_id="managers/group_ai_states/groupaistatebase"/>
 				<post :script_path="hudmanagerpd2.lua" :hook_id="managers/hudmanagerpd2"/>
+				<post :script_path="hudinteraction.lua" :hook_id="managers/hud/hudinteraction"/>
+				<post :script_path="hudsuspicion.lua" :hook_id="managers/hud/hudsuspicion"/>
 				<post :script_path="menumanager.lua" :hook_id="managers/menumanager"/>
 				<post :script_path="playermanager.lua" :hook_id="managers/playermanager"/>
 				<post :script_path="playerinventorygui.lua" :hook_id="managers/menu/playerinventorygui"/>
@@ -29,7 +32,7 @@
 			</group>
 
 			<group :script_path="player_actions/">
-				<post :script_path="playeraction.lua" :hook_id="player_actions/playeraction"/>
+				<!--<post :script_path="playeraction.lua" :hook_id="player_actions/playeraction"/>-->
 				<post :script_path="playeractionninjagone.lua" :hook_id="player_actions/playeraction"/>
 				<post :script_path="playeractionfullyloaded.lua" :hook_id="player_actions/skills/playeractionfullyloaded"/>
 				<post :script_path="playeractionshockandawe.lua" :hook_id="player_actions/skills/playeractionshockandawe"/>
@@ -53,19 +56,22 @@
 					<post :script_path="playerdamage.lua" :hook_id="units/beings/player/playerdamage"/>
 					<post :script_path="playermovement.lua" :hook_id="units/beings/player/playermovement"/>
 					<post :script_path="playerstandard.lua" :hook_id="units/beings/player/states/playerstandard"/>
+					<post :script_path="playermaskoff.lua" :hook_id="units/beings/player/states/playermaskoff"/>
+					<post :script_path="playercivilian.lua" :hook_id="units/beings/player/states/playercivilian"/>
+					<post :script_path="playerclean.lua" :hook_id="units/beings/player/states/playerclean"/>
 				</group>
 
 				<group :script_path="enemies/">
 					<post :script_path="copdamage.lua" :hook_id="units/enemies/cop/copdamage"/>
 				</group>
 
-				<group :script_path="weapon/">
+				<group :script_path="weapons/">
 					<group :script_path="grenades/">
 						<post :script_path="fraggrenade.lua" :hook_id="units/weapons/grenades/fraggrenade"/>
 						<post :script_path="incendiaryburstgrenade.lua" :hook_id="units/weapons/grenades/incendiaryburstgrenade"/>
 						<post :script_path="poisongasgrenade.lua" :hook_id="units/weapons/grenades/poisongasgrenade"/>
 					</group>
-
+					<post :script_path="tripminebase.lua" :hook_id="units/weapons/trip_mine/tripminebase"/>
 					<post :script_path="npcraycastweaponbase.lua" :hook_id="units/weapons/npcraycastweaponbase"/>
 					<post :script_path="raycastweaponbase.lua" :hook_id="units/weapons/raycastweaponbase"/>
 				</group>

@@ -1,1 +1,1 @@
-dofile(ModPath .. 'lua/player_actions/playeractionninjagone.lua')
+--dofile(ModPath .. 'lua/player_actions/playeractionninjagone.lua')
