@@ -1,3 +1,112 @@
+Hooks:PostHook(PlayerStandard, "init", "RaIDPost_PlayerStandard_init", function(self, unit)
+	self._should_upd_att = nil
+end)
+
+--post
+Hooks:PostHook(PlayerStandard, "update", "RaIDPost_PlayerStandard_update", function(self, t, dt)
+	if self._should_upd_att and self._should_upd_att < t then
+		self._should_upd_att = nil
+		self:_upd_attention()
+	end
+end)
+
+function PlayerStandard:_upd_attention()
+	local preset = nil
+
+	if self._ext_movement:ninja_escape_t() then
+		self._should_upd_att = Application:time() + 1
+		return
+	end
+
+	if false and self._seat and self._seat.driving then
+		-- Nothing
+	elseif managers.groupai:state():whisper_mode() then
+		if self._state_data.ducking then
+			preset = {
+				"pl_mask_on_friend_combatant_whisper_mode",
+				"pl_mask_on_friend_non_combatant_whisper_mode",
+				"pl_mask_on_foe_combatant_whisper_mode_crouch",
+				"pl_mask_on_foe_non_combatant_whisper_mode_crouch"
+			}
+		else
+			preset = {
+				"pl_mask_on_friend_combatant_whisper_mode",
+				"pl_mask_on_friend_non_combatant_whisper_mode",
+				"pl_mask_on_foe_combatant_whisper_mode_stand",
+				"pl_mask_on_foe_non_combatant_whisper_mode_stand"
+			}
+		end
+	elseif self._state_data.ducking then
+		preset = {
+			"pl_friend_combatant_cbt",
+			"pl_friend_non_combatant_cbt",
+			"pl_foe_combatant_cbt_crouch",
+			"pl_foe_non_combatant_cbt_crouch"
+		}
+	else
+		preset = {
+			"pl_friend_combatant_cbt",
+			"pl_friend_non_combatant_cbt",
+			"pl_foe_combatant_cbt_stand",
+			"pl_foe_non_combatant_cbt_stand"
+		}
+	end
+
+	self._ext_movement:set_attention_settings(preset)
+end
+
+function PlayerStandard:_enter(enter_data)
+	self._unit:base():set_slot(self._unit, 2)
+
+	if Network:is_server() and self._ext_movement:nav_tracker() then
+		managers.groupai:state():on_player_weapons_hot()
+	end
+
+	if self._ext_movement:nav_tracker() then
+		managers.groupai:state():on_criminal_recovered(self._unit)
+	end
+
+	local skip_equip = enter_data and enter_data.skip_equip
+	local skip_mask_anim = enter_data and enter_data.skip_mask_anim
+
+	if not self:_changing_weapon() and not skip_equip then
+		if not self._state_data.mask_equipped then
+			self._state_data.mask_equipped = true
+
+			if not skip_mask_anim then
+				local equipped_mask = managers.blackmarket:equipped_mask()
+				local peer_id = managers.network:session() and managers.network:session():local_peer():id()
+				local mask_id = managers.blackmarket:get_real_mask_id(equipped_mask.mask_id, peer_id)
+				local equipped_mask_type = tweak_data.blackmarket.masks[mask_id].type
+
+				self._camera_unit:anim_state_machine():set_global((equipped_mask_type or "mask") .. "_equip", 1)
+				self:_start_action_equip(self:get_animation("mask_equip"), 1.6)
+			end
+		else
+			self:_start_action_equip(self:get_animation("equip"))
+			self._ext_inventory:show_equipped_unit()
+		end
+	end
+
+	self._ext_camera:camera_unit():base():set_target_tilt(0)
+
+	if self._ext_movement:nav_tracker() then
+		self._standing_nav_seg_id = self._ext_movement:nav_tracker():nav_segment()
+		local metadata = managers.navigation:get_nav_seg_metadata(self._standing_nav_seg_id)
+		local location_id = metadata.location_id
+
+		managers.hud:set_player_location(location_id)
+		self._unit:base():set_suspicion_multiplier("area", metadata.suspicion_mul)
+		self._unit:base():set_detection_multiplier("area", metadata.detection_mul and 1 / metadata.detection_mul or nil)
+	end
+
+	self._ext_inventory:set_mask_visibility(true)
+	if not self._ext_movement:ninja_escape_t() then
+		self._should_upd_att = Application:time() + 1
+	end
+	self._ext_network:send("set_stance", 3, false, false)
+end
+
 function PlayerStandard:_update_omniscience(t, dt)
 	local action_forbidden = not managers.player:has_category_upgrade("player", "standstill_omniscience") or self:_interacting() or self._ext_movement:has_carry_restriction() or self:is_deploying() or self:_is_throwing_projectile() or self:_is_meleeing() or self:_on_zipline() or self._moving or self:running() or self:_is_reloading() or self:in_air() or self:in_steelsight() or self:is_equipping() or self:shooting() or not managers.groupai:state():whisper_mode() or not tweak_data.player.omniscience
 
@@ -27,7 +136,7 @@ function PlayerStandard:_update_omniscience(t, dt)
 			end
 		end
 
-		self._state_data.omniscience_t = t + tweak_data.player.omniscience.interval_t
+		self._state_data.omniscience_t = t + tweak_data.player.omniscience.start_t
 	end
 end
 
@@ -394,6 +503,7 @@ function PlayerStandard:_check_action_primary_attack(t, input)
 	local new_action = nil
 	local action_wanted = input.btn_primary_attack_state or input.btn_primary_attack_release
 	action_wanted = action_wanted or self:is_shooting_count()
+	action_wanted = action_wanted or self:_is_charging_weapon()
 
 	if action_wanted then
 		local action_forbidden = self:_is_reloading() or self:_changing_weapon() or self:_is_meleeing() or self._use_item_expire_t or self:_interacting() or self:_is_throwing_projectile() or self:_is_deploying_bipod() or self._menu_closed_fire_cooldown > 0 or self:is_switching_stances()
@@ -437,9 +547,10 @@ function PlayerStandard:_check_action_primary_attack(t, input)
 							local start = fire_mode == "single" and input.btn_primary_attack_press
 							start = start or fire_mode == "auto" and input.btn_primary_attack_state
 							start = start or fire_mode == "burst" and input.btn_primary_attack_press
+							start = start or fire_mode == "volley" and input.btn_primary_attack_press
 							start = start and not fire_on_release
 							start = start or fire_on_release and input.btn_primary_attack_release
-
+							
 							if start then
 								if managers.player:get_bulletstorm() or type(managers.player:get_bulletstorm())=="number" and managers.player:get_bulletstorm() > 0 then
 									managers.player:add_to_temporary_property("bullet_storm", managers.player:get_bulletstorm(), 1)
@@ -508,11 +619,20 @@ function PlayerStandard:_check_action_primary_attack(t, input)
 								weap_base:trigger_held(self:get_fire_weapon_position(), self:get_fire_weapon_direction(), dmg_mul, nil, spread_mul, autohit_mul, suppression_mul)
 							end
 						end
-					elseif fire_mode == "auto" then
+					--[[elseif fire_mode == "auto" then
 						if input.btn_primary_attack_state then
 							fired = weap_base:trigger_held(self:get_fire_weapon_position(), self:get_fire_weapon_direction(), dmg_mul, nil, spread_mul, autohit_mul, suppression_mul)
-						end
+						end]]
 					elseif fire_mode == "burst" then
+						fired = weap_base:trigger_held(self:get_fire_weapon_position(), self:get_fire_weapon_direction(), dmg_mul, nil, spread_mul, autohit_mul, suppression_mul)
+					--[[elseif fire_mode == "burst" then
+						fired = weap_base:trigger_held(self:get_fire_weapon_position(), self:get_fire_weapon_direction(), dmg_mul, nil, spread_mul, autohit_mul, suppression_mul)
+					]]
+					elseif fire_mode == "volley" then
+						if self._shooting then
+							fired = weap_base:trigger_held(self:get_fire_weapon_position(), self:get_fire_weapon_direction(), dmg_mul, nil, spread_mul, autohit_mul, suppression_mul)
+						end
+					elseif input.btn_primary_attack_state then
 						fired = weap_base:trigger_held(self:get_fire_weapon_position(), self:get_fire_weapon_direction(), dmg_mul, nil, spread_mul, autohit_mul, suppression_mul)
 					end
 
@@ -524,7 +644,8 @@ function PlayerStandard:_check_action_primary_attack(t, input)
 						end
 					end
 
-					local charging_weapon = fire_on_release and weap_base:charging()
+					
+					local charging_weapon = weap_base:charging()
 
 					if not self._state_data.charging_weapon and charging_weapon then
 						self:_start_action_charging_weapon(t)
@@ -538,7 +659,8 @@ function PlayerStandard:_check_action_primary_attack(t, input)
 						managers.rumble:play("weapon_fire")
 
 						local weap_tweak_data = tweak_data.weapon[weap_base:get_name_id()]
-						local shake_multiplier = weap_tweak_data.shake[self._state_data.in_steelsight and "fire_steelsight_multiplier" or "fire_multiplier"]
+						local shake_tweak_data = weap_tweak_data.shake[fire_mode] or weap_tweak_data.shake
+						local shake_multiplier = shake_tweak_data[self._state_data.in_steelsight and "fire_steelsight_multiplier" or "fire_multiplier"]
 
 						self._ext_camera:play_shaker("fire_weapon_rot", 1 * shake_multiplier)
 						self._ext_camera:play_shaker("fire_weapon_kick", 1 * shake_multiplier, 1, 0.15)
@@ -549,11 +671,12 @@ function PlayerStandard:_check_action_primary_attack(t, input)
 							weap_base:tweak_data_anim_play("fire", weap_base:fire_rate_multiplier())
 						end
 
-						if (fire_mode == "single" or fire_mode == "burst") and weap_base:get_name_id() ~= "saw" then
+						if fire_mode ~= "auto" and weap_base:get_name_id() ~= "saw" then
+							local state = nil
 							if not self._state_data.in_steelsight then
-								self._ext_camera:play_redirect(self:get_animation("recoil"), weap_base:fire_rate_multiplier())
+								state = self._ext_camera:play_redirect(self:get_animation("recoil"), weap_base:fire_rate_multiplier())
 							elseif weap_tweak_data.animations.recoil_steelsight then
-								self._ext_camera:play_redirect(weap_base:is_second_sight_on() and self:get_animation("recoil") or self:get_animation("recoil_steelsight"), 1)
+								state = self._ext_camera:play_redirect(weap_base:is_second_sight_on() and self:get_animation("recoil") or self:get_animation("recoil_steelsight"), 1)
 							end
 						end
 
@@ -561,7 +684,8 @@ function PlayerStandard:_check_action_primary_attack(t, input)
 
 						cat_print("jansve", "[PlayerStandard] Weapon Recoil Multiplier: " .. tostring(recoil_multiplier))
 
-						local up, down, left, right = unpack(weap_tweak_data.kick[self._state_data.in_steelsight and "steelsight" or self._state_data.ducking and "crouching" or "standing"])
+						local kick_tweak_data = weap_tweak_data.kick[fire_mode] or weap_tweak_data.kick
+						local up, down, left, right = unpack(kick_tweak_data[self._state_data.in_steelsight and "steelsight" or self._state_data.ducking and "crouching" or "standing"])
 
 						self._camera_unit:base():recoil_kick(up * recoil_multiplier, down * recoil_multiplier, left * recoil_multiplier, right * recoil_multiplier)
 
@@ -616,13 +740,20 @@ function PlayerStandard:_check_action_primary_attack(t, input)
 
 						if weap_base.third_person_important and weap_base:third_person_important() then
 							self._ext_network:send("shot_blank_reliable", impact, 0)
-						elseif weap_base.akimbo and not weap_base:weapon_tweak_data().allow_akimbo_autofire or fire_mode == "single" or fire_mode == "burst" then
+						elseif fire_mode ~= "auto" or weap_base.akimbo and not weap_base:weapon_tweak_data().allow_akimbo_autofire then
 							self._ext_network:send("shot_blank", impact, 0)
+						end
+						if fire_mode == "volley" then
+							self:_check_stop_shooting()
 						end
 					elseif fire_mode == "single" then
 						new_action = false
-					elseif fire_mode == "burst" and weap_base:shooting_count() == 0 then
-						new_action = false
+					elseif fire_mode == "burst" then
+						if weap_base:shooting_count() == 0 then
+							new_action = false
+						end
+					elseif fire_mode == "volley" then
+						new_action = self:_is_charging_weapon()
 					end
 				end
 			end
@@ -710,13 +841,41 @@ function PlayerStandard:_end_action_ducking(t, skip_can_stand_check)
 	self:_activate_mover(PlayerStandard.MOVER_STAND, velocity)
 	self._ext_network:send("action_change_pose", 1, self._unit:position())
 	if not self._ext_movement:ninja_escape_t() then
-		self:_upd_attention()
+		self._should_upd_att = Application:time() + 1
 	end
 end
 
 function PlayerStandard:_check_action_weapon_gadget(t, input)
-	if input.btn_weapon_gadget_press and not self._ext_movement:ninja_escape_hud() then
+	if self._ext_movement:ninja_escape_hud() then
+		return
+	end
+	if input.btn_weapon_gadget_press then
 		self:_toggle_gadget(self._equipped_unit:base())
+	end
+end
+
+function PlayerStandard:_toggle_gadget(weap_base)
+	if self._ext_movement:ninja_escape_hud() then
+		return
+	end
+	local gadget_index = 0
+
+	if weap_base.toggle_gadget and weap_base:has_gadget() and weap_base:toggle_gadget(self) then
+		gadget_index = weap_base:current_gadget_index()
+
+		self._unit:network():send("set_weapon_gadget_state", weap_base._gadget_on)
+
+		local gadget = weap_base:get_active_gadget()
+
+		if gadget and gadget.color then
+			local col = gadget:color()
+
+			self._unit:network():send("set_weapon_gadget_color", col.r * 255, col.g * 255, col.b * 255)
+		end
+
+		if alive(self._equipped_unit) then
+			managers.hud:set_ammo_amount(weap_base:selection_index(), weap_base:ammo_info())
+		end
 	end
 end
 
@@ -729,7 +888,239 @@ Hooks:PostHook(PlayerStandard, "_check_stop_shooting", "RaIDPost_PlayerStandard_
 	end
 end)
 
+--post
+Hooks:PostHook(PlayerStandard, "exit", "RaIDPost_PlayerStandard_exit", function(self, state_data, new_state_name)
+	if self._should_upd_att then
+		self._should_upd_att = nil
+	end
+end)
+
 function PlayerStandard:_do_mover()
 	self._unit:mover():set_velocity(self._last_velocity_xy + (self._last_velocity_xy * 0.8))
 	self._unit:mover():set_gravity(Vector3(0, 0, 0))
+end
+
+local melee_vars = {
+	"player_melee",
+	"player_melee_var2"
+}
+
+function PlayerStandard:_do_melee_damage(t, bayonet_melee, melee_hit_ray, melee_entry, hand_id)
+	melee_entry = melee_entry or managers.blackmarket:equipped_melee_weapon()
+	local instant_hit = tweak_data.blackmarket.melee_weapons[melee_entry].instant
+	local melee_damage_delay = tweak_data.blackmarket.melee_weapons[melee_entry].melee_damage_delay or 0
+	local charge_lerp_value = instant_hit and 0 or self:_get_melee_charge_lerp_value(t, melee_damage_delay)
+
+	self._ext_camera:play_shaker(melee_vars[math.random(#melee_vars)], math.max(0.3, charge_lerp_value))
+
+	local sphere_cast_radius = 20
+	local col_ray = nil
+
+	if melee_hit_ray then
+		col_ray = melee_hit_ray ~= true and melee_hit_ray or nil
+	else
+		col_ray = self:_calc_melee_hit_ray(t, sphere_cast_radius)
+	end
+
+	if col_ray and alive(col_ray.unit) then
+		local damage, damage_effect = managers.blackmarket:equipped_melee_weapon_damage_info(charge_lerp_value)
+		local damage_effect_mul = math.max(managers.player:upgrade_value("player", "melee_knockdown_mul", 1), managers.player:upgrade_value(self._equipped_unit:base():weapon_tweak_data().categories and self._equipped_unit:base():weapon_tweak_data().categories[1], "melee_knockdown_mul", 1))
+		damage = damage * managers.player:get_melee_dmg_multiplier()
+		damage_effect = damage_effect * damage_effect_mul
+		col_ray.sphere_cast_radius = sphere_cast_radius
+		local hit_unit = col_ray.unit
+
+		if hit_unit:character_damage() then
+			if bayonet_melee then
+				self._unit:sound():play("fairbairn_hit_body", nil, false)
+			else
+				local hit_sfx = "hit_body"
+
+				if hit_unit:character_damage() and hit_unit:character_damage().melee_hit_sfx then
+					hit_sfx = hit_unit:character_damage():melee_hit_sfx()
+				end
+
+				self:_play_melee_sound(melee_entry, hit_sfx, self._melee_attack_var)
+			end
+
+			if not hit_unit:character_damage()._no_blood then
+				managers.game_play_central:play_impact_flesh({
+					col_ray = col_ray
+				})
+				managers.game_play_central:play_impact_sound_and_effects({
+					no_decal = true,
+					no_sound = true,
+					col_ray = col_ray
+				})
+			end
+
+			self._camera_unit:base():play_anim_melee_item("hit_body")
+		else
+			if self._on_melee_restart_drill and hit_unit:base() and (hit_unit:base().is_drill or hit_unit:base().is_saw) then
+				hit_unit:base():on_melee_hit(managers.network:session():local_peer():id())
+			end
+
+			if bayonet_melee then
+				self._unit:sound():play("knife_hit_gen", nil, false)
+			else
+				self:_play_melee_sound(melee_entry, "hit_gen", self._melee_attack_var)
+			end
+
+			self._camera_unit:base():play_anim_melee_item("hit_gen")
+			managers.game_play_central:play_impact_sound_and_effects({
+				no_decal = true,
+				no_sound = true,
+				col_ray = col_ray,
+				effect = Idstring("effects/payday2/particles/impacts/fallback_impact_pd2")
+			})
+		end
+
+		local custom_data = nil
+
+		if _G.IS_VR and hand_id then
+			custom_data = {
+				engine = hand_id == 1 and "right" or "left"
+			}
+		end
+
+		managers.rumble:play("melee_hit", nil, nil, custom_data)
+		managers.game_play_central:physics_push(col_ray)
+
+		local character_unit, shield_knock = nil
+		local can_shield_knock = managers.player:has_category_upgrade("player", "shield_knock")
+
+		if can_shield_knock and hit_unit:in_slot(8) and alive(hit_unit:parent()) and not hit_unit:parent():character_damage():is_immune_to_shield_knockback() then
+			shield_knock = true
+			character_unit = hit_unit:parent()
+		end
+
+		character_unit = character_unit or hit_unit
+
+		if character_unit:character_damage() and character_unit:character_damage().damage_melee then
+			local dmg_multiplier = 1
+
+			if not managers.enemy:is_civilian(character_unit) and not managers.groupai:state():is_enemy_special(character_unit) then
+				dmg_multiplier = dmg_multiplier * managers.player:upgrade_value("player", "non_special_melee_multiplier", 1)
+			else
+				dmg_multiplier = dmg_multiplier * managers.player:upgrade_value("player", "melee_damage_multiplier", 1)
+			end
+
+			dmg_multiplier = dmg_multiplier * managers.player:upgrade_value("player", "melee_" .. tostring(tweak_data.blackmarket.melee_weapons[melee_entry].stats.weapon_type) .. "_damage_multiplier", 1)
+
+			if managers.player:has_category_upgrade("melee", "stacking_hit_damage_multiplier") then
+				self._state_data.stacking_dmg_mul = self._state_data.stacking_dmg_mul or {}
+				self._state_data.stacking_dmg_mul.melee = self._state_data.stacking_dmg_mul.melee or {
+					nil,
+					0
+				}
+				local stack = self._state_data.stacking_dmg_mul.melee
+
+				if stack[1] and t < stack[1] then
+					dmg_multiplier = dmg_multiplier * (1 + managers.player:upgrade_value("melee", "stacking_hit_damage_multiplier", 0) * stack[2])
+				else
+					stack[2] = 0
+				end
+			end
+
+			local health_ratio = self._ext_damage:health_ratio()
+			local damage_health_ratio = managers.player:get_damage_health_ratio(health_ratio, "melee")
+
+			if damage_health_ratio > 0 then
+				local damage_ratio = damage_health_ratio
+				dmg_multiplier = dmg_multiplier * (1 + managers.player:upgrade_value("player", "melee_damage_health_ratio_multiplier", 0) * damage_ratio)
+			end
+
+			dmg_multiplier = dmg_multiplier * managers.player:temporary_upgrade_value("temporary", "berserker_damage_multiplier", 1)
+			local target_dead = character_unit:character_damage().dead and not character_unit:character_damage():dead()
+			local target_hostile = managers.enemy:is_enemy(character_unit) and not tweak_data.character[character_unit:base()._tweak_table].is_escort and character_unit:brain():is_hostile()
+			local life_leach_available = managers.player:has_category_upgrade("temporary", "melee_life_leech") and not managers.player:has_activate_temporary_upgrade("temporary", "melee_life_leech")
+
+			if target_dead and target_hostile and life_leach_available then
+				managers.player:activate_temporary_upgrade("temporary", "melee_life_leech")
+				self._unit:character_damage():restore_health(managers.player:temporary_upgrade_value("temporary", "melee_life_leech", 1))
+			end
+
+			local action_data = {
+				variant = "melee"
+			}
+
+			if _G.IS_VR and melee_entry == "weapon" and not bayonet_melee then
+				dmg_multiplier = 0.1
+			end
+
+			action_data.damage = shield_knock and 0 or damage * dmg_multiplier
+			action_data.damage_effect = damage_effect
+			action_data.attacker_unit = self._unit
+			action_data.col_ray = col_ray
+
+			if shield_knock then
+				action_data.shield_knock = can_shield_knock
+			end
+
+			action_data.name_id = melee_entry
+			action_data.charge_lerp_value = charge_lerp_value
+
+			if managers.player:has_category_upgrade("melee", "stacking_hit_damage_multiplier") then
+				self._state_data.stacking_dmg_mul = self._state_data.stacking_dmg_mul or {}
+				self._state_data.stacking_dmg_mul.melee = self._state_data.stacking_dmg_mul.melee or {
+					nil,
+					0
+				}
+				local stack = self._state_data.stacking_dmg_mul.melee
+
+				if character_unit:character_damage().dead and not character_unit:character_damage():dead() then
+					stack[1] = t + managers.player:upgrade_value("melee", "stacking_hit_expire_t", 1)
+					stack[2] = math.min(stack[2] + 1, tweak_data.upgrades.max_melee_weapon_dmg_mul_stacks or 5)
+				else
+					stack[1] = nil
+					stack[2] = 0
+				end
+			end
+
+			local defense_data = character_unit:character_damage():damage_melee(action_data)
+
+			self:_check_melee_dot_damage(col_ray, defense_data, melee_entry)
+			self:_perform_sync_melee_damage(hit_unit, col_ray, action_data.damage)
+
+			if tweak_data.blackmarket.melee_weapons[melee_entry].tase_data and character_unit:character_damage().damage_tase then
+				local action_data = {
+					variant = tweak_data.blackmarket.melee_weapons[melee_entry].tase_data.tase_strength,
+					damage = 0,
+					attacker_unit = self._unit,
+					col_ray = col_ray
+				}
+
+				character_unit:character_damage():damage_tase(action_data)
+			end
+
+			if tweak_data.blackmarket.melee_weapons[melee_entry].fire_dot_data and character_unit:character_damage().damage_fire then
+				local action_data = {
+					variant = "fire",
+					damage = 0,
+					attacker_unit = self._unit,
+					col_ray = col_ray,
+					fire_dot_data = tweak_data.blackmarket.melee_weapons[melee_entry].fire_dot_data
+				}
+
+				character_unit:character_damage():damage_fire(action_data)
+			end
+
+			return defense_data
+		else
+			self:_perform_sync_melee_damage(hit_unit, col_ray, damage)
+		end
+	end
+
+	if managers.player:has_category_upgrade("melee", "stacking_hit_damage_multiplier") then
+		self._state_data.stacking_dmg_mul = self._state_data.stacking_dmg_mul or {}
+		self._state_data.stacking_dmg_mul.melee = self._state_data.stacking_dmg_mul.melee or {
+			nil,
+			0
+		}
+		local stack = self._state_data.stacking_dmg_mul.melee
+		stack[1] = nil
+		stack[2] = 0
+	end
+
+	return col_ray
 end

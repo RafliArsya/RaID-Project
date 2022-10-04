@@ -549,6 +549,12 @@ function UpgradesTweakData:init(...)
 		}
 	}
 
+	--flashbang
+	self.values.player.flashbang_multiplier = {
+		2,
+		5
+	}
+
     --scavenger
     self.values.player.increased_pickup_area = {
         1.5
@@ -566,7 +572,7 @@ function UpgradesTweakData:init(...)
     --fully Loaded + Buff + Fixes
 	self.values.player.regain_throwable_from_ammo = {
 		{
-			chance = 0.05,
+			chance = 0.03,
 			chance_inc = 0.0125
 		},
 		{

@@ -31,6 +31,7 @@ Hooks:PostHook(PlayerMovement, 'init', 'RaIDPost_PlayerMovement_Init', function(
         is_active = false
 	}
 	self._ninja_gone = {
+		hud_t = nil,
 		is_hud_on = false,
 		is_pressed = false,
 		active_t = nil,
@@ -57,7 +58,7 @@ function PlayerMovement:update(unit, t, dt)
 	end
 
 	if self._ninja_gone.active_t then
-		if self._ninja_gone.active_t - 1.75 < t then
+		if t > self._ninja_gone.active_t - 1.85 then
 			local velocity = managers.player:player_unit():mover():velocity()
 
 			if self:crouching() then
@@ -66,7 +67,7 @@ function PlayerMovement:update(unit, t, dt)
 				self:current_state():_activate_mover(PlayerStandard.MOVER_STAND, velocity)
 			end
 		end
-		if self._ninja_gone.active_t < t then
+		if t > self._ninja_gone.active_t then
 			self:current_state():_upd_attention()
 			self._ninja_gone.active_t = nil
 		end
@@ -145,15 +146,16 @@ end
 Hooks:PostHook(PlayerMovement, '_feed_suspicion_to_hud', 'RaIDPost_PlayerMovement__feed_suspicion_to_hud', function(self, ...)
 	local susp_ratio = self._suspicion_ratio
 	--log(tostring(self._suspicion_ratio))
-	if managers.player:has_category_upgrade("player", "ninja_escape_move") and susp_ratio then
+	if managers.player:has_category_upgrade("player", "ninja_escape_move") and susp_ratio and not managers.player:is_carrying() then
 		local key_press = managers.player:player_unit():base():controller()
-		local interact_pressed = key_press:get_input_bool("weapon_gadget")
+		local interact_pressed = key_press:get_input_bool("interact")
 		local is_pressed = interact_pressed and true or false
 
 		self._ninja_gone.is_pressed = is_pressed
 
 		if not self._ninja_gone.cooldown and not self._ninja_gone.active_t then
 			if not self._ninja_gone.is_pressed then
+				self._ninja_gone.hud_t = Application:time() + 1.25
 				if not managers.player._coroutine_mgr:is_running(PlayerAction.NinjaGone) then
 					managers.player:add_coroutine("ninja_gone", PlayerAction.NinjaGone, managers.player, managers.hud, self)
 				end

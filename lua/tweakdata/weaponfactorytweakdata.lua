@@ -19,6 +19,15 @@ local initwf_pd2 = WeaponFactoryTweakData.init
 function WeaponFactoryTweakData:init(tweak_data)
     initwf_pd2(self, tweak_data)
 	
+	--Weapon Override--
+	self.wpn_fps_ass_m16.override.wpn_fps_upg_ass_m4_b_beowulf.custom_stats.falloff_override = {
+		optimal_distance = 3600,
+		optimal_range = 0,
+		near_falloff = 3600,
+		far_falloff = 3600,
+		near_mul = 1.2,
+		far_mul = 0.8
+	}
 	---Modification---
 	--body--
 	self.parts.wpn_fps_saw_body_silent.stats = {value = 1, suppression = 9, alert_size = 12} --SAW Silent Motor						--- # Butchermod Special
@@ -77,6 +86,24 @@ function WeaponFactoryTweakData:init(tweak_data)
 		sub_type = "ammo_custom"
 	} --buckshot dlc
 	self.parts.wpn_fps_upg_a_custom_free.stats = {value = 5, damage = 15} --buckshot free
+
+	self.parts.wpn_fps_upg_a_dragons_breath.custom_stats = {
+		armor_piercing_add = 1,
+		ignore_statistic = true,
+		muzzleflash = "effects/payday2/particles/weapons/shotgun/sho_muzzleflash_dragons_breath",
+		can_shoot_through_shield = true,
+		damage_far_mul = 1,
+		damage_near_mul = 1,
+		bullet_class = "FlameBulletBase",
+		rays = 12,
+		fire_dot_data = {
+			dot_trigger_chance = "8",
+			dot_damage = "10",
+			dot_length = "3.1",
+			dot_trigger_max_distance = "1400",
+			dot_tick_period = "0.5"
+		}
+	}
 
 	self.parts.wpn_fps_upg_a_mod = {
 		pcs = {},

@@ -3,22 +3,42 @@ PlayerAction.NinjaGone = {
 	Function = function (player_manager, n_hud, player)
 		local co = coroutine.running()
 
+		local last_sus = player:_get_sus_rat()
+
 		local interact_string = managers.localization:text("hud_int_ninja_escape", {
 			BTN_GADGET = managers.localization:btn_macro("weapon_gadget", false)
 		})
 		
-		local sus_rat = type(player:_get_sus_rat())=="number" and player:_get_sus_rat() > 0 or type(player:_get_sus_rat())=="boolean" and tostring(player:_get_sus_rat()) == "true"
+		local sus_rat = type(player:_get_sus_rat())=="number" and player:_get_sus_rat() > 0 or type(player:_get_sus_rat())=="boolean" and tostring(player:_get_sus_rat()) == "true" and (type(last_sus)=="number" and last_sus < 1 or not last_sus)
 		local controller = player_manager:player_unit():base():controller()
 		local whisper = managers.groupai and managers.groupai:state():whisper_mode()
-		local is_pass = player_manager:current_state() == "standard" and player_manager:current_state() ~= "carry" and sus_rat and whisper
+		local carry = player_manager:current_state() == "carry" or player_manager:get_my_carry_data() or player_manager:is_carrying()
+		local is_pass = player_manager:current_state() == "standard" and not carry and sus_rat and whisper
 
 		while is_pass do
-			local break_rules = type(player:_get_sus_rat())=="number" and (player:_get_sus_rat() == 0 or player:_get_sus_rat() == 1) or type(player:_get_sus_rat())=="boolean" and tostring(player:_get_sus_rat())=="false"
 			local current_time = Application:time()
 			local button_pressed = controller:get_input_pressed("weapon_gadget")
 
-			if not whisper or break_rules then
+			if not whisper then
 				break
+			end
+
+			if carry then
+				break
+			end
+
+			if type(last_sus)=="number" and last_sus < 1 and player:_get_sus_rat() == true then
+				break
+			end
+
+			if type(last_sus)=="number" and last_sus > 0 and player:_get_sus_rat() == false then
+				break
+			end
+
+			if player._ninja_gone.hud_t and player._ninja_gone.hud_t < current_time then
+				if type(last_sus) == "boolean" and player:ninja_escape_hud() then
+					break
+				end
 			end
 
 			if not player:ninja_escape_hud() then
@@ -40,16 +60,15 @@ PlayerAction.NinjaGone = {
 				player:set_attention_settings({
 					"pl_civilian"
 				})
-				player:ninja_escape_t(current_time + 2)
-				player:ninja_escape_cd(current_time + 20)
+				player:ninja_escape_t(Application:time() + 2.25)
+				player:ninja_escape_cd(Application:time() + 20)
 				if player:current_state():_do_mover() then
 					player:current_state():_do_mover()
 				end
-				n_hud:remove_interact()
-				player._ninja_gone.is_hud_on = false
 				break
 			end
 
+			last_sus = player:_get_sus_rat()
 			coroutine.yield(co)
 		end	
 		
@@ -57,8 +76,9 @@ PlayerAction.NinjaGone = {
 			n_hud:remove_interact()		
 		end
 		player._ninja_gone.is_hud_on = false
-		if player_manager._coroutine_mgr:is_running("ninja_gone") then
+		player._ninja_gone.hud_t = nil
+		--[[if player_manager._coroutine_mgr:is_running("ninja_gone") then
 			player_manager._coroutine_mgr:remove_coroutine("ninja_gone")
-		end
+		end]]
 	end
 }

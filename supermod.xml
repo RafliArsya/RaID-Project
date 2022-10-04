@@ -1,6 +1,9 @@
 <?xml version="1.0"?>
 <mod>
 	<hooks script_path="" hook_id="core/lib/">
+		<group :script_path="core/managers/">
+			<post :script_path="coreenvironmentcontrollermanager.lua" :hook_id="managers/coreenvironmentcontrollermanager"/>
+		</group>
 		<group :script_path="core/utils/">
 			<post :script_path="coremath.lua" :hook_id="utils/coremath"/>
 		</group>
@@ -9,22 +12,33 @@
 		<post :script_path="base.lua" :hook_id="entry"/>
 
 		<group :script_path="lua/">
-			<group :script_path="manager/">
+			<group :script_path="managers/">
 				<group :script_path="player/">
 					<post :script_path="poisongaseffect.lua" :hook_id="managers/player/poisongaseffect"/>
 					<post :script_path="snipergrazedamage.lua" :hook_id="managers/player/snipergrazedamage"/>
 				</group>
+				<post :script_path="achievmentmanager.lua" :hook_id="managers/achievmentmanager"/>
+				<post :script_path="blackmarketmanager.lua" :hook_id="managers/blackmarketmanager"/>
+				<post :script_path="customsafehousemanager.lua" :hook_id="managers/customsafehousemanager"/>
+				<post :script_path="dotmanager.lua" :hook_id="managers/dotmanager"/>
+				<post :script_path="firemanager.lua" :hook_id="managers/firemanager"/>
 				<post :script_path="experiencemanager.lua" :hook_id="managers/experiencemanager"/>
 				<post :script_path="explosionmanager.lua" :hook_id="managers/explosionmanager"/>
 				<post :script_path="groupaistatebase.lua" :hook_id="managers/group_ai_states/groupaistatebase"/>
 				<post :script_path="hudmanagerpd2.lua" :hook_id="managers/hudmanagerpd2"/>
-				<post :script_path="hudinteraction.lua" :hook_id="managers/hud/hudinteraction"/>
-				<post :script_path="hudsuspicion.lua" :hook_id="managers/hud/hudsuspicion"/>
+				<!--<post :script_path="hudinteraction.lua" :hook_id="managers/hud/hudinteraction"/>-->
+				<!--<post :script_path="hudsuspicion.lua" :hook_id="managers/hud/hudsuspicion"/>-->
 				<post :script_path="menumanager.lua" :hook_id="managers/menumanager"/>
+				<post :script_path="mutatorsmanager.lua" :hook_id="managers/mutatorsmanager"/>
 				<post :script_path="playermanager.lua" :hook_id="managers/playermanager"/>
 				<post :script_path="playerinventorygui.lua" :hook_id="managers/menu/playerinventorygui"/>
 				
 				<!--<post :script_path="statisticsmanager.lua" :hook_id="managers/statisticsmanager"/>-->
+			</group>
+
+			<group :script_path="mutators/">
+				<post :script_path="mutatorenemydamage.lua" :hook_id="mutators/mutatorenemydamage"/>
+				<post :script_path="mutatorenemyhealth.lua" :hook_id="mutators/mutatorenemyhealth"/>
 			</group>
 
 			<group :script_path="network/">
@@ -40,9 +54,11 @@
 			</group>
 
 			<group :script_path="tweakdata/">
+				<!--<post :script_path="mutatortweakdata.lua" :hook_id="tweak_data/mutatortweakdata"/>-->
 				<post :script_path="playertweakdata.lua" :hook_id="tweak_data/playertweakdata"/>
 				<post :script_path="skilltreetweakdata.lua" :hook_id="tweak_data/skilltreetweakdata"/>
 				<post :script_path="upgradestweakdata.lua" :hook_id="tweak_data/upgradestweakdata"/>
+				<post :script_path="weaponfallofftweakdata.lua" :hook_id="tweak_data/weaponfallofftweakdata"/>
 				<post :script_path="weaponfactorytweakdata.lua" :hook_id="tweak_data/weaponfactorytweakdata"/>
 			</group>
 
@@ -52,6 +68,7 @@
 				<post :script_path="drill.lua" :hook_id="units/props/drill"/>
 
 				<group :script_path="player/">
+					<post :script_path="playerbase.lua" :hook_id="units/beings/player/playerbase"/>
 					<post :script_path="playercarry.lua" :hook_id="units/beings/player/states/playercarry"/>
 					<post :script_path="playerdamage.lua" :hook_id="units/beings/player/playerdamage"/>
 					<post :script_path="playermovement.lua" :hook_id="units/beings/player/playermovement"/>
@@ -63,6 +80,7 @@
 
 				<group :script_path="enemies/">
 					<post :script_path="copdamage.lua" :hook_id="units/enemies/cop/copdamage"/>
+					<!--<post :script_path="copactionhurt.lua" :hook_id="units/enemies/cop/actions/full_body/copactionhurt"/>-->
 				</group>
 
 				<group :script_path="weapons/">
@@ -73,7 +91,9 @@
 					</group>
 					<post :script_path="tripminebase.lua" :hook_id="units/weapons/trip_mine/tripminebase"/>
 					<post :script_path="npcraycastweaponbase.lua" :hook_id="units/weapons/npcraycastweaponbase"/>
+					<post :script_path="newraycastweaponbase.lua" :hook_id="units/weapons/newraycastweaponbase"/>
 					<post :script_path="raycastweaponbase.lua" :hook_id="units/weapons/raycastweaponbase"/>
+					<post :script_path="shotgunbase.lua" :hook_id="units/weapons/shotgun/shotgunbase"/>
 				</group>
 			</group>
 		</group>

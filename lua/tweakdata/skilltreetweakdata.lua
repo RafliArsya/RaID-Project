@@ -285,6 +285,30 @@ function SkillTreeTweakData:init(...)
 		}
 	}
 
+	--resilience
+	self.skills.oppressor = {
+		{
+			upgrades = {
+				"player_armor_regen_time_mul_1",
+				--moved from oppressor aced (resilience)
+				"player_flashbang_multiplier_1"
+			},
+			cost = self.costs.default
+		},
+		{
+			upgrades = {
+				"player_flashbang_multiplier_2"
+			},
+			cost = self.costs.pro
+		},
+		name_id = "menu_oppressor_beta",
+		desc_id = "menu_oppressor_beta_desc",
+		icon_xy = {
+			2,
+			12
+		}
+	}
+
     --scavenger
     self.skills.scavenging = {
 		{

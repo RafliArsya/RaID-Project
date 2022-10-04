@@ -127,7 +127,7 @@ function PlayerTweakData:init(...)
 	self.omniscience = {
 		start_t = 3,
 		interval_t = 1.5,
-		sense_radius = 1300,
+		sense_radius = 1400,
 		target_resense_t = 12
 	}
 	
