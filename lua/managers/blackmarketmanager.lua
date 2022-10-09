@@ -1,3 +1,70 @@
+--[[function BlackMarketManager:WriteFile(Contents)
+	local file, err = io.open(RaID._path.."/shotgunprint.txt", "r")
+	if not file then
+		file = io.open(RaID._path.."/shotgunprint.txt", "w")
+		file:close()
+	else
+		file:close()
+		file = io.open(RaID._path.."/shotgunprint.txt", "a")
+		file:write(Contents.."\n")
+		file:close()
+	end
+end
+
+function BlackMarketManager:_setup_weapons()
+	local weapons = {}
+	Global.blackmarket_manager.weapons = weapons
+
+    local count = 0
+    local stringout = ""
+	for weapon, data in pairs(tweak_data.weapon) do
+        if tweak_data.weapon[weapon].categories and type(tweak_data.weapon[weapon].categories)=="table" and tweak_data.weapon[weapon].categories[1] == "shotgun" then
+            if not string.find(weapon, "_crew") and not string.find(weapon, "_npc") then
+                count = count + 1
+                stringout = stringout .. "self." .. tostring(weapon) .. "\n"
+                --log("weapon = "..tostring(weapon))
+                for w, d in pairs(data) do
+                    local w_text = tostring(w)
+                    if w_text == "stats" or w_text == "rays" or w_text == "stats_modifiers" then
+                        if type(d) == "table" then
+                            --log(tostring(w))
+                            stringout = stringout .. tostring(w) .. "\n"
+                            for k, v in pairs(d) do
+                                stringout = stringout .. tostring(k) .. " = " .. tostring(v) .. "\n"
+                                --log(tostring(k).." = "..tostring(v))
+                            end
+                        else
+                            stringout = stringout .. tostring(w) .. " = " .. tostring(d) .. "\n"
+                            --log(tostring(w).." = "..tostring(d))
+                        end
+                    end
+                end
+            end
+        end
+		if data.autohit then
+			local selection_index = data.use_data.selection_index
+			local equipped = weapon == managers.player:weapon_in_slot(selection_index)
+			local factory_id = managers.weapon_factory:get_factory_id_by_weapon_id(weapon)
+			weapons[weapon] = {
+				owned = false,
+				unlocked = false,
+				factory_id = factory_id,
+				selection_index = selection_index
+			}
+			local is_default, weapon_level, got_parent = managers.upgrades:get_value(weapon)
+			weapons[weapon].level = weapon_level
+			weapons[weapon].skill_based = got_parent or not is_default and weapon_level == 0 and not tweak_data.weapon[weapon].global_value
+			weapons[weapon].func_based = tweak_data.weapon[weapon].unlock_func
+
+			if _G.IS_VR then
+				weapons[weapon].vr_locked = tweak_data.vr:is_locked("weapons", weapon)
+			end
+		end
+	end
+    self:WriteFile(stringout)
+    log("Count = "..tostring(count))
+end]]
+
 function BlackMarketManager:modify_damage_falloff(damage_falloff, custom_stats)
 	if damage_falloff and custom_stats then
         --log("ORIG : "..tostring(damage_falloff.optimal_distance))

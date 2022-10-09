@@ -34,15 +34,19 @@ function WeaponFactoryTweakData:init(tweak_data)
 	self.parts.wpn_fps_saw_body_speed.stats = {value = 1, damage = 4, suppression = -3} --SAW Speed Motor								--- # Butchermod Special
 
 	--barrel ext
-	-- -1 star
-	self.parts.wpn_fps_upg_ns_ass_smg_large.stats = {value = 5, suppression = 12, alert_size = 12, damage = -1, recoil = 1, spread_moving = 2, spread = 2, concealment = -3} --The Bigger The Better suppressor		--- # Basemod SMG Rifle Ext
-	
+	-- -4 stars
+	self.parts.wpn_fps_upg_ns_ass_smg_small.stats = {value = 3, suppression = 12, alert_size = 12, damage = -4} --Low Profile suppressor	
+
 	-- -3 stars
 	self.parts.wpn_fps_upg_ns_ass_smg_medium.stats = {value = 2, suppression = 12, alert_size = 12, damage = -3, recoil = 1, spread = 1, concealment = -2} --Medium suppressor
 	--self.parts.wpn_fps_ass_shak12_ns_suppressor.stats = {alert_size = 12, spread = 3, damage = -2, suppression = 12, value = 1, recoil = 1, concealment = -5 } --KS12 Long silencer								--- # Basemod SMG Rifle Ext
-	
-	-- -4 stars
-	self.parts.wpn_fps_upg_ns_ass_smg_small.stats = {value = 3, suppression = 12, alert_size = 12, damage = -4} --Low Profile suppressor	
+
+	-- -1 star
+	self.parts.wpn_fps_upg_ns_ass_smg_large.stats = {value = 5, suppression = 12, alert_size = 12, recoil = 1, spread_moving = 2, spread = 2, concealment = -3} --The Bigger The Better suppressor		--- # Basemod SMG Rifle Ext
+	self.parts.wpn_fps_hailstorm_b_ext_suppressed.stats = {alert_size = 12,spread = 2,damage = -1,suppression = 12,value = 3,recoil = 1,concealment = -3} -- Hailstorm v3.8
+
+	-- 0 star
+	self.parts.wpn_fps_hailstorm_b_suppressed.stats = {alert_size = 12,spread = 1,suppression = 12,value = 3,recoil = 1,concealment = -2} -- Hailstorm v2.2
 	
 	--1 star
 	self.parts.wpn_fps_upg_ass_ns_battle.stats = {value = 1, damage = 2, spread = 1, concealment = -2} --Ported Compensator
@@ -53,6 +57,10 @@ function WeaponFactoryTweakData:init(tweak_data)
 	--3 stars
 	self.parts.wpn_fps_lmg_hk51b_ns_jcomp.stats = {value = 1, concealment = -1, damage = 1, spread = 1, recoil = 1, suppression = -1} --Verdunkeln Muzzle Brake
 	
+	--sight
+	self.parts.wpn_fps_upg_o_fc1.stats = {zoom = 3, value = 5, spread_moving = -1}
+	self.parts.wpn_fps_upg_o_rms.stats = {zoom = 3, value = 6, spread_moving = -1}
+	self.parts.wpn_fps_hailstorm_o_claymore.perks = {"scope", "highlight"} -- Hailstorm Default Sight
 
 	--extra--
 	self.parts.wpn_fps_snp_m95_bipod = { 
@@ -81,28 +89,54 @@ function WeaponFactoryTweakData:init(tweak_data)
 		dlc = "gage_pack_shotgun",
 		texture_bundle_folder = "gage_pack_shotgun",
 		is_a_unlockable = true,
-		stats = {value = 5, damage = 16},
+		stats = {value = 5, damage = 25},
 		internal_part = true,
 		sub_type = "ammo_custom"
 	} --buckshot dlc
-	self.parts.wpn_fps_upg_a_custom_free.stats = {value = 5, damage = 15} --buckshot free
+	self.parts.wpn_fps_upg_a_custom_free.stats = {value = 5, damage = 20} --buckshot free
+	
+	self.parts.wpn_fps_upg_a_explosive.stats = {
+		value = 5,
+		total_ammo_mod = -2,
+		damage = 50,
+		moving_spread = 3,
+		spread = -3
+	} 
+	self.parts.wpn_fps_upg_a_explosive.custom_stats = {
+		ignore_statistic = true,
+		damage_far_mul = 1.4,
+		damage_near_mul = 1.4,
+		bullet_class = "InstantExplosiveBulletBase",
+		rays = 1
+	}--He Round
 
+	self.parts.wpn_fps_upg_a_dragons_breath.stats = {value = 5, total_ammo_mod = -2, damage = 6, moving_spread = 3, spread = -1}
 	self.parts.wpn_fps_upg_a_dragons_breath.custom_stats = {
 		armor_piercing_add = 1,
 		ignore_statistic = true,
 		muzzleflash = "effects/payday2/particles/weapons/shotgun/sho_muzzleflash_dragons_breath",
 		can_shoot_through_shield = true,
-		damage_far_mul = 1,
+		damage_far_mul = 1.1,
 		damage_near_mul = 1,
 		bullet_class = "FlameBulletBase",
 		rays = 12,
 		fire_dot_data = {
-			dot_trigger_chance = "8",
+			dot_trigger_chance = "16",
 			dot_damage = "10",
 			dot_length = "3.1",
-			dot_trigger_max_distance = "1400",
+			dot_trigger_max_distance = "1500",
 			dot_tick_period = "0.5"
 		}
+	}--Dragon breath perpellet
+	self.parts.wpn_fps_upg_a_rip.stats = { value = 5, total_ammo_mod = -5, spread = 1} --Tombstone / Poison
+
+	--Exclusive Sets
+	self.parts.wpn_fps_hailstorm_conversion.stats = {
+		value = 1,
+		total_ammo_mod = 3,
+		recoil = 2,
+		concealment = -2,
+		alert_size = 8
 	}
 
 	self.parts.wpn_fps_upg_a_mod = {
@@ -117,5 +151,5 @@ function WeaponFactoryTweakData:init(tweak_data)
 		stats = {value = 5},
 		internal_part = true,
 		sub_type = "ammo_custom"
-	}
+	}--Dummy Mod
 end

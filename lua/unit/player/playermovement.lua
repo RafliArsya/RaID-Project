@@ -35,7 +35,8 @@ Hooks:PostHook(PlayerMovement, 'init', 'RaIDPost_PlayerMovement_Init', function(
 		is_hud_on = false,
 		is_pressed = false,
 		active_t = nil,
-		cooldown = nil
+		cooldown = nil,
+		hud_after_gone = nil
 	}
 end)
 
@@ -73,6 +74,12 @@ function PlayerMovement:update(unit, t, dt)
 		end
 	end
 
+	if self._ninja_gone.hud_after_gone then
+		if self._ninja_gone.hud_after_gone < t then
+			self._ninja_gone.hud_after_gone = nil
+		end
+	end
+
 	if self._ninja_gone.cooldown and self._ninja_gone.cooldown < t then
 		self._ninja_gone.is_pressed = false
 		self._ninja_gone.cooldown = nil
@@ -104,8 +111,12 @@ function PlayerMovement:ninja_escape_t(val)
 	self._ninja_gone.active_t = val
 end
 
-function PlayerMovement:ninja_escape_hud()
-	return self._ninja_gone.is_hud_on
+function PlayerMovement:ninja_escape_hud(remove)
+	if remove then
+		self._ninja_gone.hud_after_gone = nil
+	else
+		return self._ninja_gone.hud_after_gone
+	end
 end
 
 function PlayerMovement:_upd_close_fear_skill(t)

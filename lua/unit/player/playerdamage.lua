@@ -46,6 +46,8 @@ function PlayerDamage:init(unit)
 	self._dodge_inc = 0
 
 	self._doh_data = tweak_data.upgrades.damage_to_hot_data or {}
+	self._doh_damage_return_l = false
+	self._doh_damage_return = false
 	self._damage_to_hot_stack = {}
 	self._armor_stored_health = 0
 	self._can_take_dmg_timer = 0
@@ -377,6 +379,20 @@ function PlayerDamage:update(unit, t, dt)
 	self:_upd_suppression(t, dt)
 
 	if not self._dead and not self._bleed_out and not self._check_berserker_done then
+		if self._doh_damage_return_l then
+			if self._doh_damage_return_l <= t then
+				managers.player:player_unit():sound():play("perkdeck_cooldown_over")
+				self._doh_damage_return_l = nil
+			end
+		end
+		local has_regen = managers.player:health_regen() > 0
+		local has_fixed_regen = managers.player:fixed_health_regen() > 0
+		if has_regen then
+			self:_upd_health_regen_d(t, dt)
+		end
+		if has_fixed_regen then
+			self:_upd_health_regen_f(t, dt)
+		end
 		self:_upd_health_regen(t, dt)
 	end
 
@@ -399,9 +415,10 @@ function PlayerDamage:_chk_cheat_death()
 
 		if r <= base + (self._cheat_death_inc * 0.01) then
 			self._auto_revive_timer = 1
-            self._cheat_death_inc = 0
+            self._cheat_death_inc = self._cheat_death_inc == 0 and -2 or 0
 			if not send_info then
-				managers.chat:feed_system_message(ChatManager.GAME, "Feign Death Active")
+				--managers.chat:feed_system_message(ChatManager.GAME, "Feign Death Active")
+				managers.chat:send_message(ChatManager.GAME, managers.network.account:username(), managers.localization:text("FeignDeath_Chat"))
 			end
         else
             self._cheat_death_inc = self._cheat_death_inc + 2
@@ -467,8 +484,69 @@ function PlayerDamage:_drop_blood_sample()
 	end
 end
 
-function PlayerDamage:_upd_health_regen(t, dt)
+function PlayerDamage:add_damage_to_hot()
+	if self:got_max_doh_stacks() then
+		return
+	end
+
+	if self:need_revive() or self:dead() or self._check_berserker_done then
+		return
+	end
+
+	table.insert(self._damage_to_hot_stack, {
+		next_tick = TimerManager:game():time() + (self._doh_data.tick_time or 1),
+		ticks_left = (self._doh_data.total_ticks or 1) + managers.player:upgrade_value("player", "damage_to_hot_extra_ticks", 0)
+	})
+	table.sort(self._damage_to_hot_stack, function (x, y)
+		return x.next_tick < y.next_tick
+	end)
+end
+
+function PlayerDamage:_upd_health_regen_d(t, dt)
 	if self._health_regen_update_timer then
+		self._health_regen_update_timer = self._health_regen_update_timer - dt
+	
+		if self._health_regen_update_timer <= 0 then
+			self._health_regen_update_timer = nil
+		end
+	end
+	
+	if not self._health_regen_update_timer then
+		local max_health = self:_max_health()
+	
+		if self:get_real_health() < max_health then
+			self:restore_health(managers.player:health_regen(), false)
+	
+			local athird = self:get_real_health() <= max_health * 0.35
+	
+			self._health_regen_update_timer = athird and 3 or 5
+		end
+	end
+end
+
+function PlayerDamage:_upd_health_regen_f(t, dt)
+
+	if self._health_regen_update_timer_f then
+		self._health_regen_update_timer_f = self._health_regen_update_timer_f - dt
+	
+		if self._health_regen_update_timer_f <= 0 then
+			self._health_regen_update_timer_f = nil
+		end
+	end
+	
+	if not self._health_regen_update_timer_f then
+		local max_health = self:_max_health()
+	
+		if self:get_real_health() < max_health then
+			self:restore_health(managers.player:fixed_health_regen(self:health_ratio()), true)
+	
+			self._health_regen_update_timer_f = 5
+		end
+	end
+end
+
+function PlayerDamage:_upd_health_regen(t, dt)
+	--[[if self._health_regen_update_timer then
 		self._health_regen_update_timer = self._health_regen_update_timer - dt
 
 		if self._health_regen_update_timer <= 0 then
@@ -487,7 +565,7 @@ function PlayerDamage:_upd_health_regen(t, dt)
 
 			self._health_regen_update_timer = athird and 3 or 5
 		end
-	end
+	end]]
 
 	if #self._damage_to_hot_stack > 0 then
 		repeat
@@ -496,10 +574,30 @@ function PlayerDamage:_upd_health_regen(t, dt)
 
 			if not done then
 				local regen_rate = managers.player:upgrade_value("player", "damage_to_hot", 0)
+				local is_low = self:get_real_health() <= self:_max_health() * 0.5
+				local multiplication = 1
+				if is_low then
+					local hp = self:get_real_health()
+					local inc = 0
+					for i = 5, 1, -1 do
+						if hp > self:_max_health() * (i * 0.1) then
+							break
+						end
+						inc = inc + 1
+					end
+					
+					multiplication = multiplication + (inc*0.1)
+					--log(tostring(multiplication))
+					if not self._doh_damage_return_l then
+						if not self._doh_damage_return then
+							managers.player:player_unit():sound():play("perkdeck_activate")
+							self._doh_damage_return = true
+						end
+					end
+				end
 
-				local is_low = self:get_real_health() <= self:_max_health() * 0.35
-
-				self:restore_health(is_low and regen_rate * 0.25 or regen_rate, not is_low)
+				--self:restore_health(is_low and regen_rate * 0.25 or regen_rate, not is_low)
+				self:restore_health(regen_rate*multiplication, false)
 
 				next_doh.ticks_left = next_doh.ticks_left - 1
 
@@ -540,7 +638,9 @@ function PlayerDamage:band_aid_health()
 
 		managers.environment_controller:set_last_life(Application:digest_value(self._revives, false) <= 1)
 		
-		managers.chat:feed_system_message(ChatManager.GAME, "Downs restored [First Aid Kit]") --managers.chat:_receive_message(1, managers.localization:text("FAK"), managers.localization:text("FAK_Downs_Info"), Color.blue)
+		managers.chat:_receive_message(ChatManager.GAME, managers.localization:to_upper_text("menu_system_message"), managers.localization:text("FAK_SKILL_1"), tweak_data.system_chat_color)
+		--managers.chat:feed_system_message(ChatManager.GAME, "Downs restored [First Aid Kit]") 
+		--managers.chat:_receive_message(1, managers.localization:text("FAK"), managers.localization:text("FAK_Downs_Info"), Color.blue)
 		
 		self:_send_set_revives()
 		self._fak_down_restore_inc = 0
@@ -553,7 +653,9 @@ function PlayerDamage:band_aid_health()
 		
 		self._fak_recharge_messiah_inc = 0
 
-		managers.chat:feed_system_message(ChatManager.GAME, "Messiah Recharged [First Aid Kit]") --managers.chat:_receive_message(1, managers.localization:text("FAK"), managers.localization:text("FAK_Messiah_Info"), Color.blue) 
+		managers.chat:_receive_message(ChatManager.GAME, managers.localization:to_upper_text("menu_system_message"), managers.localization:text("FAK_SKILL_2"), tweak_data.system_chat_color)
+		--managers.chat:feed_system_message(ChatManager.GAME, "Messiah Recharged [First Aid Kit]") 
+		--managers.chat:_receive_message(1, managers.localization:text("FAK"), managers.localization:text("FAK_Messiah_Info"), Color.blue) 
 	else
 		self._fak_recharge_messiah_inc = self._fak_recharge_messiah_inc + math.random(10)
 	end
@@ -678,7 +780,7 @@ function PlayerDamage:damage_bullet(attack_data)
 		self:play_whizby(attack_data.col_ray.position)
 		self:_hit_direction(attack_data.attacker_unit:position())
 
-		self._next_allowed_dmg_t = Application:digest_value(pm:player_timer():time() + 1, true)
+		self._next_allowed_dmg_t = Application:digest_value(pm:player_timer():time() + 1.5, true)
 		self._last_received_dmg = attack_data.damage
 
 		self._dodge_inc = 0
@@ -691,6 +793,25 @@ function PlayerDamage:damage_bullet(attack_data)
 	local increase = dodge_value >= 0.6 and 0.02 or 10
 	local add_inc = increase > 1 and math.random(10) * 0.01 or increase
 	self._dodge_inc = self._dodge_inc + add_inc
+
+	if self._doh_damage_return and self._doh_damage_return == true then
+		if attack_data.damage > 0 then
+			--log("dodgin damage of "..tostring(attack_data.damage))
+			self:_send_damage_drama(attack_data, 0)
+		end
+		self._doh_damage_return_l = pm:player_timer():time() + 2
+		self._doh_damage_return = false
+
+		self:_call_listeners(damage_info)
+		self:play_whizby(attack_data.col_ray.position)
+		self:_hit_direction(attack_data.attacker_unit:position())
+
+		self._next_allowed_dmg_t = Application:digest_value(pm:player_timer():time() + 0.7, true)
+		self._last_received_dmg = self:_max_health()
+
+		managers.player:send_message(Message.OnPlayerDodge)
+		return
+	end
 
 	if attack_data.attacker_unit:base()._tweak_table == "tank" then
 		managers.achievment:set_script_data("dodge_this_fail", true)
@@ -855,11 +976,33 @@ function PlayerDamage:damage_fire_hit(attack_data)
 		self:play_whizby(attack_data.col_ray.position)
 		self:_hit_direction(attack_data.attacker_unit:position())
 
-		self._next_allowed_dmg_t = Application:digest_value(pm:player_timer():time() + 1, true)
+		self._next_allowed_dmg_t = Application:digest_value(pm:player_timer():time() + 1.5, true)
 		self._last_received_dmg = attack_data.damage
 
 		managers.player:send_message(Message.OnPlayerDodge)
 
+		return
+	end
+
+	local increase = dodge_value >= 0.6 and 0.02 or 10
+	local add_inc = increase > 1 and math.random(10) * 0.01 or increase
+	self._dodge_inc = self._dodge_inc + add_inc
+
+	if self._doh_damage_return and self._doh_damage_return == true then
+		if attack_data.damage > 0 then
+			self:_send_damage_drama(attack_data, 0)
+		end
+		self._doh_damage_return_l = pm:player_timer():time() + 2
+		self._doh_damage_return = false
+
+		self:_call_listeners(damage_info)
+		self:play_whizby(attack_data.col_ray.position)
+		self:_hit_direction(attack_data.attacker_unit:position())
+
+		self._next_allowed_dmg_t = Application:digest_value(pm:player_timer():time() + 0.7, true)
+		self._last_received_dmg = self:_max_health()
+
+		managers.player:send_message(Message.OnPlayerDodge)
 		return
 	end
 
@@ -1085,3 +1228,81 @@ function PlayerDamage:_revive_absorption_bonuses()
 		end
 	end
 end
+
+function PlayerDamage:_chk_dmg_too_soon(damage, dmg_eater)
+	local next_allowed_dmg_t = type(self._next_allowed_dmg_t) == "number" and self._next_allowed_dmg_t or Application:digest_value(self._next_allowed_dmg_t, false)
+
+	if dmg_eater and type(dmg_eater) == "boolean" and dmg_eater == true then
+		if damage >= self._last_received_dmg and managers.player:player_timer():time() < next_allowed_dmg_t then
+			dmg_eater = managers.player:player_timer():time() + 3
+		end
+	end
+
+	if damage <= self._last_received_dmg + 0.01 and managers.player:player_timer():time() < next_allowed_dmg_t then
+		return true
+	end
+end
+
+function PlayerDamage:_start_concussion(mul)
+	if self._concussion_data then
+		self._concussion_data.intensity = mul
+		local duration_tweak = tweak_data.projectiles.concussion.duration
+		self._concussion_data.duration = math.max(0, (duration_tweak.min + mul * math.lerp(duration_tweak.additional - 2, duration_tweak.additional + 2, math.random())) - (4 + mul * managers.player:upgrade_value("player", "flashbang_multiplier", 1)))
+		self._concussion_data.end_t = managers.player:player_timer():time() + self._concussion_data.duration
+
+		SoundDevice:set_rtpc("concussion_effect", self._concussion_data.intensity * 100)
+	else
+		local duration = 4 + mul * math.lerp(8, 12, math.random())
+		duration = math.max(0, duration - (4 + mul * managers.player:upgrade_value("player", "flashbang_multiplier", 1)))
+		self._concussion_data = {
+			intensity = mul,
+			duration = duration,
+			end_t = managers.player:player_timer():time() + duration
+		}
+	end
+
+	self._unit:sound():play("concussion_player_disoriented_sfx")
+	self._unit:sound():play("concussion_effect_on")
+end
+
+function PlayerDamage:_start_tinnitus(sound_eff_mul, skip_explosion_sfx)
+	if self._tinnitus_data then
+		if sound_eff_mul < self._tinnitus_data.intensity then
+			return
+		end
+
+		self._tinnitus_data.intensity = sound_eff_mul
+		self._tinnitus_data.duration = math.max(0, 4 + sound_eff_mul * math.lerp(8, 12, math.random()) - (4 + sound_eff_mul * managers.player:upgrade_value("player", "flashbang_multiplier", 1)))
+		self._tinnitus_data.end_t = managers.player:player_timer():time() + self._tinnitus_data.duration
+
+		if self._tinnitus_data.snd_event then
+			self._tinnitus_data.snd_event:stop()
+		end
+
+		SoundDevice:set_rtpc("downed_state_progression", math.max(self._downed_progression or 0, self._tinnitus_data.intensity * 100))
+
+		self._tinnitus_data.snd_event = self._unit:sound():play("tinnitus_beep")
+	else
+		local duration = 4 + sound_eff_mul * math.lerp(8, 12, math.random())
+		duration = math.max(0, duration - (4 + sound_eff_mul * managers.player:upgrade_value("player", "flashbang_multiplier", 1)))
+
+		SoundDevice:set_rtpc("downed_state_progression", math.max(self._downed_progression or 0, sound_eff_mul * 100))
+
+		self._tinnitus_data = {
+			intensity = sound_eff_mul,
+			duration = duration,
+			end_t = managers.player:player_timer():time() + duration,
+			snd_event = self._unit:sound():play("tinnitus_beep")
+		}
+	end
+
+	if not skip_explosion_sfx then
+		self._unit:sound():play("flashbang_explode_sfx_player")
+	end
+end
+
+--[[function PlayerDamage:_doh_return_damaged()
+	if self._doh_damage_return_l == true then
+		self._doh_damage_return_l = false
+	end
+end]]

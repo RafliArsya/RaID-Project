@@ -308,11 +308,19 @@ function WeaponFalloffTemplate.setup_weapon_falloff_templates()
 	}
 	--Special--
 	weapon_falloff_templates.SPECIAL_LOW = {
-		optimal_distance = 0,
-		optimal_range = 1500,
-		near_falloff = 0,
-		far_falloff = 300,
-		near_multiplier = 1,
+		optimal_distance = 2500,
+		optimal_range = 0,
+		near_falloff = 2000,
+		far_falloff = 2500,
+		near_multiplier = 2,
+		far_multiplier = 0.5
+	}
+	weapon_falloff_templates.SPECIAL_HIGH = {
+		optimal_distance = 2500,
+		optimal_range = 0,
+		near_falloff = 2500,
+		far_falloff = 2500,
+		near_multiplier = 1.3,
 		far_multiplier = 0.7
 	}
 

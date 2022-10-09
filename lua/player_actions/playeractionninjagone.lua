@@ -12,18 +12,19 @@ PlayerAction.NinjaGone = {
 		local sus_rat = type(player:_get_sus_rat())=="number" and player:_get_sus_rat() > 0 or type(player:_get_sus_rat())=="boolean" and tostring(player:_get_sus_rat()) == "true" and (type(last_sus)=="number" and last_sus < 1 or not last_sus)
 		local controller = player_manager:player_unit():base():controller()
 		local whisper = managers.groupai and managers.groupai:state():whisper_mode()
-		local carry = player_manager:current_state() == "carry" or player_manager:get_my_carry_data() or player_manager:is_carrying()
-		local is_pass = player_manager:current_state() == "standard" and not carry and sus_rat and whisper
+		
 
-		while is_pass do
+		while true do
 			local current_time = Application:time()
 			local button_pressed = controller:get_input_pressed("weapon_gadget")
+			local carry = player_manager:current_state() == "carry" or player_manager:get_my_carry_data() or player_manager:is_carrying()
+			local is_pass = player_manager:current_state() == "standard" and not carry and sus_rat and whisper
 
 			if not whisper then
 				break
 			end
 
-			if carry then
+			if not is_pass then
 				break
 			end
 
@@ -65,6 +66,7 @@ PlayerAction.NinjaGone = {
 				if player:current_state():_do_mover() then
 					player:current_state():_do_mover()
 				end
+				player._ninja_gone.hud_after_gone = Application:time() + 1
 				break
 			end
 

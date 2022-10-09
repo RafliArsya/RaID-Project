@@ -2,6 +2,7 @@ Hooks:PreHook(PlayerManager, "init", "RaID_PlayerManager_Init", function(self, .
 	self._has_bulletstorm = 0
 	self._has_set_active_bs = nil
 	self._fully_loaded_reserv = 0
+	self._lock_current_doh = false
 	--[[
 	self._ninja_gone = {
 		uncovered = false,
@@ -32,6 +33,14 @@ Hooks:PostHook(PlayerManager, "update", "RaID_PlayerManager_Update", function(se
 	if self._hostage_fired_t then
 		if self._hostage_fired_t < t then
 			self._hostage_fired_t = 0 or nil
+		end
+	end
+
+	if self._next_allowed_doh_t then
+		if self._next_allowed_doh_t < t then
+			if self._lock_current_doh == true then
+				self._lock_current_doh = false
+			end
 		end
 	end
 	--[[if self._ninja_gone.uncovered and not self._coroutine_mgr:is_running(PlayerAction.NinjaGone) and managers.platform:presence() == "Playing" then
@@ -161,11 +170,13 @@ function PlayerManager:check_skills()
 	if self:has_category_upgrade("player", "messiah_revive_from_bleed_out") then
 		self._messiah_charges = self:upgrade_value("player", "messiah_revive_from_bleed_out", 0)
 		self._max_messiah_charges = self._messiah_charges
+		self._messiah_state = 0
 
 		self._message_system:register(Message.OnEnemyKilled, "messiah_revive_from_bleed_out", callback(self, self, "_on_messiah_event"))
 	else
 		self._messiah_charges = 0
 		self._max_messiah_charges = self._messiah_charges
+		self._messiah_state = nil
 
 		self._message_system:unregister(Message.OnEnemyKilled, "messiah_revive_from_bleed_out")
 	end
@@ -315,6 +326,12 @@ function PlayerManager:check_skills()
 		}
 		self:unregister_message(Message.OnEnemyKilled, "long_dis_reduce")
 	end
+
+	--[[if self:has_category_upgrade("player", "damage_to_hot") then
+		self:register_message(Message.OnPlayerDamage, "doh_return_damaged", callback(PlayerDamage, PlayerDamage, "_doh_return_damaged"))
+	else
+		self:unregister_message(Message.OnPlayerDamage, "doh_return_damaged")
+	end]]
 end
 
 function PlayerManager:_update_damage_dealt(t, dt)
@@ -512,9 +529,12 @@ function PlayerManager:_check_damage_to_hot(t, unit, damage_info)
 		return
 	end
 
-	if damage_info.is_fire_dot_damage then
+	if self._lock_current_doh == true then
 		return
 	end
+	--[[if damage_info.is_fire_dot_damage then
+		return
+	end]]
 
 	local data = tweak_data.upgrades.damage_to_hot_data
 
@@ -522,7 +542,10 @@ function PlayerManager:_check_damage_to_hot(t, unit, damage_info)
 		return
 	end
 
-	if self._next_allowed_doh_t and t < self._next_allowed_doh_t then
+	local is_max_stack = player_unit:character_damage():got_max_doh_stacks()
+
+	if is_max_stack and (self._next_allowed_doh_t and t < self._next_allowed_doh_t) then
+		self._lock_current_doh = true
 		return
 	end
 
@@ -550,9 +573,17 @@ function PlayerManager:_check_damage_to_hot(t, unit, damage_info)
 
 	player_unit:character_damage():add_damage_to_hot()
 
-	local is_low = player_unit:character_damage():get_real_health() <= player_unit:character_damage():_max_health() * 0.35
+	
+	--local is_low = player_unit:character_damage():get_real_health() <= player_unit:character_damage():_max_health() * 0.35
 
-	self._next_allowed_doh_t = t + (is_low and 1 or data.stacking_cooldown or 1)
+	--self._next_allowed_doh_t = t + (is_low and 1 or data.stacking_cooldown or 1)
+	if self._next_allowed_doh_t then
+		if self._next_allowed_doh_t < t then
+			self._next_allowed_doh_t = t + (data.stacking_cooldown or 1)
+		end
+	else
+		self._next_allowed_doh_t = t + (data.stacking_cooldown or 1)
+	end
 end
 
 function PlayerManager:damage_reduction_skill_multiplier(damage_type)
@@ -783,6 +814,13 @@ end
 function PlayerManager:_on_armor_break_headshot_dealt_cd_remove()
 	if self._on_headshot_dealt_t then
 		self._on_headshot_dealt_t = 0 or nil
+	end
+end
+
+function PlayerManager:_on_messiah_event()
+	if self._messiah_charges > 0 and self._current_state == "bleed_out" and not self._coroutine_mgr:is_running("get_up_messiah") then
+		--self._coroutine_mgr:add_coroutine("get_up_messiah", PlayerAction.MessiahGetUp, self)
+		self._coroutine_mgr:add_coroutine("get_up_messiah", PlayerAction.MessiahGetUp, self, self._messiah_state)
 	end
 end
 

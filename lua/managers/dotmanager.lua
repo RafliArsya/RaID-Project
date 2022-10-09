@@ -3,13 +3,12 @@ function DOTManager:_add_doted_enemy(enemy_unit, dot_damage_received_time, weapo
 
 	for _, dot_info in ipairs(self._doted_enemies) do
 		if dot_info.enemy_unit == enemy_unit then
-			local dot_comma = dot_info.dot_times
 			dot_info.dot_times = dot_info.dot_times + 1
 			local old_length = dot_info.dot_damage_received_time + dot_info.dot_length
 			local new_length = dot_damage_received_time + dot_length
             local old_damage = dot_info.dot_damage
 			local new_damage = old_damage < dot_damage and dot_damage or old_damage
-			new_damage = math.ceil(new_damage*(dot_info.dot_times*dot_comma))
+			new_damage = math.ceil(new_damage*((dot_info.dot_times*0.05)+1))
 
             dot_info.dot_damage = new_damage
 

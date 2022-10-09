@@ -1,3 +1,6 @@
 {
 	"hud_int_ninja_escape" : "Press $BTN_GADGET to Shroud",
+	"FeignDeath_Chat" : "Feign death skill activated",
+	"FAK_SKILL_2" : "Messiah Recharged [First Aid Kit]",
+	"FAK_SKILL_1" : "Feign death skill activated",
 }

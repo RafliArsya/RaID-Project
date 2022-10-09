@@ -59,6 +59,9 @@ function UpgradesTweakData:init(...)
 		1.8
 	}
 
+	--Dealt damage CD
+	self.on_damage_dealt_cooldown = 1
+
 	--hostage handlers
 	self.hostage_max_num = {
 		damage_dampener = 2,
@@ -79,6 +82,26 @@ function UpgradesTweakData:init(...)
 		}
 	}
 
+	--muscle
+	self.values.player.passive_health_multiplier = {
+		1.1,
+		1.2,
+		1.4,
+		1.8,
+		2.5
+	}
+	--modded
+	self.values.player.muscle_dmg_eater = {true}
+	self.definitions.player_muscle_dmg_eater = {
+		category = "feature",
+		name_id = "menu_player_muscle_dmg_eater",
+		upgrade = {
+			value = 1,
+			upgrade = "muscle_dmg_eater",
+			category = "player"
+		}
+	}
+
 	--Armorer
 	self.values.player.armor_regen_timer_multiplier_passive = {
 		0.875
@@ -93,9 +116,9 @@ function UpgradesTweakData:init(...)
 		1.1, 
 		1.2, 
 		1.4, 
-		1.6, 
-		1.85,
-		2 --[[1.05, 1.1, 1.2, 1.3, 1.15, 1.35]]
+		1.8, 
+		2.6,
+		3 --[[1.05, 1.1, 1.2, 1.3, 1.15, 1.35]]
 	}
 	--add tier 7
 	self.definitions.player_tier_armor_multiplier_7 = {
@@ -108,8 +131,61 @@ function UpgradesTweakData:init(...)
 		}
 	}
 
+	--Hitman
+	self.values.player.passive_always_regen_armor = {
+		1.25
+	}
+
 	--Grinder
 	self.damage_to_hot_data = {
+		tick_time = 0.2,
+		works_with_armor_kit = true,
+		stacking_cooldown = 1.75,
+		total_ticks = 1,
+		max_stacks = 1,
+		armors_allowed = {
+			"level_1",
+			"level_2"
+		},
+		add_stack_sources = {
+			projectile = true,
+			fire = true,
+			bullet = true,
+			melee = true,
+			explosion = true,
+			civilian = false,
+			poison = true,
+			taser_tased = true,
+			swat_van = true
+		}
+	}
+	self.values.player.damage_to_hot = {
+		0.01,
+		0.02,
+		0.04,
+		0.05,
+		0.07
+	}
+	self.definitions.player_damage_to_hot_5 = {
+		name_id = "menu_player_damage_to_hot",
+		category = "feature",
+		upgrade = {
+			value = 5,
+			upgrade = "damage_to_hot",
+			category = "player"
+		}
+	}
+	self.values.player.damage_to_hot_return = {true}
+	self.definitions.player_damage_to_hot_return = {
+		category = "feature",
+		name_id = "menu_player_damage_to_hot_return",
+		upgrade = {
+			value = 1,
+			upgrade = "damage_to_hot_return",
+			category = "player"
+		}
+	}
+	--[[self.damage_to_hot_data = {
 		tick_time = 0.3,
 		works_with_armor_kit = true,
 		stacking_cooldown = 1.5,
@@ -139,10 +215,10 @@ function UpgradesTweakData:init(...)
 	}
 	self.values.player.damage_to_hot_extra_ticks = {
 		4
-	}
+	}]]
 	self.values.player.armor_piercing_chance = {
-		0.2,
-		0.4
+		0.4,
+		0.7
 	}
 
 	--Yakuza
@@ -462,6 +538,14 @@ function UpgradesTweakData:init(...)
 		hostage_absorption_limit = 8
 	}
 
+	--quick fix
+	self.values.temporary.first_aid_damage_reduction = {
+		{
+			0.86,
+			120
+		}
+	}
+
 	--combat medic
 	self.values.temporary.passive_revive_damage_reduction = {
 		{
@@ -572,7 +656,7 @@ function UpgradesTweakData:init(...)
     --fully Loaded + Buff + Fixes
 	self.values.player.regain_throwable_from_ammo = {
 		{
-			chance = 0.03,
+			chance = 0.0275,
 			chance_inc = 0.0125
 		},
 		{
@@ -631,8 +715,8 @@ function UpgradesTweakData:init(...)
 
     --feign death
     self.values.player.cheat_death_chance = {
-		0.3,
-		0.5
+		0.28,
+		0.48
 	}
 
 	--Berserker
@@ -1012,4 +1096,12 @@ function UpgradesTweakData:init(...)
 			category = "player"
 		}
 	}
+
+	--Explosive Bullet
+	self.explosive_bullet = {
+		curve_pow = 0.05,
+		player_dmg_mul = 0.1,
+		range = 350
+	}
+	
 end

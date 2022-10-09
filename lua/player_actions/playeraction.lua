@@ -1,0 +1,1 @@
+--dofile(ModPath .. 'lua/player_actions/playeractionninjagone.lua')

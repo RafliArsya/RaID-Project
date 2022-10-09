@@ -1,6 +1,6 @@
 Hooks:PostHook(PoisonGasEffect, 'init', 'RaIDPost_PoisonGasEffect_Init', function(self, position, normal, projectile_tweak, grenade_unit)
     self._unit_list_t = {}
-    self._dot_timer = TimerManager:game():time() + 3
+    self._dot_timer = TimerManager:game():time() + 2
 end)
 
 function PoisonGasEffect:update(t, dt)
@@ -36,13 +36,13 @@ function PoisonGasEffect:update(t, dt)
 						managers.dot:add_doted_enemy(unit, TimerManager:game():time(), self._grenade_unit, self._dot_data.dot_length, self._dot_data.dot_damage, hurt_animation, "poison", self._grenade_id, true)
 						table.insert(self._unit_list, unit)
                         --log("unit = "..tostring(unit:key()))
-                        self._unit_list_t[unit] = TimerManager:game():time() + (self._dot_data.dot_length * self._dot_data.dot_tick_period)
+                        self._unit_list_t[unit] = TimerManager:game():time() + 2
 					end
 				end
 			end
 
             if self._dot_timer and type(self._dot_timer)=="number" and self._dot_timer < TimerManager:game():time() then
-                self._dot_timer = TimerManager:game():time() + 3
+                self._dot_timer = TimerManager:game():time() + 2
                 
                 for key, val in pairs(self._unit_list_t) do
                     local enemy_alive = alive(key) and key:character_damage() and not key:character_damage():dead()

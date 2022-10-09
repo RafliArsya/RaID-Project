@@ -2,8 +2,13 @@ local mvec_temp = Vector3()
 local mvec_to = Vector3()
 local mvec_direction = Vector3()
 local mvec_spread_direction = Vector3()
-
-function tdump(o)
+local mvec3_set = mvector3.set
+local mvec3_sub = mvector3.subtract
+local mvec3_mul = mvector3.multiply
+local mvec3_norm = mvector3.normalize
+local tmp_vec1 = Vector3()
+local tmp_vec2 = Vector3()
+--[[function tdump(o)
 	if type(o) == 'table' then
 	   local s = '{ '
 	   for k,v in pairs(o) do
@@ -26,7 +31,7 @@ function DeepPrint(e)
     else -- if not, we can just print it
         log(tostring(e))
     end
-end
+end]]
 
 
 function ShotgunBase:_fire_raycast(user_unit, from_pos, direction, dmg_mul, shoot_player, spread_mul, autohit_mul, suppr_mul, shoot_through_data, sg_ray)
@@ -187,7 +192,7 @@ function ShotgunBase:_fire_raycast(user_unit, from_pos, direction, dmg_mul, shoo
 			end
 		end
 
-		log("LOL")
+		--log("LOL")
 		ShotgunBase.super._fire_raycast(self, user_unit, from_pos, center_ray.ray, dmg_mul, shoot_player, 0, autohit_mul, suppr_mul, shoot_through_data, sg_ray)
 	end
 
@@ -211,13 +216,13 @@ function ShotgunBase:_fire_raycast(user_unit, from_pos, direction, dmg_mul, shoo
 			headshot = true
 		end
 		sg_ray.hit_total = enemy.body.count or 0 + enemy.headshot.count or 0
-		log("whatt")
+		--log("whatt")
 		for i, v in pairs(enemy) do
 			sg_ray.headshot = headshot
 			sg_ray.dont_count = dont_count
 			local col_ray = v.ray ~= nil and v.ray or nil
 			if col_ray and col_ray.unit:character_damage() and not col_ray.unit:character_damage():dead() then
-				log("aaa "..tostring(sg_ray.hit_total))
+				--log("aaa "..tostring(sg_ray.hit_total))
 				sg_ray.current_hit = v.count and v.count or 0
 				local damage = self:get_damage_falloff(damage, col_ray, user_unit)
 	
@@ -229,7 +234,7 @@ function ShotgunBase:_fire_raycast(user_unit, from_pos, direction, dmg_mul, shoo
 					damage = damage * collection
 					
 					if add_shoot_through_bullet then
-						log("GO HERE")
+						--log("GO HERE")
 						my_result = ShotgunBase.super._fire_raycast(self, user_unit, from_pos, col_ray.ray, dmg_mul, shoot_player, 0, autohit_mul, suppr_mul, shoot_through_data, sg_ray)
 					else
 						my_result = self._bullet_class:on_collision(col_ray, self._unit, user_unit, damage, sg_ray)
@@ -449,11 +454,13 @@ function InstantBulletBase:on_collision(col_ray, weapon_unit, user_unit, damage,
 	local shield_knock = false
 	local is_shield = hit_unit:in_slot(8) and alive(hit_unit:parent())
 
-	if sg_ray then
+	--[[if sg_ray then
 		log("SG: CALL IT")
 	else
 		log("ANY: CALL IT")
-	end
+	end]]
+
+	--log("CALLING THIS")
 
 	if is_shield and not hit_unit:parent():character_damage():is_immune_to_shield_knockback() and weapon_unit then
 		shield_knock = weapon_unit:base()._shield_knock
@@ -640,9 +647,9 @@ function FlameBulletBase:give_fire_damage(col_ray, weapon_unit, user_unit, damag
 		end
 	end
 
-	if sg_ray then
+	--[[if sg_ray then
 		log("HEHEHE")
-	end
+	end]]
 
 	local action_data = {
 		variant = "fire",
@@ -677,4 +684,177 @@ function FlameBulletBase:give_fire_damage_dot(col_ray, weapon_unit, attacker_uni
 	end
 
 	return defense_data
+end
+
+function DOTBulletBase:on_collision(col_ray, weapon_unit, user_unit, damage, sg_ray, blank)
+	local result = DOTBulletBase.super.on_collision(self, col_ray, weapon_unit, user_unit, damage, sg_ray, blank, self.NO_BULLET_INPACT_SOUND)
+	local hit_unit = col_ray.unit
+
+	if hit_unit:character_damage() and hit_unit:character_damage().damage_dot and not hit_unit:character_damage():dead() then
+		result = self:start_dot_damage(col_ray, weapon_unit, self:_dot_data_by_weapon(weapon_unit))
+	end
+
+	return result
+end
+
+function DOTBulletBase:start_dot_damage(col_ray, weapon_unit, dot_data, weapon_id)
+	dot_data = dot_data or self.DOT_DATA
+	local hurt_animation = not dot_data.hurt_animation_chance or math.rand(1) < dot_data.hurt_animation_chance
+
+	managers.dot:add_doted_enemy(col_ray.unit, TimerManager:game():time(), weapon_unit, dot_data.dot_length, dot_data.dot_damage, hurt_animation, self.VARIANT or "DOT", weapon_id)
+end
+
+function DOTBulletBase:give_damage_dot(col_ray, weapon_unit, attacker_unit, damage, hurt_animation, weapon_id)
+	local action_data = {
+		variant = self.VARIANT or "DOT",
+		damage = damage,
+		weapon_unit = weapon_unit,
+		attacker_unit = attacker_unit,
+		col_ray = col_ray,
+		hurt_animation = hurt_animation,
+		weapon_id = weapon_id
+	}
+	local defense_data = {}
+
+	if col_ray and col_ray.unit and alive(col_ray.unit) and col_ray.unit:character_damage() then
+		defense_data = col_ray.unit:character_damage():damage_dot(action_data)
+	end
+
+	return defense_data
+end
+
+function PoisonBulletBase:on_collision(col_ray, weapon_unit, user_unit, damage, sg_ray, blank)
+	local result = DOTBulletBase.super.on_collision(self, col_ray, weapon_unit, user_unit, damage, sg_ray, blank, self.NO_BULLET_INPACT_SOUND)
+	local hit_unit = col_ray.unit
+
+	if hit_unit:character_damage() and hit_unit:character_damage().damage_dot and not hit_unit:character_damage():dead() then
+		result = self:start_dot_damage(col_ray, weapon_unit, self:_dot_data_by_weapon(weapon_unit))
+	end
+
+	return result
+end
+
+InstantExplosiveBulletBase.CURVE_POW = tweak_data.upgrades.explosive_bullet.curve_pow
+InstantExplosiveBulletBase.PLAYER_DMG_MUL = tweak_data.upgrades.explosive_bullet.player_dmg_mul
+InstantExplosiveBulletBase.RANGE = tweak_data.upgrades.explosive_bullet.range
+InstantExplosiveBulletBase.EFFECT_PARAMS = {
+	sound_event = "round_explode",
+	effect = "effects/payday2/particles/impacts/shotgun_explosive_round",
+	on_unit = true,
+	sound_muffle_effect = true,
+	feedback_range = tweak_data.upgrades.explosive_bullet.feedback_range,
+	camera_shake_max_mul = tweak_data.upgrades.explosive_bullet.camera_shake_max_mul,
+	idstr_decal = Idstring("explosion_round"),
+	idstr_effect = Idstring("")
+}
+
+function InstantExplosiveBulletBase:on_collision(col_ray, weapon_unit, user_unit, damage, sg_ray, blank)
+	local hit_unit = col_ray.unit
+	local hit_char_first = nil
+
+	--log("CALL THIS")
+
+	if not hit_unit:character_damage() or not hit_unit:character_damage()._no_blood then
+		self:play_impact_sound_and_effects(weapon_unit, col_ray)
+	end
+
+	local orig_rays = tweak_data.weapon[weapon_unit:base():get_name_id()].rays
+
+	damage = (damage * 2) * orig_rays
+
+	if hit_unit:character_damage() and not hit_unit:character_damage():dead() then
+		if sg_ray then
+			sg_ray.bullet_class = "InstantExplosiveBulletBase"
+			hit_char_first = InstantExplosiveBulletBase.super.on_collision(self, col_ray, weapon_unit, user_unit, damage, sg_ray)
+		end
+	end
+
+	if not blank then
+		mvec3_set(tmp_vec1, col_ray.position)
+		mvec3_set(tmp_vec2, col_ray.ray)
+		mvec3_norm(tmp_vec2)
+		mvec3_mul(tmp_vec2, 20)
+		mvec3_sub(tmp_vec1, tmp_vec2)
+
+		local network_damage = math.ceil(damage * 163.84)
+		damage = math.ceil(network_damage / 163.84)
+
+		if Network:is_server() then
+			self:on_collision_server(tmp_vec1, col_ray.normal, damage, user_unit, weapon_unit, managers.network:session():local_peer():id())
+		else
+			self:on_collision_server(tmp_vec1, col_ray.normal, damage, user_unit, weapon_unit, managers.network:session():local_peer():id())
+		end
+
+		return {
+			variant = "explosion",
+			col_ray = col_ray
+		}
+	end
+
+	return nil
+end
+
+function InstantExplosiveBulletBase:on_collision_server(position, normal, damage, user_unit, weapon_unit, owner_peer_id, owner_selection_index)
+	local slot_mask = managers.slot:get_mask("explosion_targets")
+
+	managers.explosion:play_sound_and_effects(position, normal, self.RANGE, self.EFFECT_PARAMS)
+
+	local hit_units, splinters, results = managers.explosion:detect_and_give_dmg({
+		hit_pos = position,
+		range = self.RANGE,
+		collision_slotmask = slot_mask,
+		curve_pow = self.CURVE_POW,
+		damage = damage * 2,
+		player_damage = damage * self.PLAYER_DMG_MUL,
+		alert_radius = self.ALERT_RADIUS,
+		ignore_unit = weapon_unit,
+		user = user_unit,
+		owner = weapon_unit
+	})
+	local network_damage = math.ceil(damage * 163.84)
+
+	managers.network:session():send_to_peers_synched("sync_explode_bullet", position, normal, math.min(32768, network_damage), owner_peer_id)
+
+	if managers.network:session():local_peer():id() == owner_peer_id then
+		local enemies_hit = (results.count_gangsters or 0) + (results.count_cops or 0)
+		local enemies_killed = (results.count_gangster_kills or 0) + (results.count_cop_kills or 0)
+
+		managers.statistics:shot_fired({
+			hit = false,
+			weapon_unit = weapon_unit
+		})
+
+		for i = 1, enemies_hit do
+			managers.statistics:shot_fired({
+				skip_bullet_count = true,
+				hit = true,
+				weapon_unit = weapon_unit
+			})
+		end
+
+		local weapon_pass, weapon_type_pass, count_pass, all_pass = nil
+
+		for achievement, achievement_data in pairs(tweak_data.achievement.explosion_achievements) do
+			weapon_pass = not achievement_data.weapon or true
+			weapon_type_pass = not achievement_data.weapon_type or weapon_unit:base() and weapon_unit:base().weapon_tweak_data and weapon_unit:base():is_category(achievement_data.weapon_type)
+			count_pass = not achievement_data.count or achievement_data.count <= (achievement_data.kill and enemies_killed or enemies_hit)
+			all_pass = weapon_pass and weapon_type_pass and count_pass
+
+			if all_pass and achievement_data.award then
+				managers.achievment:award(achievement_data.award)
+			end
+		end
+	else
+		local peer = managers.network:session():peer(owner_peer_id)
+		local SYNCH_MIN = 0
+		local SYNCH_MAX = 31
+		local count_cops = math.clamp(results.count_cops, SYNCH_MIN, SYNCH_MAX)
+		local count_gangsters = math.clamp(results.count_gangsters, SYNCH_MIN, SYNCH_MAX)
+		local count_civilians = math.clamp(results.count_civilians, SYNCH_MIN, SYNCH_MAX)
+		local count_cop_kills = math.clamp(results.count_cop_kills, SYNCH_MIN, SYNCH_MAX)
+		local count_gangster_kills = math.clamp(results.count_gangster_kills, SYNCH_MIN, SYNCH_MAX)
+		local count_civilian_kills = math.clamp(results.count_civilian_kills, SYNCH_MIN, SYNCH_MAX)
+
+		managers.network:session():send_to_peer_synched(peer, "sync_explosion_results", count_cops, count_gangsters, count_civilians, count_cop_kills, count_gangster_kills, count_civilian_kills, owner_selection_index)
+	end
 end

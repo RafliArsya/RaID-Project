@@ -188,10 +188,10 @@ end]]
 
 function CoreEnvironmentControllerManager:set_flashbang_multiplier(multiplier)
 	self._flashbang_multiplier = multiplier
-	self._flashbang_multiplier = self._flashbang_multiplier * 1.25
+	self._flashbang_multiplier = self._flashbang_multiplier * 1.75
 end
 
 function CoreEnvironmentControllerManager:set_concussion_multiplier(multiplier)
 	self._concussion_multiplier = multiplier
-	self._concussion_multiplier = self._concussion_multiplier * 1.5
+	self._concussion_multiplier = self._concussion_multiplier * 2
 end

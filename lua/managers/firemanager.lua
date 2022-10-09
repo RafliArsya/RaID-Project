@@ -6,14 +6,17 @@ function FireManager:_damage_fire_dot(dot_info)
 		}
 		local damage = dot_info.dot_damage
 		if dot_info.user_unit and dot_info.user_unit == managers.player:player_unit() then
-			damage = damage * 1.2
+			if dot_info.dot_mul_counter then
+				damage = damage * dot_info.dot_mul_counter
+			end
 		end
 		local ignite_character = false
 		local variant = "fire"
 		local weapon_unit = dot_info.weapon_unit
 		local is_fire_dot_damage = true
 		local is_molotov = dot_info.is_molotov
-		dot_info.dot_damage = damage
+		--dot_info.dot_damage = damage
+		dot_info.dot_mul_counter = math.min(dot_info.dot_mul_counter + 1, 10)
 
 		FlameBulletBase:give_fire_damage_dot(col_ray, weapon_unit, attacker_unit, damage, is_fire_dot_damage, is_molotov)
 	end
@@ -30,6 +33,9 @@ function FireManager:_add_doted_enemy(enemy_unit, fire_damage_received_time, wea
 				if dot_info.user_unit == user_unit then
 					local new_damage = tonumber(dot_info.dot_damage) < tonumber(dot_damage) and tonumber(dot_damage) or tonumber(dot_info.dot_damage)
 					dot_info.dot_damage = new_damage
+					if dot_info.dot_mul_counter then
+						dot_info.dot_mul_counter = math.max(math.floor(dot_info.dot_mul_counter * 0.5), 1)
+					end
 				end
 			end
 		end
@@ -43,7 +49,8 @@ function FireManager:_add_doted_enemy(enemy_unit, fire_damage_received_time, wea
 				dot_length = dot_length,
 				dot_damage = dot_damage,
 				user_unit = user_unit,
-				is_molotov = is_molotov
+				is_molotov = is_molotov,
+				dot_mul_counter = 1
 			}
 
 			table.insert(self._doted_enemies, dot_info)

@@ -846,9 +846,6 @@ function PlayerStandard:_end_action_ducking(t, skip_can_stand_check)
 end
 
 function PlayerStandard:_check_action_weapon_gadget(t, input)
-	if self._ext_movement:ninja_escape_hud() then
-		return
-	end
 	if input.btn_weapon_gadget_press then
 		self:_toggle_gadget(self._equipped_unit:base())
 	end
@@ -856,7 +853,8 @@ end
 
 function PlayerStandard:_toggle_gadget(weap_base)
 	if self._ext_movement:ninja_escape_hud() then
-		return
+		self._ext_movement:ninja_escape_hud(true)
+		return false
 	end
 	local gadget_index = 0
 
